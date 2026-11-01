@@ -23,6 +23,7 @@ export const locations = [
   { id: "clinic", name: "Clinic", zone: "campus", type: "medical" },
   { id: "pharmacy-building", name: "Pharmacy Building", zone: "campus", type: "building" },
   { id: "medicine-building", name: "Medicine Building", zone: "campus", type: "building" },
+  { id: "software-building", name: "Software Building", zone: "campus", type: "building" },
   { id: "multipurpose-hall", name: "Multipurpose Hall", zone: "campus", type: "building" },
   { id: "new-lecture-theatre", name: "New Lecture Theatre", zone: "campus", type: "building" },
   { id: "senate-building", name: "Senate Building", zone: "campus", type: "building" },
