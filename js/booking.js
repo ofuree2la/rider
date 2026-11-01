@@ -1,5 +1,5 @@
-import { createRide, getDrivers, getLocations, updateRide } from "./api.js";
-import { calculateFare } from "./pricing.js";
+import { createRide, getDrivers, getLocations, updateRide } from "./api.js?v=locations41";
+import { calculateFare } from "./pricing.js?v=locations41";
 
 const form = document.querySelector("#booking-form");
 const pickupInput = document.querySelector("#pickup");

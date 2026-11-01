@@ -1,4 +1,4 @@
-import { locations, mockDrivers, starterUsers } from "./mockData.js";
+import { locations, mockDrivers, starterUsers } from "./mockData.js?v=locations41";
 
 const STORAGE_KEYS = Object.freeze({
   users: "rider.users",
