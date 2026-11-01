@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Rider helps Veritas University students book safe, fixed-fare keke rides around campus and nearby areas."
+    />
+    <title>Rider | Campus Keke Booking</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="css/base.css" />
+    <link rel="stylesheet" href="css/components.css" />
+    <link rel="stylesheet" href="css/landing.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container nav-shell">
+        <a href="index.html" class="brand" aria-label="Rider home page">
+          <span class="brand-mark">R</span>
+          <span class="brand-text">Rider</span>
+        </a>
+
+        <div class="university-picker">
+          <label for="university"> Select University</label>
+          <select id="university" name="university" aria-label="Select university">
+            <option value="veritas-university" selected>Veritas University</option>
+          </select>
+        </div>
+
+        <nav class="site-nav" aria-label="Primary navigation">
+          <a href="#how-it-works">How it works</a>
+          <a href="#benefits">Benefits</a>
+          <a href="#faq">FAQ</a>
+        </nav>
+
+        <div class="nav-actions">
+          <a href="login.html" class="btn btn-ghost">Login</a>
+          <a href="signup.html" class="btn btn-primary">Sign up</a>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <section class="hero-section">
+        <div class="container hero-grid">
+          <div class="hero-copy">
+            <span class="eyebrow">Campus travel made easier</span>
+            <h1>Never miss your 8am again.</h1>
+            <p>
+              Book a verified keke in minutes, lock in a fixed fare, and get to
+              class without the stress of long waiting or price haggling.
+            </p>
+
+            <div class="hero-actions">
+              <a href="book.html" class="btn btn-primary btn-large">Book a Ride</a>
+              <a href="signup.html" class="btn btn-secondary btn-large">Become a Driver</a>
+            </div>
+
+            <ul class="hero-trust" aria-label="Key trust details">
+              <li>Fixed prices</li>
+              <li>Verified drivers</li>
+              <li>Scheduled rides</li>
+            </ul>
+          </div>
+
+          <div class="hero-visual" aria-label="Ride booking preview">
+            <div class="booking-card">
+              <div class="booking-header">
+                <span class="status-badge">Live</span>
+                <span class="booking-meta">Hostel to faculty</span>
+              </div>
+
+              <div class="route-row">
+                <span class="dot dot-start"></span>
+                <div>
+                  <label>Pickup</label>
+                  <strong>Hostel XX</strong>
+                </div>
+              </div>
+
+              <div class="route-line"></div>
+
+              <div class="route-row">
+                <span class="dot dot-end"></span>
+                <div>
+                  <label>Destination</label>
+                  <strong>Law faculty</strong>
+                </div>
+              </div>
+
+              <div class="fare-box">
+                <span>Total fare</span>
+                <strong>₦500</strong>
+              </div>
+
+              <div class="pickup-panel">
+                <div>
+                  <span>Driver</span>
+                  <strong>Abdullahi M.</strong>
+                </div>
+                <span class="rating">★ 4.8</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="how-it-works" class="section">
+        <div class="container">
+          <div class="section-header">
+            <span class="eyebrow accent">How it works</span>
+            <h2>Three simple steps</h2>
+          </div>
+
+          <div class="steps-grid">
+            <article class="step-card">
+              <div class="step-number">1</div>
+              <h3>Choose your route</h3>
+              <p>Select your pickup point, destination, and travel time.</p>
+            </article>
+
+            <article class="step-card">
+              <div class="step-number">2</div>
+              <h3>See your fare</h3>
+              <p>Review a transparent price before you confirm your booking.</p>
+            </article>
+
+            <article class="step-card">
+              <div class="step-number">3</div>
+              <h3>Get picked up</h3>
+              <p>Track your matched driver in real time and ride safely to class.</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section id="benefits" class="section muted-section">
+        <div class="container">
+          <div class="section-header">
+            <span class="eyebrow accent">Why students use Rider</span>
+            <h2>Travel that feels reliable</h2>
+          </div>
+
+          <div class="feature-grid">
+            <article class="feature-card">
+              <div class="icon-wrap">₦</div>
+              <h3>Fixed fares</h3>
+              <p>No more surprise price negotiations. The fare is visible before you book.</p>
+            </article>
+
+            <article class="feature-card">
+              <div class="icon-wrap">✓</div>
+              <h3>Verified drivers</h3>
+              <p>Each driver is reviewed and approved for student-safe transport.</p>
+            </article>
+
+            <article class="feature-card">
+              <div class="icon-wrap">⏰</div>
+              <h3>Scheduled rides</h3>
+              <p>Book the night before for early classes and avoid rushed morning waits.</p>
+            </article>
+
+            <article class="feature-card">
+              <div class="icon-wrap">🛡</div>
+              <h3>Safe and student-only</h3>
+              <p>Made for campus movement, with trust features and emergency support.</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="section driver-cta">
+        <div class="container cta-shell">
+          <div>
+            <span class="eyebrow accent">Earn with Rider</span>
+            <h2>Drive students around campus and make extra income.</h2>
+          </div>
+          <a href="signup.html" class="btn btn-primary btn-large">Become a Driver</a>
+        </div>
+      </section>
+
+      <section id="faq" class="section">
+        <div class="container faq-wrap">
+          <div class="section-header left-align">
+            <span class="eyebrow accent">FAQ</span>
+            <h2>Questions students ask</h2>
+          </div>
+
+          <div class="faq-list">
+            <details class="faq-item" open>
+              <summary>Can I book for early morning classes?</summary>
+              <p>Yes. Choose the scheduled ride option and select a time ahead of your class.</p>
+            </details>
+
+            <details class="faq-item">
+              <summary>Are fares fixed?</summary>
+              <p>Yes. Fares are based on zone-based routes and are shown before confirmation.</p>
+            </details>
+
+            <details class="faq-item">
+              <summary>How do I know my driver is reliable?</summary>
+              <p>Drivers are verified, rated by riders, and clearly identified before pickup.</p>
+            </details>
+
+            <details class="faq-item">
+              <summary>Does Rider work for groups?</summary>
+              <p>Yes. You can book one to three passengers on the same trip.</p>
+            </details>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container footer-shell">
+        <div>
+          <a href="index.html" class="brand footer-brand" aria-label="Rider home page">
+            <span class="brand-mark">R</span>
+            <span class="brand-text">Rider</span>
+          </a>
+          <p>Campus keke booking built for students who value safe, timely travel.</p>
+        </div>
+
+        <div>
+          <h3>Contact</h3>
+          <ul>
+            <li>support@rider.ng</li>
+            <li>+234 803 123 4567</li>
+            <li>Veritas University, Abuja</li>
+          </ul>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>

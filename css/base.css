@@ -1,0 +1,140 @@
+:root {
+  --color-brand: #16824b;
+  --color-brand-dark: #11683c;
+  --color-brand-soft: #e4f3e9;
+  --color-forest: #151715;
+  --color-forest-soft: #e9f4ed;
+  --color-cream: #f6f7f6;
+  --color-white: #ffffff;
+  --color-ink: #121412;
+  --color-slate: #606660;
+  --color-border: rgba(18, 20, 18, 0.12);
+  --color-surface: #ffffff;
+  --color-muted: #f4f5f4;
+  --color-success: #18734c;
+  --color-warning: #a97913;
+  --color-shadow: 0 16px 36px rgba(18, 20, 18, 0.08);
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --container-width: 1180px;
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+  --space-20: 5rem;
+  --font-body: 'Manrope', Inter, system-ui, sans-serif;
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.875rem;
+  --font-size-md: 1rem;
+  --font-size-lg: 1.125rem;
+  --font-size-xl: 1.5rem;
+  --font-size-2xl: 2.25rem;
+  --font-size-3xl: clamp(2.5rem, 6vw, 4.5rem);
+  --line-height-body: 1.7;
+  --line-height-heading: 1.15;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-body);
+  background: #ffffff;
+  color: var(--color-ink);
+  line-height: var(--line-height-body);
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+h1,
+h2,
+h3,
+p {
+  margin-top: 0;
+}
+
+p {
+  color: var(--color-slate);
+}
+
+ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.container {
+  width: min(var(--container-width), calc(100% - 2rem));
+  margin: 0 auto;
+}
+
+.section {
+  padding: var(--space-16) 0;
+}
+
+.muted-section {
+  background: #f6f7f6;
+}
+
+.eyebrow {
+  display: inline-block;
+  margin-bottom: 0.75rem;
+  font-size: var(--font-size-sm);
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-forest);
+}
+
+.eyebrow.accent {
+  color: var(--color-brand);
+}
+
+.section-header {
+  text-align: center;
+  margin-bottom: var(--space-10);
+}
+
+.left-align {
+  text-align: left;
+}
+
+.section-header h2 {
+  margin-bottom: 0;
+  font-size: clamp(2rem, 4vw, 3rem);
+  line-height: var(--line-height-heading);
+  color: var(--color-ink);
+}
+
+:focus-visible {
+  outline: 3px solid var(--color-brand);
+  outline-offset: 3px;
+}

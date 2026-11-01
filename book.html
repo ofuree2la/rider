@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Book a Ride | Rider</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="css/base.css" />
+    <link rel="stylesheet" href="css/components.css" />
+    <link rel="stylesheet" href="css/booking.css" />
+  </head>
+  <body class="ride-body">
+    <header class="ride-header">
+      <div class="container ride-header-inner">
+        <a href="index.html" class="brand" aria-label="Rider home page">
+          <span class="brand-mark">R</span>
+          <span class="brand-text">Rider</span>
+        </a>
+
+        <div class="university-picker">
+          <label for="university">Select University</label>
+          <select id="university" name="university" aria-label="Select university">
+            <option value="veritas-university" selected>Veritas University</option>
+          </select>
+        </div>
+      </div>
+    </header>
+
+    <main class="container ride-shell">
+      <section class="ride-panel" aria-labelledby="ride-title">
+        <div class="panel-header">
+          <span class="eyebrow accent">Get a ride</span>
+          <h1 id="ride-title">Get a ride with:</h1>
+        </div>
+
+        <div class="ride-options" role="radiogroup" aria-label="Ride options">
+          <label class="ride-option active">
+            <input type="radio" name="ride-type" checked />
+            <span class="option-label">Keke</span>
+          </label>
+
+          <label class="ride-option">
+            <input type="radio" name="ride-type" />
+            <span class="option-label">Bike</span>
+          </label>
+
+          <label class="ride-option">
+            <input type="radio" name="ride-type" />
+            <span class="option-label">Mini Bus</span>
+          </label>
+
+          <label class="ride-option disabled">
+            <input type="radio" name="ride-type" disabled />
+            <span class="option-label">Book Escort</span>
+            <span class="coming-soon">/ Coming soon</span>
+          </label>
+        </div>
+
+        <div class="booking-form">
+          <div class="field-row">
+            <label for="pickup">Pickup</label>
+            <input id="pickup" type="text" value="Hostel A" />
+          </div>
+
+          <div class="field-row">
+            <label for="destination">Destination</label>
+            <input id="destination" type="text" value="Faculty of Arts" />
+          </div>
+
+          <div class="field-row split-row">
+            <div>
+              <label for="when">When</label>
+              <input id="when" type="text" value="Now" />
+            </div>
+            <div>
+              <label for="passengers">Passengers</label>
+              <input id="passengers" type="text" value="1" />
+            </div>
+          </div>
+        </div>
+
+        <div class="fare-total" aria-label="Estimated total fare">
+          <div>
+            <span class="fare-caption">Estimated total</span>
+            <span class="fare-note">Demo fare · cash or transfer</span>
+          </div>
+          <strong>₦500</strong>
+        </div>
+
+        <button type="button" class="btn btn-primary btn-large">Find a ride</button>
+      </section>
+
+      <section class="map-panel" aria-label="Map preview">
+        <div class="map-card">
+          <div class="map-header">
+            <span class="map-badge">Live</span>
+            <span>Hostel A to Faculty of Arts</span>
+          </div>
+
+          <div class="map-surface" aria-hidden="true">
+            <div class="road road-h road-1"></div>
+            <div class="road road-v road-2"></div>
+            <div class="road road-h road-3"></div>
+            <div class="road road-v road-4"></div>
+            <div class="grid-line grid-1"></div>
+            <div class="grid-line grid-2"></div>
+            <div class="grid-line grid-3"></div>
+            <div class="grid-line grid-4"></div>
+
+            <div class="route-line route-a"></div>
+            <div class="route-line route-b"></div>
+
+            <div class="map-pin pickup-pin">A</div>
+            <div class="map-pin destination-pin">B</div>
+            <div class="map-label pickup-label">Pickup</div>
+            <div class="map-label destination-label">Destination</div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

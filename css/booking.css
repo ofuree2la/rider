@@ -1,0 +1,350 @@
+.ride-body {
+  min-height: 100vh;
+  background: linear-gradient(180deg, #f5f7f5 0%, #edf3ee 100%);
+}
+
+.ride-header {
+  border-bottom: 1px solid var(--color-border);
+  background: rgba(255, 255, 255, 0.96);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.ride-header-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 80px;
+  gap: 1rem;
+}
+
+.ride-shell {
+  display: grid;
+  gap: 1.5rem;
+  padding: 2rem 0 3rem;
+}
+
+.ride-panel,
+.map-card {
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid var(--color-border);
+  border-radius: 28px;
+  box-shadow: var(--color-shadow);
+}
+
+.ride-panel {
+  padding: 1.6rem;
+}
+
+.panel-header {
+  margin-bottom: 1.25rem;
+}
+
+.panel-header h1 {
+  margin: 0;
+  font-size: clamp(2rem, 3vw, 3rem);
+  line-height: 1.05;
+  letter-spacing: -0.06em;
+  color: var(--color-ink);
+}
+
+.ride-options {
+  display: grid;
+  gap: 0.8rem;
+  margin-bottom: 1.5rem;
+}
+
+.ride-option {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  min-height: 58px;
+  padding: 0.8rem 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: 18px;
+  background: #f7faf7;
+  cursor: pointer;
+  transition: border-color 0.18s ease, transform 0.18s ease, background-color 0.18s ease;
+}
+
+.ride-option:hover,
+.ride-option:focus-within {
+  transform: translateY(-1px);
+  border-color: rgba(22, 130, 75, 0.28);
+}
+
+.ride-option.active {
+  background: rgba(22, 130, 75, 0.08);
+  border-color: rgba(22, 130, 75, 0.28);
+}
+
+.ride-option.disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.ride-option input {
+  accent-color: var(--color-brand);
+  width: 18px;
+  height: 18px;
+  margin: 0;
+}
+
+.option-label {
+  font-weight: 800;
+  color: var(--color-ink);
+}
+
+.coming-soon {
+  margin-left: auto;
+  color: var(--color-slate);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.booking-form {
+  display: grid;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.field-row {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.field-row label {
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: var(--color-slate);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.field-row input {
+  width: 100%;
+  min-height: 52px;
+  padding: 0.8rem 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  background: #f8faf8;
+  color: var(--color-ink);
+  font-size: 1rem;
+}
+
+.split-row {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.ride-panel .btn {
+  width: 100%;
+}
+
+.fare-total {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin: 0 0 1rem;
+  padding: 1rem;
+  border: 1px solid rgba(22, 130, 75, 0.16);
+  border-radius: 16px;
+  background: #f0f7f2;
+}
+
+.fare-total > div {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.fare-caption {
+  color: var(--color-slate);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.fare-note {
+  color: var(--color-slate);
+  font-size: 0.75rem;
+}
+
+.fare-total strong {
+  color: var(--color-forest);
+  font-size: 1.65rem;
+  letter-spacing: -0.04em;
+}
+
+.map-panel {
+  padding: 0;
+}
+
+.map-card {
+  overflow: hidden;
+  min-height: 620px;
+}
+
+.map-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem 0.9rem;
+  font-weight: 800;
+  color: var(--color-ink);
+}
+
+.map-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 52px;
+  min-height: 28px;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  background: rgba(22, 130, 75, 0.1);
+  color: var(--color-brand);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.map-surface {
+  position: relative;
+  height: 560px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.8), rgba(232, 240, 234, 0.9)),
+    linear-gradient(90deg, rgba(18, 20, 18, 0.04) 1px, transparent 1px),
+    linear-gradient(rgba(18, 20, 18, 0.04) 1px, transparent 1px);
+  background-size: auto, 44px 44px, 44px 44px;
+  border-top: 1px solid var(--color-border);
+  overflow: hidden;
+}
+
+.road {
+  position: absolute;
+  background: rgba(20, 28, 22, 0.12);
+  border-radius: 999px;
+}
+
+.road-h {
+  left: 10%;
+  right: 8%;
+  height: 18px;
+}
+
+.road-v {
+  top: 10%;
+  bottom: 8%;
+  width: 18px;
+}
+
+.road-1 { top: 18%; }
+.road-2 { left: 35%; }
+.road-3 { top: 56%; }
+.road-4 { left: 66%; }
+
+.grid-line {
+  position: absolute;
+  border: 1px solid rgba(18, 20, 18, 0.08);
+}
+
+.grid-1 { inset: 18% 20% auto 36%; height: 2px; }
+.grid-2 { inset: 46% 18% auto 24%; height: 2px; }
+.grid-3 { inset: 30% 10% auto 58%; width: 2px; }
+.grid-4 { inset: 14% 58% auto 32%; width: 2px; }
+
+.route-line {
+  position: absolute;
+  height: 4px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(22, 130, 75, 0.32), rgba(22, 130, 75, 0.9));
+  box-shadow: 0 0 10px rgba(22, 130, 75, 0.2);
+}
+
+.route-a {
+  top: 58%;
+  left: 27%;
+  width: 42%;
+  transform: rotate(17deg);
+}
+
+.route-b {
+  top: 46%;
+  left: 46%;
+  width: 28%;
+  transform: rotate(-28deg);
+}
+
+.map-pin {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 3px solid #fff;
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: #fff;
+  box-shadow: 0 10px 20px rgba(18, 20, 18, 0.12);
+}
+
+.pickup-pin {
+  left: 22%;
+  top: 38%;
+  background: var(--color-brand);
+}
+
+.destination-pin {
+  right: 20%;
+  bottom: 28%;
+  background: #85b88a;
+}
+
+.map-label {
+  position: absolute;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.35rem 0.7rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.86);
+  border: 1px solid rgba(18, 20, 18, 0.06);
+  color: var(--color-ink);
+  font-size: 0.75rem;
+  font-weight: 700;
+  backdrop-filter: blur(4px);
+}
+
+.pickup-label {
+  left: 15%;
+  top: 30%;
+}
+
+.destination-label {
+  right: 14%;
+  bottom: 18%;
+}
+
+@media (min-width: 900px) {
+  .ride-shell {
+    grid-template-columns: 460px minmax(0, 1fr);
+    align-items: start;
+  }
+}
+
+@media (max-width: 760px) {
+  .ride-header-inner {
+    flex-wrap: wrap;
+    justify-content: center;
+    padding: 0.75rem 0;
+  }
+
+  .ride-shell {
+    padding-top: 1.25rem;
+  }
+}
