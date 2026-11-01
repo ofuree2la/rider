@@ -1,0 +1,475 @@
+.journey-body {
+  min-height: 100vh;
+  background: linear-gradient(180deg, #f5f7f5 0%, #edf3ee 100%);
+}
+
+.journey-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  border-bottom: 1px solid var(--color-border);
+  background: rgba(255, 255, 255, 0.96);
+}
+
+.journey-header-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 76px;
+  gap: 1rem;
+}
+
+.journey-nav {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  color: var(--color-slate);
+  font-size: 0.88rem;
+  font-weight: 800;
+}
+
+.journey-nav a:hover,
+.journey-nav a:focus-visible,
+.journey-nav a[aria-current="page"] {
+  color: var(--color-brand);
+}
+
+.journey-shell {
+  padding-top: clamp(2rem, 5vw, 3.5rem);
+  padding-bottom: 4rem;
+}
+
+.page-heading {
+  max-width: 700px;
+  margin-bottom: 1.5rem;
+}
+
+.page-heading h1 {
+  margin: 0 0 0.4rem;
+  color: var(--color-ink);
+  font-size: clamp(2.15rem, 6vw, 3.5rem);
+  letter-spacing: -0.06em;
+  line-height: 1.08;
+}
+
+.page-heading p {
+  margin-bottom: 0;
+}
+
+.journey-message {
+  margin: 1rem 0;
+  padding: 0.8rem 1rem;
+  border-radius: 12px;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.journey-message.error-message {
+  border: 1px solid rgba(166, 49, 49, 0.2);
+  background: #fff1f0;
+  color: #8d2929;
+}
+
+.journey-message.status-message {
+  border: 1px solid rgba(22, 130, 75, 0.18);
+  background: #eef7f0;
+  color: var(--color-forest);
+}
+
+.journey-message[hidden] {
+  display: none;
+}
+
+.tracking-layout {
+  display: grid;
+  gap: 1rem;
+}
+
+.tracking-layout[hidden] {
+  display: none;
+}
+
+.journey-card {
+  min-width: 0;
+  padding: clamp(1.1rem, 3vw, 1.6rem);
+  border: 1px solid var(--color-border);
+  border-radius: 22px;
+  background: #fff;
+  box-shadow: var(--color-shadow);
+}
+
+.ride-status-heading,
+.driver-heading,
+.history-section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.ride-status-heading h2,
+.driver-heading h2,
+.rating-card h2,
+.history-section-heading h2 {
+  margin: 0;
+  color: var(--color-ink);
+  font-size: clamp(1.2rem, 3vw, 1.6rem);
+  letter-spacing: -0.04em;
+}
+
+.ride-status-heading .eyebrow,
+.driver-heading .eyebrow,
+.rating-card .eyebrow,
+.history-section-heading .eyebrow {
+  margin-bottom: 0.25rem;
+}
+
+.status-badge,
+.verified-badge,
+.ride-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 30px;
+  padding: 0.25rem 0.7rem;
+  border-radius: 999px;
+  background: #edf7f0;
+  color: var(--color-success);
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: capitalize;
+  white-space: nowrap;
+}
+
+.status-badge[data-status="cancelled"] {
+  background: #fff1f0;
+  color: #8d2929;
+}
+
+.status-badge[data-status="completed"] {
+  background: #eef2ff;
+  color: #424a83;
+}
+
+.ride-progress {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.5rem;
+  margin: 1.6rem 0 0.55rem;
+  padding: 0;
+  list-style: none;
+}
+
+.ride-progress li {
+  position: relative;
+  padding-top: 1.4rem;
+  color: var(--color-slate);
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.ride-progress li::before {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 0.75rem;
+  height: 0.75rem;
+  border: 2px solid #cbd4cd;
+  border-radius: 50%;
+  background: #fff;
+  content: "";
+}
+
+.ride-progress li.is-current {
+  color: var(--color-brand-dark);
+}
+
+.ride-progress li.is-current::before,
+.ride-progress li.is-complete::before {
+  border-color: var(--color-brand);
+  background: var(--color-brand);
+}
+
+.progress-track {
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e8eee9;
+}
+
+.progress-fill {
+  display: block;
+  width: 0;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--color-brand);
+  transition: width 0.35s ease;
+}
+
+.progress-fill[data-progress="25"] { width: 25%; }
+.progress-fill[data-progress="50"] { width: 50%; }
+.progress-fill[data-progress="75"] { width: 75%; }
+.progress-fill[data-progress="100"] { width: 100%; }
+
+.route-summary {
+  display: grid;
+  gap: 0.9rem;
+  margin-top: 1.6rem;
+  padding: 1rem;
+  border-radius: 16px;
+  background: #f7faf7;
+}
+
+.route-point {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.route-point-marker {
+  flex: 0 0 auto;
+  width: 12px;
+  height: 12px;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px var(--color-brand);
+}
+
+.destination-marker {
+  border-radius: 3px;
+  box-shadow: 0 0 0 2px var(--color-ink);
+}
+
+.route-point div {
+  display: grid;
+}
+
+.route-point div span,
+.driver-details dt {
+  color: var(--color-slate);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.route-point strong {
+  color: var(--color-ink);
+  font-size: 0.95rem;
+}
+
+.ride-meta {
+  margin: 0.8rem 0 0;
+  font-size: 0.82rem;
+}
+
+.driver-heading {
+  justify-content: flex-start;
+  flex-wrap: wrap;
+}
+
+.driver-heading > div:nth-child(2) {
+  flex: 1;
+}
+
+.driver-avatar {
+  display: grid;
+  flex: 0 0 auto;
+  width: 54px;
+  height: 54px;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--color-brand-soft);
+  color: var(--color-brand-dark);
+  font-size: 1.1rem;
+  font-weight: 800;
+}
+
+.verified-badge {
+  background: #eaf5ee;
+}
+
+.verified-badge[hidden] {
+  display: none;
+}
+
+.driver-details {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  margin: 1.3rem 0;
+}
+
+.driver-details div {
+  min-width: 0;
+}
+
+.driver-details dt,
+.driver-details dd {
+  margin: 0;
+}
+
+.driver-details dd {
+  overflow-wrap: anywhere;
+  color: var(--color-ink);
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+
+.driver-details a {
+  color: var(--color-brand-dark);
+}
+
+.trip-actions,
+.journey-footer-link {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+}
+
+.emergency-action {
+  color: #8d2929;
+}
+
+.rating-card form {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.rating-card form[hidden],
+.rating-thanks[hidden] {
+  display: none;
+}
+
+.rating-card p {
+  margin-bottom: 0;
+}
+
+.rating-stars {
+  display: grid;
+  grid-template-columns: repeat(5, 46px);
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.rating-stars legend {
+  grid-column: 1 / -1;
+  margin-bottom: 0.45rem;
+  color: var(--color-slate);
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.rating-stars label {
+  position: relative;
+  display: grid;
+  width: 46px;
+  height: 46px;
+  place-items: center;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  color: #a97913;
+  font-size: 1.5rem;
+  cursor: pointer;
+}
+
+.rating-stars input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.rating-stars label:has(input:checked) {
+  border-color: #d6a52e;
+  background: #fff8df;
+}
+
+.rating-stars label:has(input:focus-visible) {
+  outline: 3px solid var(--color-brand);
+  outline-offset: 3px;
+}
+
+.comment-label {
+  color: var(--color-ink);
+  font-size: 0.85rem;
+  font-weight: 800;
+}
+
+.comment-label span {
+  color: var(--color-slate);
+  font-weight: 500;
+}
+
+.rating-card textarea {
+  width: 100%;
+  min-height: 90px;
+  padding: 0.8rem 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  background: #f8faf8;
+  color: var(--color-ink);
+  resize: vertical;
+}
+
+.journey-footer-link {
+  margin-top: 1.25rem;
+}
+
+.journey-footer-link .btn {
+  flex: 1 1 180px;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  clip-path: inset(50%);
+}
+
+@media (min-width: 820px) {
+  .tracking-layout {
+    grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
+    align-items: start;
+  }
+
+  .route-card {
+    grid-row: span 2;
+  }
+}
+
+@media (max-width: 520px) {
+  .journey-header-inner {
+    min-height: 66px;
+  }
+
+  .journey-nav {
+    gap: 0.7rem;
+    font-size: 0.76rem;
+  }
+
+  .ride-status-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .ride-progress {
+    gap: 0.3rem;
+  }
+
+  .ride-progress li {
+    font-size: 0.6rem;
+  }
+
+  .driver-details {
+    gap: 0.8rem;
+  }
+
+  .trip-actions .btn {
+    flex: 1 1 100%;
+  }
+}

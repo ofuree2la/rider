@@ -1,4 +1,4 @@
-import { locations, mockDrivers, starterUsers } from "./mockData.js?v=locations41";
+import { locations, mockDrivers, starterUsers } from "./mockData.js?v=step4";
 
 const STORAGE_KEYS = Object.freeze({
   users: "rider.users",
@@ -99,6 +99,15 @@ export function getRides(filters = {}) {
     .map(clone);
 }
 
+export function getRide(rideId) {
+  if (typeof rideId !== "string" || !rideId.trim()) {
+    throw new TypeError("A ride ID is required.");
+  }
+
+  const ride = getRidesFromStorage().find((candidate) => candidate.id === rideId);
+  return ride ? clone(ride) : null;
+}
+
 export function createRide(rideInput) {
   if (!rideInput || typeof rideInput !== "object") {
     throw new TypeError("Ride details are required.");
@@ -157,6 +166,59 @@ export function updateRide(rideId, updates) {
   rides[rideIndex] = { ...rides[rideIndex], ...clone(allowedUpdates) };
   writeStoredValue(STORAGE_KEYS.rides, rides);
   return clone(rides[rideIndex]);
+}
+
+export function cancelScheduledRide(rideId) {
+  const ride = getRide(rideId);
+  if (!ride) {
+    throw new Error("This ride could not be found.");
+  }
+  if (ride.timing !== "scheduled") {
+    throw new Error("Only scheduled rides can be cancelled from ride history.");
+  }
+  if (["completed", "cancelled", "on-trip"].includes(ride.status)) {
+    throw new Error("This ride can no longer be cancelled.");
+  }
+  const scheduledAt = new Date(ride.scheduledAt);
+  if (Number.isNaN(scheduledAt.getTime())) {
+    throw new Error("This ride has an invalid scheduled pickup time.");
+  }
+  if (scheduledAt <= new Date()) {
+    throw new Error("This scheduled ride is no longer eligible for cancellation.");
+  }
+
+  return updateRide(rideId, {
+    status: "cancelled",
+    cancelledAt: new Date().toISOString(),
+  });
+}
+
+export function rateRide(rideId, rating, comment = "") {
+  if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
+    throw new RangeError("Choose a rating from 1 to 5 stars.");
+  }
+  if (typeof comment !== "string" || comment.length > 500) {
+    throw new TypeError("Comments must be 500 characters or fewer.");
+  }
+
+  const ride = getRide(rideId);
+  if (!ride) {
+    throw new Error("This ride could not be found.");
+  }
+  if (ride.status !== "completed") {
+    throw new Error("You can rate a ride after it is completed.");
+  }
+  if (ride.rating) {
+    throw new Error("This ride has already been rated.");
+  }
+
+  return updateRide(rideId, {
+    rating: {
+      stars: rating,
+      comment: comment.trim(),
+      submittedAt: new Date().toISOString(),
+    },
+  });
 }
 
 export function login(email, password) {

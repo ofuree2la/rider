@@ -1,4 +1,4 @@
-import { locations } from "./mockData.js?v=locations41";
+import { locations } from "./mockData.js?v=step4";
 
 // PLACEHOLDER flat fares. Replace them with real figures from a cost-per-trip
 // calculation before using Rider operationally. These are final fares per rider;

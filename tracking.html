@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#16824b" />
+    <title>Track your ride | Rider</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="css/base.css" />
+    <link rel="stylesheet" href="css/components.css" />
+    <link rel="stylesheet" href="css/tracking.css?v=step4" />
+    <script type="module" src="js/tracking.js?v=step4"></script>
+  </head>
+  <body class="journey-body">
+    <header class="journey-header">
+      <div class="container journey-header-inner">
+        <a href="index.html" class="brand" aria-label="Rider home page">
+          <span class="brand-mark">R</span>
+          <span class="brand-text">Rider</span>
+        </a>
+        <nav class="journey-nav" aria-label="Ride navigation">
+          <a href="book.html">Book a ride</a>
+          <a href="history.html">Ride history</a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="container journey-shell">
+      <div class="page-heading">
+        <span class="eyebrow accent">Your journey</span>
+        <h1>Track your ride</h1>
+        <p>Ride progress and driver details for your campus trip.</p>
+      </div>
+
+      <p id="tracking-error" class="journey-message error-message" role="alert" hidden></p>
+      <p id="tracking-status" class="journey-message status-message" role="status" aria-live="polite" hidden></p>
+
+      <section id="tracking-content" class="tracking-layout" aria-label="Ride tracking" hidden>
+        <div class="journey-card route-card">
+          <div class="ride-status-heading">
+            <div>
+              <span class="eyebrow accent">Ride status</span>
+              <h2 id="ride-status-label" aria-live="polite">Driver accepted</h2>
+            </div>
+            <span id="ride-status-badge" class="status-badge">Accepted</span>
+          </div>
+
+          <ol id="ride-progress" class="ride-progress" aria-label="Ride progress">
+            <li data-status-step="accepted">Driver accepted</li>
+            <li data-status-step="arriving">Driver arriving</li>
+            <li data-status-step="on-trip">On your way</li>
+            <li data-status-step="completed">Ride completed</li>
+          </ol>
+          <div class="progress-track" role="progressbar" aria-label="Ride progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="25">
+            <span id="progress-fill" class="progress-fill" data-progress="25"></span>
+          </div>
+
+          <div class="route-summary">
+            <div class="route-point">
+              <span class="route-point-marker pickup-marker" aria-hidden="true"></span>
+              <div><span>Pickup</span><strong id="ride-pickup"></strong></div>
+            </div>
+            <div class="route-point">
+              <span class="route-point-marker destination-marker" aria-hidden="true"></span>
+              <div><span>Destination</span><strong id="ride-destination"></strong></div>
+            </div>
+          </div>
+          <p id="ride-schedule" class="ride-meta"></p>
+        </div>
+
+        <section class="journey-card driver-card" aria-labelledby="driver-title">
+          <div class="driver-heading">
+            <div class="driver-avatar" id="driver-avatar" aria-hidden="true">R</div>
+            <div>
+              <span class="eyebrow accent">Your keke driver</span>
+              <h2 id="driver-title">Driver details</h2>
+            </div>
+            <span id="verified-badge" class="verified-badge">Verified</span>
+          </div>
+          <dl class="driver-details">
+            <div><dt>Driver</dt><dd id="driver-name"></dd></div>
+            <div><dt>Keke plate</dt><dd id="driver-plate"></dd></div>
+            <div><dt>Rating</dt><dd id="driver-rating"></dd></div>
+            <div><dt>Phone</dt><dd><a id="driver-phone" href=""></a></dd></div>
+          </dl>
+          <div class="trip-actions">
+            <button id="share-trip" class="btn btn-secondary" type="button">Share my trip</button>
+            <a class="btn btn-ghost emergency-action" href="tel:112">Emergency call · 112</a>
+          </div>
+        </section>
+
+        <section class="journey-card rating-card" aria-label="Ride rating">
+          <div id="rating-thanks" class="rating-thanks" aria-labelledby="rating-thanks-title" hidden>
+            <h2 id="rating-thanks-title">Thanks for riding with Rider</h2>
+            <p>Your feedback helps us improve campus rides.</p>
+          </div>
+          <form id="rating-form" aria-labelledby="rating-form-title" hidden>
+            <span class="eyebrow accent">Ride complete</span>
+            <h2 id="rating-form-title">How was your ride?</h2>
+            <fieldset class="rating-stars">
+              <legend>Your rating</legend>
+              <label><input type="radio" name="rating" value="1" required /><span aria-hidden="true">★</span><span class="visually-hidden">1 star</span></label>
+              <label><input type="radio" name="rating" value="2" /><span aria-hidden="true">★</span><span class="visually-hidden">2 stars</span></label>
+              <label><input type="radio" name="rating" value="3" /><span aria-hidden="true">★</span><span class="visually-hidden">3 stars</span></label>
+              <label><input type="radio" name="rating" value="4" /><span aria-hidden="true">★</span><span class="visually-hidden">4 stars</span></label>
+              <label><input type="radio" name="rating" value="5" /><span aria-hidden="true">★</span><span class="visually-hidden">5 stars</span></label>
+            </fieldset>
+            <label class="comment-label" for="rating-comment">Comment <span>(optional)</span></label>
+            <textarea id="rating-comment" name="comment" rows="3" maxlength="500" placeholder="Tell us about your ride"></textarea>
+            <button class="btn btn-primary" type="submit">Submit rating</button>
+          </form>
+        </section>
+      </section>
+
+      <div class="journey-footer-link">
+        <a class="btn btn-secondary" href="history.html">View ride history</a>
+        <a class="btn btn-primary" href="book.html">Book another ride</a>
+      </div>
+    </main>
+  </body>
+</html>

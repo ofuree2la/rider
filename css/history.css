@@ -1,0 +1,97 @@
+@import url("./tracking.css");
+
+.history-shell {
+  display: grid;
+  gap: 1rem;
+}
+
+.history-shell .page-heading {
+  margin-bottom: 0;
+}
+
+.history-section {
+  padding: clamp(1.1rem, 3vw, 1.6rem);
+}
+
+.history-section-heading {
+  margin-bottom: 1.1rem;
+}
+
+.ride-count {
+  background: #f1f3f1;
+  color: var(--color-slate);
+  text-transform: none;
+}
+
+.ride-list {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.ride-history-card {
+  display: grid;
+  gap: 0.65rem;
+  padding: 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  background: #fbfcfb;
+}
+
+.ride-history-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.ride-history-heading h3 {
+  margin: 0;
+  color: var(--color-ink);
+  font-size: 1rem;
+  line-height: 1.4;
+}
+
+.ride-history-meta {
+  margin: 0;
+  font-size: 0.8rem;
+}
+
+.ride-history-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.ride-history-actions .btn {
+  min-height: 42px;
+  padding: 0.65rem 0.95rem;
+  font-size: 0.82rem;
+}
+
+.cancel-ride-button {
+  color: #8d2929;
+}
+
+.empty-state {
+  margin: 0;
+  padding: 1.2rem;
+  border: 1px dashed rgba(18, 20, 18, 0.2);
+  border-radius: 14px;
+  color: var(--color-slate);
+  font-size: 0.88rem;
+}
+
+.empty-state[hidden] {
+  display: none;
+}
+
+@media (max-width: 520px) {
+  .history-section-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .ride-history-heading {
+    flex-direction: column;
+  }
+}

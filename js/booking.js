@@ -1,5 +1,5 @@
-import { createRide, getDrivers, getLocations, updateRide } from "./api.js?v=locations41";
-import { calculateFare } from "./pricing.js?v=locations41";
+import { createRide, getDrivers, getLocations, updateRide } from "./api.js?v=step4";
+import { calculateFare } from "./pricing.js?v=step4";
 
 const form = document.querySelector("#booking-form");
 const pickupInput = document.querySelector("#pickup");
@@ -17,6 +17,7 @@ const statusElement = document.querySelector("#booking-status");
 const findRideButton = document.querySelector("#find-ride");
 const matchCard = document.querySelector("#match-card");
 const matchDetails = document.querySelector("#match-details");
+const matchTrackingLink = document.querySelector("#match-tracking-link");
 const mapRouteLabel = document.querySelector("#map-route-label");
 
 const currencyFormatter = new Intl.NumberFormat("en-NG", {
@@ -391,8 +392,9 @@ async function findRide(event) {
 
     matchDetails.textContent =
       `${driver.name} · ${driver.plateNumber} · ★ ${driver.rating} · ${matchedRide.pickup.name} to ${matchedRide.destination.name}`;
+    matchTrackingLink.href = `tracking.html?id=${encodeURIComponent(matchedRide.id)}`;
     matchCard.hidden = false;
-    showStatus("Your keke has been matched. Tracking details will be available in the next prototype step.");
+    showStatus("Your keke has been matched. Open ride tracking to see driver details and ride progress.");
   } catch (error) {
     showError(error.message);
   } finally {
