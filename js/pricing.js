@@ -1,4 +1,4 @@
-import { locations } from "./mockData.js?v=step4";
+import { locations } from "./mockData.js?v=seats4";
 
 // PLACEHOLDER flat fares. Replace them with real figures from a cost-per-trip
 // calculation before using Rider operationally. These are final fares per rider;
@@ -41,7 +41,7 @@ export const FARE_CONFIG = {
   sharedRide: {
     enabled: false,
     minimumPassengers: 2,
-    maximumPassengers: 3,
+    maximumPassengers: 4,
   },
 };
 

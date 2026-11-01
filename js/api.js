@@ -1,4 +1,4 @@
-import { locations, mockDrivers, starterUsers } from "./mockData.js?v=step4";
+import { locations, mockDrivers, starterUsers } from "./mockData.js?v=seats4";
 
 const STORAGE_KEYS = Object.freeze({
   users: "rider.users",
@@ -127,8 +127,8 @@ export function createRide(rideInput) {
   }
 
   const passengers = Number(rideInput.passengers ?? 1);
-  if (!Number.isInteger(passengers) || passengers < 1 || passengers > 3) {
-    throw new RangeError("Passenger count must be between 1 and 3.");
+  if (!Number.isInteger(passengers) || passengers < 1 || passengers > 4) {
+    throw new RangeError("Passenger count must be between 1 and 4.");
   }
 
   const rides = getRidesFromStorage();
