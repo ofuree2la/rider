@@ -22,6 +22,9 @@ const currencyFormatter = new Intl.NumberFormat("en-NG", {
   currency: "NGN",
   maximumFractionDigits: 0,
 });
+const passengerCountFormatter = new Intl.NumberFormat("en-NG", {
+  maximumFractionDigits: 0,
+});
 
 let locations = [];
 
@@ -84,12 +87,12 @@ function getFareForCurrentSelection() {
   return calculateFare(pickup, destination, getFareTime(), Number(passengerSelect.value));
 }
 
-function appendBreakdownRow(label, amount) {
+function appendBreakdownRow(label, amount, formatter = currencyFormatter) {
   const row = document.createElement("div");
   const term = document.createElement("dt");
   const description = document.createElement("dd");
   term.textContent = label;
-  description.textContent = currencyFormatter.format(amount);
+  description.textContent = formatter.format(amount);
   row.append(term, description);
   fareBreakdownElement.append(row);
 }
@@ -126,20 +129,14 @@ function updateFareEstimate() {
 
   try {
     const fare = getFareForCurrentSelection();
-    fareTotalElement.textContent = currencyFormatter.format(fare.total);
+    fareTotalElement.textContent = currencyFormatter.format(fare.rideTotal);
     fareBreakdownElement.replaceChildren();
 
-    appendBreakdownRow(fare.shared ? "Base fare (per passenger)" : "Base fare", fare.base);
-    appendBreakdownRow("Early-morning surcharge", fare.surcharges.earlyMorning);
-    appendBreakdownRow("Peak-hour surcharge", fare.surcharges.peakHour);
-
-    if (fare.shared) {
-      appendBreakdownRow("Total per passenger", fare.total);
-      appendBreakdownRow(`Group total (${fare.passengers} passengers)`, fare.rideTotal);
-      fareNoteElement.textContent = "Shared-ride estimate. Demo fare; replace placeholder fares before launch.";
-    } else {
-      fareNoteElement.textContent = "Demo fare estimate. Replace placeholder fares before launch.";
-    }
+    appendBreakdownRow("Fare per passenger", fare.perPassenger);
+    appendBreakdownRow("Passengers", fare.passengers, passengerCountFormatter);
+    appendBreakdownRow("Total fare", fare.rideTotal);
+    fareNoteElement.textContent =
+      "Fixed demo fare per person. Time-based surcharges are off; replace placeholder fares before launch.";
 
     errorElement.hidden = true;
   } catch (error) {

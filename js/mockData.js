@@ -1,20 +1,39 @@
 // Demo-only seed data for the Rider front-end prototype.
 // Update these records as campus locations and verified drivers change.
 export const locations = [
-  { id: "hostel-a", name: "Hostel A", zone: "hostels", type: "hostel" },
-  { id: "hostel-b", name: "Hostel B", zone: "hostels", type: "hostel" },
-  { id: "hostel-c", name: "Hostel C", zone: "hostels", type: "hostel" },
-  { id: "main-gate", name: "Main Gate", zone: "campus-edge", type: "gate" },
-  { id: "lecture-hall-1", name: "Lecture Hall 1", zone: "campus-core", type: "lecture-hall" },
-  { id: "lecture-hall-2", name: "Lecture Hall 2", zone: "campus-core", type: "lecture-hall" },
-  { id: "library", name: "University Library", zone: "campus-core", type: "library" },
-  { id: "cafeteria", name: "Cafeteria", zone: "campus-core", type: "cafeteria" },
-  { id: "law-faculty", name: "Law Faculty", zone: "campus-core", type: "faculty" },
-  { id: "arts-faculty", name: "Faculty of Arts", zone: "campus-core", type: "faculty" },
-  { id: "chapel", name: "Chapel", zone: "campus-core", type: "chapel" },
-  { id: "admin-block", name: "Administration Block", zone: "campus-edge", type: "admin" },
-  { id: "bwari-junction", name: "Bwari Junction", zone: "nearby", type: "junction" },
-  { id: "bwari-market", name: "Bwari Market", zone: "nearby", type: "market" },
+  ...Array.from({ length: 16 }, (_, index) => {
+    const letter = String.fromCharCode(65 + index);
+    return {
+      id: `hostel-${letter.toLowerCase()}`,
+      name: `Hostel ${letter}`,
+      zone: "standard",
+      type: "hostel",
+    };
+  }),
+  { id: "cicl", name: "CICL", zone: "standard", type: "hostel" },
+  { id: "paetos", name: "PAETOS", zone: "standard", type: "hostel" },
+  { id: "old-kelson", name: "Old Kelson", zone: "standard", type: "hostel" },
+  { id: "new-kelson", name: "New Kelson", zone: "standard", type: "hostel" },
+  { id: "stanzel-hostel", name: "Stanzel Hostel", zone: "standard", type: "hostel" },
+  { id: "hostel-r", name: "Hostel R", zone: "premium-hostel", type: "hostel" },
+  { id: "hostel-s", name: "Hostel S", zone: "premium-hostel", type: "hostel" },
+  { id: "hostel-t", name: "Hostel T", zone: "premium-hostel", type: "hostel" },
+  { id: "law-faculty", name: "Law Faculty", zone: "campus", type: "faculty" },
+  { id: "auditorium", name: "Auditorium", zone: "campus", type: "building" },
+  { id: "clinic", name: "Clinic", zone: "campus", type: "medical" },
+  { id: "pharmacy-building", name: "Pharmacy Building", zone: "campus", type: "building" },
+  { id: "medicine-building", name: "Medicine Building", zone: "campus", type: "building" },
+  { id: "multipurpose-hall", name: "Multipurpose Hall", zone: "campus", type: "building" },
+  { id: "new-lecture-theatre", name: "New Lecture Theatre", zone: "campus", type: "building" },
+  { id: "senate-building", name: "Senate Building", zone: "campus", type: "building" },
+  { id: "chapel", name: "Chapel", zone: "campus", type: "chapel" },
+  { id: "boys-hostel-gate", name: "Boys Hostel Gate", zone: "campus", type: "gate" },
+  { id: "school-gate", name: "School Gate", zone: "campus", type: "gate" },
+  { id: "block-a", name: "Block A", zone: "campus", type: "building" },
+  { id: "block-b", name: "Block B", zone: "campus", type: "building" },
+  { id: "block-c", name: "Block C", zone: "campus", type: "building" },
+  { id: "block-d", name: "Block D", zone: "campus", type: "building" },
+  { id: "veritas-cafe", name: "Veritas Cafe", zone: "campus", type: "cafeteria" },
 ];
 
 export const mockDrivers = [
