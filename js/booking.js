@@ -2,8 +2,10 @@ import { createRide, getDrivers, getLocations, updateRide } from "./api.js";
 import { calculateFare } from "./pricing.js";
 
 const form = document.querySelector("#booking-form");
-const pickupSelect = document.querySelector("#pickup");
-const destinationSelect = document.querySelector("#destination");
+const pickupInput = document.querySelector("#pickup");
+const destinationInput = document.querySelector("#destination");
+const pickupSuggestions = document.querySelector("#pickup-suggestions");
+const destinationSuggestions = document.querySelector("#destination-suggestions");
 const passengerSelect = document.querySelector("#passengers");
 const scheduledFields = document.querySelector("#scheduled-fields");
 const scheduledAtInput = document.querySelector("#scheduled-at");
@@ -27,23 +29,13 @@ const passengerCountFormatter = new Intl.NumberFormat("en-NG", {
 });
 
 let locations = [];
+let selectedPickup = null;
+let selectedDestination = null;
+const activeSuggestionIndexes = new WeakMap();
 
 function localDateTimeValue(date) {
   const offsetMilliseconds = date.getTimezoneOffset() * 60_000;
   return new Date(date.getTime() - offsetMilliseconds).toISOString().slice(0, 16);
-}
-
-function escapeHtml(value) {
-  return String(value).replace(/[&<>"']/g, (character) => {
-    const entities = {
-      "&": "&amp;",
-      "<": "&lt;",
-      ">": "&gt;",
-      '"': "&quot;",
-      "'": "&#39;",
-    };
-    return entities[character];
-  });
 }
 
 function showError(message) {
@@ -65,10 +57,6 @@ function clearMessages() {
   statusElement.hidden = true;
 }
 
-function getSelectedLocation(selectElement) {
-  return locations.find((location) => location.id === selectElement.value);
-}
-
 function getFareTime() {
   const timing = form.elements.timing.value;
   if (timing === "scheduled") {
@@ -78,8 +66,8 @@ function getFareTime() {
 }
 
 function getFareForCurrentSelection() {
-  const pickup = getSelectedLocation(pickupSelect);
-  const destination = getSelectedLocation(destinationSelect);
+  const pickup = selectedPickup;
+  const destination = selectedDestination;
   if (!pickup || !destination || pickup.id === destination.id) {
     return null;
   }
@@ -98,8 +86,8 @@ function appendBreakdownRow(label, amount, formatter = currencyFormatter) {
 }
 
 function updateFareEstimate() {
-  const pickup = getSelectedLocation(pickupSelect);
-  const destination = getSelectedLocation(destinationSelect);
+  const pickup = selectedPickup;
+  const destination = selectedDestination;
   mapRouteLabel.textContent =
     pickup && destination ? `${pickup.name} to ${destination.name}` : "Choose your route";
 
@@ -149,52 +137,162 @@ function updateFareEstimate() {
 
 function populateLocations() {
   locations = getLocations();
-  pickupSelect.replaceChildren();
-  destinationSelect.replaceChildren();
-
-  for (const selectElement of [pickupSelect, destinationSelect]) {
-    const placeholder = document.createElement("option");
-    placeholder.value = "";
-    placeholder.textContent = "Select a location";
-    placeholder.disabled = true;
-    placeholder.selected = true;
-    selectElement.append(placeholder);
-
-    for (const location of locations) {
-      const option = document.createElement("option");
-      option.value = location.id;
-      option.textContent = location.name;
-      selectElement.append(option);
-    }
-  }
-
   if (locations.length < 2) {
     showError("At least two locations are needed before a ride can be booked.");
     findRideButton.disabled = true;
+  }
+}
+
+function normalizeSearchText(value) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+}
+
+function findLocationMatches(query, excludedLocationId) {
+  const normalizedQuery = normalizeSearchText(query);
+  const queryWords = normalizedQuery.split(/\s+/).filter(Boolean);
+
+  return locations
+    .filter((location) => location.id !== excludedLocationId)
+    .map((location) => {
+      const normalizedName = normalizeSearchText(location.name);
+      const normalizedId = normalizeSearchText(location.id.replace(/-/g, " "));
+      const searchableText = `${normalizedName} ${normalizedId}`;
+      const allWordsMatch =
+        queryWords.length > 0 &&
+        queryWords.every((word) =>
+          searchableText.split(/\s+/).some((candidate) => candidate.startsWith(word)),
+        );
+
+      if (!normalizedQuery || normalizedName.includes(normalizedQuery) || allWordsMatch) {
+        const score = normalizedName.startsWith(normalizedQuery)
+          ? 0
+          : normalizedName.includes(normalizedQuery)
+            ? 1
+            : 2;
+        return { location, score };
+      }
+
+      return null;
+    })
+    .filter(Boolean)
+    .sort((first, second) => first.score - second.score || first.location.name.localeCompare(second.location.name))
+    .slice(0, 8)
+    .map(({ location }) => location);
+}
+
+function closeSuggestions(input, listbox) {
+  listbox.hidden = true;
+  listbox.replaceChildren();
+  input.setAttribute("aria-expanded", "false");
+  input.removeAttribute("aria-activedescendant");
+  activeSuggestionIndexes.delete(input);
+}
+
+function selectLocation(input, listbox, location, onSelect) {
+  input.value = location.name;
+  input.dataset.locationId = location.id;
+  closeSuggestions(input, listbox);
+  onSelect(location);
+  clearMessages();
+  updateFareEstimate();
+}
+
+function renderSuggestions(input, listbox, onSelect) {
+  const otherSelectedLocation =
+    input === pickupInput ? selectedDestination : selectedPickup;
+  const matches = findLocationMatches(input.value, otherSelectedLocation?.id);
+  listbox.replaceChildren();
+
+  if (matches.length === 0) {
+    const emptyMessage = document.createElement("div");
+    emptyMessage.className = "suggestion-empty";
+    emptyMessage.textContent = input.value.trim()
+      ? "No matching campus locations"
+      : "No available locations";
+    listbox.append(emptyMessage);
+    listbox.hidden = false;
+    input.setAttribute("aria-expanded", "true");
     return;
   }
 
-  pickupSelect.value = locations[0].id;
-  destinationSelect.value = locations.find((location) => location.id !== pickupSelect.value).id;
-  updateLocationAvailability();
+  matches.forEach((location, index) => {
+    const option = document.createElement("button");
+    option.type = "button";
+    option.className = "location-suggestion";
+    option.id = `${listbox.id}-option-${index}`;
+    option.setAttribute("role", "option");
+    option.setAttribute("aria-selected", "false");
+    option.textContent = location.name;
+    option.addEventListener("pointerdown", (event) => event.preventDefault());
+    option.addEventListener("click", () => selectLocation(input, listbox, location, onSelect));
+    listbox.append(option);
+  });
+
+  activeSuggestionIndexes.set(input, -1);
+  listbox.hidden = false;
+  input.setAttribute("aria-expanded", "true");
 }
 
-function updateLocationAvailability(changedSelect) {
-  if (pickupSelect.value && pickupSelect.value === destinationSelect.value) {
-    const otherSelect = changedSelect === pickupSelect ? destinationSelect : pickupSelect;
-    const alternative = locations.find((location) => location.id !== changedSelect.value);
-    if (alternative) {
-      otherSelect.value = alternative.id;
-    }
+function moveActiveSuggestion(input, listbox, direction) {
+  const options = [...listbox.querySelectorAll('[role="option"]')];
+  if (options.length === 0) {
+    return;
   }
 
-  for (const option of pickupSelect.options) {
-    option.disabled = option.value !== "" && option.value === destinationSelect.value;
-  }
-  for (const option of destinationSelect.options) {
-    option.disabled = option.value !== "" && option.value === pickupSelect.value;
-  }
-  updateFareEstimate();
+  const currentIndex = activeSuggestionIndexes.get(input) ?? -1;
+  const nextIndex =
+    currentIndex === -1
+      ? direction > 0 ? 0 : options.length - 1
+      : (currentIndex + direction + options.length) % options.length;
+
+  options.forEach((option, index) => {
+    const isActive = index === nextIndex;
+    option.setAttribute("aria-selected", String(isActive));
+    if (isActive) {
+      input.setAttribute("aria-activedescendant", option.id);
+      option.scrollIntoView({ block: "nearest" });
+    }
+  });
+  activeSuggestionIndexes.set(input, nextIndex);
+}
+
+function enableLocationAutocomplete(input, listbox, onSelect) {
+  input.addEventListener("input", () => {
+    input.dataset.locationId = "";
+    onSelect(null);
+    clearMessages();
+    renderSuggestions(input, listbox, onSelect);
+    updateFareEstimate();
+  });
+
+  input.addEventListener("focus", () => renderSuggestions(input, listbox, onSelect));
+
+  input.addEventListener("keydown", (event) => {
+    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+      event.preventDefault();
+      if (listbox.hidden) {
+        renderSuggestions(input, listbox, onSelect);
+      }
+      moveActiveSuggestion(input, listbox, event.key === "ArrowDown" ? 1 : -1);
+    } else if (event.key === "Enter" && !listbox.hidden) {
+      const activeIndex = activeSuggestionIndexes.get(input) ?? -1;
+      const activeOption = listbox.querySelectorAll('[role="option"]')[activeIndex];
+      if (activeOption) {
+        event.preventDefault();
+        activeOption.click();
+      }
+    } else if (event.key === "Escape") {
+      closeSuggestions(input, listbox);
+    }
+  });
+
+  input.addEventListener("blur", () => {
+    window.setTimeout(() => closeSuggestions(input, listbox), 100);
+  });
 }
 
 function updateTimingFields() {
@@ -206,11 +304,11 @@ function updateTimingFields() {
 }
 
 function validateBooking() {
-  const pickup = getSelectedLocation(pickupSelect);
-  const destination = getSelectedLocation(destinationSelect);
+  const pickup = selectedPickup;
+  const destination = selectedDestination;
 
   if (!pickup || !destination) {
-    throw new Error("Select both a pickup and destination.");
+    throw new Error("Choose both pickup and destination from the location suggestions.");
   }
   if (pickup.id === destination.id) {
     throw new Error("Pickup and destination must be different locations.");
@@ -308,10 +406,12 @@ function startBookingPage() {
   populateLocations();
   updateFareEstimate();
 
-  pickupSelect.addEventListener("change", () => updateLocationAvailability(pickupSelect));
-  destinationSelect.addEventListener("change", () =>
-    updateLocationAvailability(destinationSelect),
-  );
+  enableLocationAutocomplete(pickupInput, pickupSuggestions, (location) => {
+    selectedPickup = location;
+  });
+  enableLocationAutocomplete(destinationInput, destinationSuggestions, (location) => {
+    selectedDestination = location;
+  });
   passengerSelect.addEventListener("change", updateFareEstimate);
   scheduledAtInput.addEventListener("input", updateFareEstimate);
   form.querySelectorAll('input[name="timing"]').forEach((input) => {

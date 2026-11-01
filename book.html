@@ -64,16 +64,14 @@
         <form id="booking-form" class="booking-form">
           <div class="field-row">
             <label for="pickup">Pickup</label>
-            <select id="pickup" name="pickup" required>
-              <option value="">Loading locations...</option>
-            </select>
+            <input id="pickup" name="pickup" type="text" placeholder="Type a pickup location" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="pickup-suggestions" autocomplete="off" required />
+            <div id="pickup-suggestions" class="location-suggestions" role="listbox" aria-label="Pickup location suggestions" hidden></div>
           </div>
 
           <div class="field-row">
             <label for="destination">Destination</label>
-            <select id="destination" name="destination" required>
-              <option value="">Loading locations...</option>
-            </select>
+            <input id="destination" name="destination" type="text" placeholder="Type a destination" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="destination-suggestions" autocomplete="off" required />
+            <div id="destination-suggestions" class="location-suggestions" role="listbox" aria-label="Destination suggestions" hidden></div>
           </div>
 
           <fieldset class="timing-options">
