@@ -10,6 +10,7 @@
     <link rel="stylesheet" href="css/base.css" />
     <link rel="stylesheet" href="css/components.css" />
     <link rel="stylesheet" href="css/booking.css" />
+    <script type="module" src="js/booking.js"></script>
   </head>
   <body class="ride-body">
     <header class="ride-header">
@@ -37,66 +38,110 @@
 
         <div class="ride-options" role="radiogroup" aria-label="Ride options">
           <label class="ride-option active">
-            <input type="radio" name="ride-type" checked />
+            <input type="radio" name="ride-type" value="keke" checked />
             <span class="option-label">Keke</span>
           </label>
 
-          <label class="ride-option">
-            <input type="radio" name="ride-type" />
+          <label class="ride-option disabled">
+            <input type="radio" name="ride-type" value="bike" disabled />
             <span class="option-label">Bike</span>
-          </label>
-
-          <label class="ride-option">
-            <input type="radio" name="ride-type" />
-            <span class="option-label">Mini Bus</span>
+            <span class="coming-soon">Coming soon</span>
           </label>
 
           <label class="ride-option disabled">
-            <input type="radio" name="ride-type" disabled />
+            <input type="radio" name="ride-type" value="mini-bus" disabled />
+            <span class="option-label">Mini Bus</span>
+            <span class="coming-soon">Coming soon</span>
+          </label>
+
+          <label class="ride-option disabled">
+            <input type="radio" name="ride-type" value="escort" disabled />
             <span class="option-label">Book Escort</span>
-            <span class="coming-soon">/ Coming soon</span>
+            <span class="coming-soon">Coming soon</span>
           </label>
         </div>
 
-        <div class="booking-form">
+        <form id="booking-form" class="booking-form">
           <div class="field-row">
             <label for="pickup">Pickup</label>
-            <input id="pickup" type="text" value="Hostel A" />
+            <select id="pickup" name="pickup" required>
+              <option value="">Loading locations...</option>
+            </select>
           </div>
 
           <div class="field-row">
             <label for="destination">Destination</label>
-            <input id="destination" type="text" value="Faculty of Arts" />
+            <select id="destination" name="destination" required>
+              <option value="">Loading locations...</option>
+            </select>
           </div>
 
-          <div class="field-row split-row">
-            <div>
-              <label for="when">When</label>
-              <input id="when" type="text" value="Now" />
+          <fieldset class="timing-options">
+            <legend>When do you need your ride?</legend>
+            <label class="timing-choice">
+              <input type="radio" name="timing" value="now" checked />
+              <span>Ride now</span>
+            </label>
+            <label class="timing-choice">
+              <input type="radio" name="timing" value="scheduled" />
+              <span>Schedule for later</span>
+            </label>
+          </fieldset>
+
+          <div id="scheduled-fields" class="field-row scheduled-fields" hidden>
+            <label for="scheduled-at">Pickup date and time</label>
+            <input id="scheduled-at" name="scheduledAt" type="datetime-local" />
+          </div>
+
+          <div class="field-row">
+            <label for="passengers">Passengers</label>
+            <select id="passengers" name="passengers" required>
+              <option value="1" selected>1 passenger</option>
+              <option value="2">2 passengers</option>
+              <option value="3">3 passengers</option>
+            </select>
+          </div>
+
+          <div class="field-row">
+            <label for="payment-method">Payment method</label>
+            <select id="payment-method" name="paymentMethod">
+              <option value="cash" selected>Cash</option>
+              <option value="transfer">Bank transfer</option>
+            </select>
+          </div>
+
+          <section class="fare-total" aria-labelledby="fare-title">
+            <div class="fare-heading">
+              <div>
+                <span class="fare-caption">Fare estimate</span>
+                <h2 id="fare-title">Your fare</h2>
+              </div>
+              <strong id="fare-total">—</strong>
             </div>
-            <div>
-              <label for="passengers">Passengers</label>
-              <input id="passengers" type="text" value="1" />
-            </div>
-          </div>
-        </div>
+            <dl id="fare-breakdown" class="fare-breakdown" aria-live="polite">
+              <div><dt>Base fare</dt><dd>Choose a route</dd></div>
+            </dl>
+            <p id="fare-note" class="fare-note">Demo fare estimate. Final fare is shown before you confirm.</p>
+          </section>
 
-        <div class="fare-total" aria-label="Estimated total fare">
-          <div>
-            <span class="fare-caption">Estimated total</span>
-            <span class="fare-note">Demo fare · cash or transfer</span>
-          </div>
-          <strong>₦500</strong>
-        </div>
+          <p id="booking-error" class="booking-message error-message" role="alert" hidden></p>
+          <p id="booking-status" class="booking-message status-message" role="status" aria-live="polite" hidden></p>
 
-        <button type="button" class="btn btn-primary btn-large">Find a ride</button>
+          <button id="find-ride" type="submit" class="btn btn-primary btn-large">Find a ride</button>
+        </form>
+
+        <section id="match-card" class="match-card" aria-labelledby="match-title" hidden>
+          <span class="match-badge">Driver found</span>
+          <h2 id="match-title">Your keke is matched</h2>
+          <p id="match-details"></p>
+        </section>
       </section>
 
-      <section class="map-panel" aria-label="Map preview">
+      <section class="map-panel" aria-label="Demo route map">
         <div class="map-card">
           <div class="map-header">
-            <span class="map-badge">Live</span>
-            <span>Hostel A to Faculty of Arts</span>
+            <span class="map-badge">Demo map</span>
+            <span id="map-route-label">Choose your route</span>
           </div>
 
           <div class="map-surface" aria-hidden="true">

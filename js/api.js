@@ -104,10 +104,8 @@ export function createRide(rideInput) {
     throw new TypeError("Ride details are required.");
   }
 
+  // Booking is available as a guest until the authentication step adds the UI login gate.
   const currentUser = getCurrentUser();
-  if (!currentUser) {
-    throw new Error("Log in before creating a ride.");
-  }
 
   const pickup = findLocation(rideInput.pickup);
   const destination = findLocation(rideInput.destination);
@@ -128,7 +126,7 @@ export function createRide(rideInput) {
   const ride = {
     ...clone(rideInput),
     id: makeId("ride"),
-    userId: currentUser.id,
+    userId: currentUser?.id ?? null,
     pickup: clone(pickup),
     destination: clone(destination),
     passengers,

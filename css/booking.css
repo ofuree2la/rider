@@ -122,7 +122,8 @@
   text-transform: uppercase;
 }
 
-.field-row input {
+.field-row input,
+.field-row select {
   width: 100%;
   min-height: 52px;
   padding: 0.8rem 1rem;
@@ -138,44 +139,173 @@
   gap: 1rem;
 }
 
-.ride-panel .btn {
-  width: 100%;
+.timing-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.timing-options legend {
+  margin-bottom: 0.55rem;
+  color: var(--color-slate);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.timing-choice {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  min-height: 48px;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  color: var(--color-ink);
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.timing-choice input {
+  accent-color: var(--color-brand);
+  margin: 0;
+}
+
+.scheduled-fields[hidden] {
+  display: none;
 }
 
 .fare-total {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  margin: 0 0 1rem;
+  display: grid;
+  gap: 0.9rem;
+  margin: 0 0 0.5rem;
   padding: 1rem;
   border: 1px solid rgba(22, 130, 75, 0.16);
   border-radius: 16px;
   background: #f0f7f2;
 }
 
-.fare-total > div {
-  display: grid;
-  gap: 0.15rem;
+.fare-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.fare-heading h2 {
+  margin: 0.15rem 0 0;
+  color: var(--color-ink);
+  font-size: 1.15rem;
 }
 
 .fare-caption {
   color: var(--color-slate);
-  font-size: 0.78rem;
+  font-size: 0.72rem;
   font-weight: 800;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
 }
 
+.fare-heading strong {
+  color: var(--color-forest);
+  font-size: 1.65rem;
+  letter-spacing: -0.04em;
+}
+
+.fare-breakdown {
+  display: grid;
+  gap: 0.45rem;
+  margin: 0;
+}
+
+.fare-breakdown > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  color: var(--color-slate);
+  font-size: 0.82rem;
+}
+
+.fare-breakdown dt,
+.fare-breakdown dd {
+  margin: 0;
+}
+
+.fare-breakdown dd {
+  color: var(--color-ink);
+  font-weight: 700;
+  text-align: right;
+}
+
 .fare-note {
+  margin: 0;
   color: var(--color-slate);
   font-size: 0.75rem;
 }
 
-.fare-total strong {
+.booking-message {
+  margin: 0.25rem 0 0.85rem;
+  padding: 0.8rem 0.9rem;
+  border-radius: 12px;
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.booking-message[hidden],
+.match-card[hidden] {
+  display: none;
+}
+
+.error-message {
+  border: 1px solid rgba(166, 49, 49, 0.2);
+  background: #fff1f0;
+  color: #8d2929;
+}
+
+.status-message {
+  border: 1px solid rgba(22, 130, 75, 0.18);
+  background: #eef7f0;
   color: var(--color-forest);
-  font-size: 1.65rem;
-  letter-spacing: -0.04em;
+}
+
+.ride-panel .btn {
+  width: 100%;
+}
+
+.match-card {
+  margin-top: 1.25rem;
+  padding: 1rem;
+  border: 1px solid rgba(22, 130, 75, 0.18);
+  border-radius: 16px;
+  background: #f5faf6;
+}
+
+.match-card h2 {
+  margin: 0.55rem 0 0.35rem;
+  color: var(--color-forest);
+  font-size: 1.1rem;
+}
+
+.match-card p {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.match-badge {
+  display: inline-flex;
+  padding: 0.3rem 0.6rem;
+  border-radius: 999px;
+  background: rgba(22, 130, 75, 0.12);
+  color: var(--color-success);
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
 .map-panel {
