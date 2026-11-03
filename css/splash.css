@@ -1,0 +1,87 @@
+:root {
+  --rider-splash-background: var(--color-brand);
+}
+
+.splash-screen {
+  display: grid;
+  min-height: 100vh;
+  min-height: 100svh;
+  place-items: center;
+  padding:
+    max(1.5rem, env(safe-area-inset-top))
+    max(1.5rem, env(safe-area-inset-right))
+    max(1.5rem, env(safe-area-inset-bottom))
+    max(1.5rem, env(safe-area-inset-left));
+  background: var(--rider-splash-background);
+  color: var(--color-white);
+}
+
+.splash-brand {
+  display: grid;
+  justify-items: center;
+  gap: 0.6rem;
+  text-align: center;
+  animation: splash-brand-entrance 750ms cubic-bezier(0.2, 0.75, 0.25, 1) both;
+}
+
+.splash-mark {
+  display: block;
+  width: clamp(3.5rem, 14vw, 5rem);
+  height: clamp(3.5rem, 14vw, 5rem);
+}
+
+.splash-wordmark {
+  font-size: clamp(3rem, 14vw, 5.25rem);
+  font-weight: 800;
+  letter-spacing: -0.07em;
+  line-height: 1;
+}
+
+.splash-tagline {
+  margin: 0.45rem 0 0;
+  color: rgba(255, 255, 255, 0.78);
+  font-size: clamp(0.9rem, 3.5vw, 1.05rem);
+  font-weight: 500;
+}
+
+.splash-screen.is-leaving .splash-brand {
+  animation: splash-brand-exit 300ms ease-in both;
+}
+
+.splash-noscript-link {
+  position: fixed;
+  right: max(1rem, env(safe-area-inset-right));
+  bottom: max(1rem, env(safe-area-inset-bottom));
+  left: max(1rem, env(safe-area-inset-left));
+  padding: 0.85rem 1rem;
+  border-radius: 999px;
+  background: var(--color-white);
+  color: var(--color-brand);
+  font-weight: 800;
+  text-align: center;
+}
+
+@keyframes splash-brand-entrance {
+  from {
+    opacity: 0;
+    transform: translateY(0.4rem) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes splash-brand-exit {
+  to {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .splash-brand,
+  .splash-screen.is-leaving .splash-brand {
+    animation: none;
+  }
+}
