@@ -50,7 +50,16 @@ function writeStoredValue(key, value) {
 }
 
 function getUsers() {
-  return readCollection(STORAGE_KEYS.users, starterUsers);
+  const storedUsers = readCollection(STORAGE_KEYS.users, starterUsers);
+  const users = storedUsers.map((user) =>
+    user.role === "student" ? { ...user, role: "rider" } : user,
+  );
+
+  if (users.some((user, index) => user !== storedUsers[index])) {
+    writeStoredValue(STORAGE_KEYS.users, users);
+  }
+
+  return users;
 }
 
 function getRidesFromStorage() {
@@ -370,7 +379,7 @@ export function signup(userInput) {
   const name = String(userInput.name ?? userInput.fullName ?? "").trim();
   const email = String(userInput.email ?? "").trim().toLowerCase();
   const password = userInput.password;
-  const role = userInput.role ?? "student";
+  const role = userInput.role ?? "rider";
 
   if (!name) {
     throw new Error("Enter your name.");
@@ -381,7 +390,7 @@ export function signup(userInput) {
   if (typeof password !== "string" || password.length < 8) {
     throw new Error("Password must be at least 8 characters long.");
   }
-  if (role !== "student" && role !== "driver") {
+  if (role !== "rider" && role !== "driver") {
     throw new Error("Choose a valid account type.");
   }
 
@@ -443,6 +452,76 @@ export function signup(userInput) {
   });
 
   return toPublicUser(user);
+}
+
+export function updateCurrentUserProfile(profileInput) {
+  if (!profileInput || typeof profileInput !== "object" || Array.isArray(profileInput)) {
+    throw new TypeError("Profile details must be provided.");
+  }
+
+  const currentUser = getCurrentUser();
+  if (!currentUser) {
+    throw new Error("Sign in to update your profile.");
+  }
+
+  const users = getUsers();
+  const userIndex = users.findIndex((user) => user.id === currentUser.id);
+  if (userIndex === -1) {
+    throw new Error("Your account could not be found. Sign in again.");
+  }
+
+  const name = String(profileInput.name ?? "").trim();
+  const email = String(profileInput.email ?? "").trim().toLowerCase();
+  const phone = String(profileInput.phone ?? "").trim();
+  const phoneDigits = phone.replace(/\D/g, "");
+
+  if (!name) {
+    throw new Error("Enter your name.");
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    throw new Error("Enter a valid email address.");
+  }
+  if (users.some((user, index) => index !== userIndex && user.email.toLowerCase() === email)) {
+    throw new Error("Another account already uses this email address.");
+  }
+  if (phoneDigits.length < 10 || phoneDigits.length > 15) {
+    throw new Error("Enter a valid phone number, including your country code if needed.");
+  }
+
+  let drivers;
+  let driverIndex = -1;
+  let plateNumber;
+  if (currentUser.role === "driver") {
+    plateNumber = String(profileInput.plateNumber ?? "").trim().toUpperCase();
+    if (!plateNumber) {
+      throw new Error("Enter your keke plate number.");
+    }
+
+    drivers = readCollection(STORAGE_KEYS.drivers, mockDrivers);
+    driverIndex = drivers.findIndex((driver) => driver.id === currentUser.driverId);
+    if (driverIndex === -1) {
+      throw new Error("Your driver profile could not be found.");
+    }
+    if (
+      drivers.some(
+        (driver, index) =>
+          index !== driverIndex && driver.plateNumber?.toLowerCase() === plateNumber.toLowerCase(),
+      )
+    ) {
+      throw new Error("Another driver already uses this plate number.");
+    }
+  }
+
+  const updatedUser = { ...users[userIndex], name, email, phone };
+  users[userIndex] = updatedUser;
+
+  if (currentUser.role === "driver") {
+    drivers[driverIndex] = { ...drivers[driverIndex], name, phone, plateNumber };
+    writeStoredValue(STORAGE_KEYS.drivers, drivers);
+  }
+
+  writeStoredValue(STORAGE_KEYS.users, users);
+  return toPublicUser(updatedUser);
 }
 
 export function getCurrentUser() {

@@ -2,7 +2,7 @@ import { locations } from "./mockData.js?v=seats4";
 
 // PLACEHOLDER flat fares. Replace them with real figures from a cost-per-trip
 // calculation before using Rider operationally. These are final fares per rider;
-// time-based surcharges are disabled to keep the student fare predictable.
+// time-based surcharges are disabled to keep the fare predictable.
 export const FARE_CONFIG = {
   currency: "NGN",
   roundingIncrement: 50,

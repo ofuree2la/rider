@@ -1,0 +1,60 @@
+.profile-body {
+  min-height: 100vh;
+  background: #f6f7f6;
+}
+
+.profile-shell {
+  display: grid;
+  justify-items: center;
+  padding-top: clamp(2rem, 6vw, 4rem);
+  padding-bottom: 4rem;
+}
+
+.profile-card-shell {
+  width: min(620px, 100%);
+  padding: clamp(1.25rem, 5vw, 2.25rem);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-white);
+  box-shadow: var(--color-shadow);
+}
+
+.profile-card-shell h1 {
+  margin-bottom: 0.5rem;
+  font-size: clamp(2rem, 5vw, 2.75rem);
+}
+
+.profile-card-shell > p:not(.auth-message) {
+  margin-bottom: 1.5rem;
+}
+
+.profile-nav {
+  display: flex;
+}
+
+.profile-nav a[aria-current="page"] {
+  color: var(--color-brand);
+}
+
+.profile-body .nav-shell > .btn {
+  flex: 0 0 auto;
+}
+
+@media (max-width: 760px) {
+  .profile-body .nav-shell {
+    display: flex;
+    flex-wrap: wrap;
+    padding: 0.75rem 0;
+  }
+
+  .profile-nav {
+    order: 3;
+    width: 100%;
+    justify-content: space-between;
+    gap: 0.65rem;
+  }
+
+  .profile-nav a {
+    font-size: 0.8rem;
+  }
+}

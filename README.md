@@ -21,10 +21,12 @@ Setup:
 
 Never put the secret key (`sk_...`) in any website file.
 
-## Separate student and driver accounts
+## Rider and driver accounts
 
-- Students use `login.html` and `signup.html`; student sign-up creates a student account and sends the user to booking.
+- Riders use `login.html` and `signup.html`; rider sign-up creates a rider account and sends the user to booking.
 - Drivers use `driver/login.html` and `driver/signup.html`; driver registration also collects a phone number and keke plate number, then opens the driver dashboard.
+- Riders can update their name, email, and phone number at `profile.html`. Drivers can also edit their keke plate number at `driver/profile.html`.
 - The prototype stores accounts and driver profiles in localStorage. Newly registered drivers receive immediate demo access and are marked verified for the prototype only. This is not a real identity or vehicle verification process.
-- The seeded demo driver can sign in with `driver@rider.demo` and `RiderDemo123!`. Use a different email when testing driver registration.
+- Existing local non-driver accounts are migrated to the general `rider` role when the mock API reads them.
+- The seeded demo rider can sign in with `rider@rider.demo` and `RiderDemo123!`; the seeded demo driver can sign in with `driver@rider.demo` and `RiderDemo123!`. Use a different email when testing registration.
 - This client-side account system is for demonstrations only; it is not suitable for real authentication or storing real passwords.

@@ -173,7 +173,7 @@ function renderActiveRide() {
 
   if (!activeRide) {
     activeRideCard.className = "active-ride-card empty-state-box";
-    activeRideCard.innerHTML = "<p>No active ride yet. Accept a student request to get started.</p>";
+    activeRideCard.innerHTML = "<p>No active ride yet. Accept a ride request to get started.</p>";
     return;
   }
 
@@ -264,7 +264,7 @@ async function handleRideAction(event) {
   try {
     if (action === "accept") {
       acceptRideRequest(rideId, driver.id);
-      showStatus("Ride accepted. The student can now track your progress.");
+      showStatus("Ride accepted. The rider can now track your progress.");
     } else if (action === "decline") {
       declineRideRequest(rideId, driver.id);
       showStatus("Ride request declined.");
@@ -308,7 +308,7 @@ function startDriverDashboard() {
   try {
     const user = getCurrentUser();
     if (!user || user.role !== "driver") {
-      window.location.replace(user?.role === "student" ? "../login.html" : "login.html");
+      window.location.replace(user?.role === "rider" ? "../login.html" : "login.html");
       return;
     }
 

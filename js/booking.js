@@ -359,7 +359,7 @@ function updatePaymentFields() {
     try {
       emailInput.value = getCurrentUser()?.email ?? "";
     } catch {
-      // A broken saved session should not stop booking; the student can type an email.
+      // A broken saved session should not stop booking; the rider can type an email.
     }
   }
 }

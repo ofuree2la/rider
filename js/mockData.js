@@ -72,12 +72,12 @@ export const mockDrivers = [
 // Never store real user passwords in client-side code or localStorage.
 export const starterUsers = [
   {
-    id: "user-student-demo",
-    name: "Demo Student",
-    email: "student@rider.demo",
+    id: "user-rider-demo",
+    name: "Demo Rider",
+    email: "rider@rider.demo",
     password: "RiderDemo123!",
     phone: "+234 803 000 2001",
-    role: "student",
+    role: "rider",
   },
   {
     id: "user-driver-demo",

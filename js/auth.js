@@ -73,7 +73,7 @@ function handleSubmit(event) {
   }
 }
 
-if (!form || !message || !["student", "driver"].includes(accountRole)) {
+if (!form || !message || !["rider", "driver"].includes(accountRole)) {
   throw new Error("This Rider sign-in page is missing required account settings.");
 }
 

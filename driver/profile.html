@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#16824b" />
+    <title>Driver Profile | Rider Driver</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="../css/base.css" />
+    <link rel="stylesheet" href="../css/components.css" />
+    <link rel="stylesheet" href="../css/auth.css" />
+    <link rel="stylesheet" href="../css/profile.css" />
+    <script type="module" src="../js/profile.js"></script>
+  </head>
+  <body class="profile-body" data-account-role="driver">
+    <header class="site-header">
+      <div class="container nav-shell">
+        <a href="../index.html" class="brand" aria-label="Rider home page">
+          <span class="brand-mark">R</span>
+          <span class="brand-text">Rider Driver</span>
+        </a>
+        <nav class="site-nav profile-nav" aria-label="Driver navigation">
+          <a href="dashboard.html">Dashboard</a>
+          <a href="../history.html">Ride history</a>
+          <a href="profile.html" aria-current="page">Profile</a>
+        </nav>
+        <button id="logout-button" class="btn btn-ghost" type="button">Log out</button>
+      </div>
+    </header>
+
+    <main class="container profile-shell">
+      <section class="profile-card-shell" aria-labelledby="profile-title">
+        <span class="eyebrow accent">Rider Driver account</span>
+        <h1 id="profile-title">Driver profile</h1>
+        <p>Keep your contact and keke details up to date.</p>
+
+        <p id="profile-message" class="auth-message" role="status" aria-live="polite" hidden></p>
+
+        <form id="profile-form" class="auth-form">
+          <div class="field">
+            <label for="profile-name">Full name</label>
+            <input id="profile-name" name="name" type="text" autocomplete="name" required />
+          </div>
+          <div class="field">
+            <label for="profile-email">Email</label>
+            <input id="profile-email" name="email" type="email" autocomplete="email" required />
+          </div>
+          <div class="field">
+            <label for="profile-phone">Phone number</label>
+            <input id="profile-phone" name="phone" type="tel" autocomplete="tel" required />
+          </div>
+          <div class="field">
+            <label for="profile-plate">Keke plate number</label>
+            <input id="profile-plate" name="plateNumber" type="text" autocomplete="off" required />
+          </div>
+          <button class="btn btn-primary btn-large" type="submit">Save profile</button>
+        </form>
+      </section>
+    </main>
+  </body>
+</html>
