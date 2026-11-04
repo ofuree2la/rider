@@ -1,0 +1,79 @@
+/* Floating bottom tab bar (Home / Activity / Account) for the rider app. */
+.bottom-nav {
+  position: fixed;
+  left: 50%;
+  bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%);
+  width: min(calc(100% - 32px), 420px);
+  display: flex;
+  gap: 4px;
+  padding: 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  border: 1px solid var(--color-border);
+  box-shadow: 0 10px 30px rgba(18, 20, 18, 0.18);
+  z-index: 50;
+}
+
+.bottom-nav a {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 4px 7px;
+  border-radius: 999px;
+  color: var(--color-ink);
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.2;
+  text-decoration: none;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.bottom-nav svg {
+  width: 26px;
+  height: 26px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.bottom-nav a[aria-current="page"] {
+  background: var(--color-brand-soft);
+  color: var(--color-brand-dark);
+}
+
+.bottom-nav a[aria-current="page"] svg {
+  fill: currentColor;
+  fill-opacity: 0.14;
+}
+
+.bottom-nav a:focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 2px;
+}
+
+/* Phones only: the tab bar replaces the text links in the page header and
+   gets room at the bottom of the page so it never covers content. */
+@media (min-width: 761px) {
+  .bottom-nav {
+    display: none;
+  }
+}
+
+@media (max-width: 760px) {
+  body.has-bottom-nav {
+    padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+  }
+
+  body.has-bottom-nav .ride-nav-link,
+  body.has-bottom-nav .journey-nav,
+  body.has-bottom-nav .profile-nav {
+    display: none;
+  }
+}
