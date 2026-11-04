@@ -6,7 +6,7 @@ const accountRole = document.body.dataset.accountRole;
 const isSignup = form?.dataset.authMode === "signup";
 
 function getDestination(role) {
-  return role === "driver" ? "dashboard.html" : "book.html";
+  return role === "driver" || role === "admin" ? "dashboard.html" : "book.html";
 }
 
 function showMessage(text, isError = true) {
@@ -73,7 +73,7 @@ function handleSubmit(event) {
   }
 }
 
-if (!form || !message || !["rider", "driver"].includes(accountRole)) {
+if (!form || !message || !["rider", "driver", "admin"].includes(accountRole)) {
   throw new Error("This Rider sign-in page is missing required account settings.");
 }
 

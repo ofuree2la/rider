@@ -45,6 +45,7 @@ export const mockDrivers = [
     phone: "+234 803 000 1001",
     rating: 4.8,
     verified: true,
+    status: "approved",
     // Paystack subaccount code (Dashboard > Subaccounts). Payments for this driver
     // are split automatically. This is the TEST subaccount; give each real driver
     // their own code. Drivers without one can only be booked for cash.
@@ -57,6 +58,7 @@ export const mockDrivers = [
     phone: "+234 803 000 1002",
     rating: 4.6,
     verified: true,
+    status: "approved",
   },
   {
     id: "driver-003",
@@ -65,6 +67,7 @@ export const mockDrivers = [
     phone: "+234 803 000 1003",
     rating: 4.9,
     verified: true,
+    status: "approved",
   },
 ];
 
@@ -87,5 +90,12 @@ export const starterUsers = [
     phone: "+234 803 000 1001",
     role: "driver",
     driverId: "driver-001",
+  },
+  {
+    id: "user-admin-demo",
+    name: "Rider Demo Admin",
+    email: "admin@rider.demo",
+    password: "RiderAdmin123!",
+    role: "admin",
   },
 ];

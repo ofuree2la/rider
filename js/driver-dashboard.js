@@ -122,13 +122,37 @@ function renderProfile() {
   profileName.textContent = driver.name;
   profilePlate.textContent = driver.plateNumber;
   profileRating.textContent = `★ ${driver.rating.toFixed(1)}`;
-  profileVerification.textContent = driver.verified ? "Verified" : "Pending";
+  profileVerification.textContent =
+    driver.status === "suspended"
+      ? "Suspended"
+      : driver.status === "pending"
+        ? "Awaiting approval"
+        : "Approved";
   profilePhone.textContent = driver.phone;
   driverAvatar.textContent = driver.name.split(" ").slice(0, 2).map((part) => part[0]).join("").toUpperCase();
-  driverOnlineToggle.checked = isDriverOnline(driver.id);
+  const canGoOnline = driver.status === "approved";
+  driverOnlineToggle.disabled = !canGoOnline;
+  driverOnlineToggle.checked = canGoOnline && isDriverOnline(driver.id);
+  if (!canGoOnline) {
+    showStatus(
+      driver.status === "suspended"
+        ? "Your driver account is suspended. Contact Rider support for help."
+        : "Your driver account is waiting for admin approval before you can go online.",
+    );
+  }
 }
 
 function renderRequests() {
+  if (driver.status !== "approved") {
+    pendingCount.textContent = "0";
+    requestList.innerHTML = `<div class="request-card empty-state-box"><p>${
+      driver.status === "suspended"
+        ? "Your account is suspended. Contact Rider support for help."
+        : "Your account must be approved before you can receive ride requests."
+    }</p></div>`;
+    return;
+  }
+
   const requests = getDriverRideRequests(driver.id);
   pendingCount.textContent = String(requests.length);
 
@@ -308,7 +332,7 @@ function startDriverDashboard() {
   try {
     const user = getCurrentUser();
     if (!user || user.role !== "driver") {
-      window.location.replace(user?.role === "rider" ? "../login.html" : "login.html");
+      window.location.replace(user?.role === "rider" ? "../login.html" : user?.role === "admin" ? "../admin/login.html" : "login.html");
       return;
     }
 

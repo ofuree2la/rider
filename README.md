@@ -25,8 +25,10 @@ Never put the secret key (`sk_...`) in any website file.
 
 - Riders use `login.html` and `signup.html`; rider sign-up creates a rider account and sends the user to booking.
 - Drivers use `driver/login.html` and `driver/signup.html`; driver registration also collects a phone number and keke plate number, then opens the driver dashboard.
+- The Admin portal is at `admin/login.html`. The demo account is `admin@rider.demo` with password `RiderAdmin123!`.
 - Riders can update their name, email, and phone number at `profile.html`. Drivers can also edit their keke plate number at `driver/profile.html`.
-- The prototype stores accounts and driver profiles in localStorage. Newly registered drivers receive immediate demo access and are marked verified for the prototype only. This is not a real identity or vehicle verification process.
+- The prototype stores accounts, rides, locations, and fare settings in localStorage. New driver accounts start pending and must be approved in the Admin portal before going online or accepting requests. Approval is only a local demo state and does not verify driver documents or vehicle ownership.
+- Admins can view overview metrics and rides, approve or suspend drivers, manage locations, and edit the zone fare matrix. Location and fare changes affect new booking estimates in the same browser.
 - Existing local non-driver accounts are migrated to the general `rider` role when the mock API reads them.
 - The seeded demo rider can sign in with `rider@rider.demo` and `RiderDemo123!`; the seeded demo driver can sign in with `driver@rider.demo` and `RiderDemo123!`. Use a different email when testing registration.
-- This client-side account system is for demonstrations only; it is not suitable for real authentication or storing real passwords.
+- Admin authorization and all data are client-side and stored in localStorage. This portal is for demonstrations only; it is not suitable for real access control, authentication, or storing real passwords.

@@ -1,0 +1,386 @@
+.admin-body {
+  background: var(--color-cream);
+}
+
+.admin-nav-shell {
+  min-height: 68px;
+}
+
+.admin-shell {
+  display: grid;
+  gap: 1.25rem;
+  padding-block: 2rem 4rem;
+}
+
+.admin-heading,
+.admin-section-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1.5rem;
+}
+
+.admin-heading h1 {
+  margin-bottom: 0.4rem;
+  font-size: clamp(2rem, 5vw, 3rem);
+}
+
+.admin-heading p,
+.admin-section-heading p {
+  margin-bottom: 0;
+}
+
+.admin-shortcuts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
+.admin-shortcuts a {
+  padding: 0.45rem 0.7rem;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-white);
+  font-size: 0.85rem;
+  font-weight: 800;
+}
+
+.admin-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+
+.admin-stat-card,
+.admin-panel {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-white);
+  box-shadow: var(--color-shadow);
+}
+
+.admin-stat-card {
+  display: grid;
+  gap: 0.3rem;
+  padding: 1.1rem;
+}
+
+.admin-stat-card span {
+  color: var(--color-slate);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.admin-stat-card strong {
+  font-size: clamp(1.25rem, 3vw, 1.8rem);
+}
+
+.admin-panel {
+  scroll-margin-top: 5.5rem;
+  padding: clamp(1rem, 3vw, 1.5rem);
+}
+
+.admin-section-heading {
+  margin-bottom: 1.1rem;
+}
+
+.admin-section-heading h2 {
+  margin-bottom: 0;
+  font-size: 1.45rem;
+}
+
+.admin-section-heading p {
+  max-width: 470px;
+  text-align: right;
+  font-size: 0.9rem;
+}
+
+.admin-record-list {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.admin-record {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.admin-record-main {
+  min-width: 0;
+}
+
+.admin-record-main h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.admin-record-main p {
+  margin: 0.15rem 0 0;
+  overflow-wrap: anywhere;
+  font-size: 0.86rem;
+}
+
+.admin-record-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.admin-record-actions .btn,
+.admin-location-form .btn,
+.admin-location-form .btn-compact {
+  min-height: 40px;
+  padding: 0.55rem 0.85rem;
+  font-size: 0.85rem;
+}
+
+.admin-status-badge {
+  display: inline-flex;
+  margin-top: 0.4rem;
+  padding: 0.12rem 0.55rem;
+  border-radius: 999px;
+  background: var(--color-muted);
+  color: var(--color-slate);
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: capitalize;
+}
+
+.admin-status-badge.approved {
+  background: var(--color-brand-soft);
+  color: var(--color-success);
+}
+
+.admin-status-badge.suspended {
+  background: #fae9e9;
+  color: #a52c2c;
+}
+
+.admin-form {
+  display: grid;
+  gap: 1rem;
+}
+
+.admin-location-create {
+  grid-template-columns: repeat(3, minmax(0, 1fr)) auto;
+  align-items: end;
+  margin-bottom: 1rem;
+  padding: 1rem;
+  border-radius: var(--radius-md);
+  background: var(--color-muted);
+}
+
+.admin-field {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.admin-field label {
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.admin-field input,
+.admin-field select {
+  width: 100%;
+  min-height: 44px;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-white);
+}
+
+.admin-location-form {
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(130px, 1.5fr) minmax(130px, 1fr) minmax(110px, 1fr) auto;
+  align-items: end;
+  gap: 0.65rem;
+}
+
+.admin-location-form .admin-field label {
+  font-size: 0.72rem;
+}
+
+.admin-location-create > .btn,
+.admin-form > .btn {
+  justify-self: start;
+}
+
+.fare-matrix {
+  display: grid;
+  grid-template-columns: 1.15fr repeat(3, minmax(95px, 1fr));
+  gap: 0.5rem;
+  align-items: end;
+  max-width: 760px;
+}
+
+.fare-matrix-heading {
+  padding: 0.4rem;
+  color: var(--color-slate);
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-align: center;
+}
+
+.fare-matrix-row-label {
+  padding: 0.5rem 0.3rem;
+  font-size: 0.85rem;
+  font-weight: 800;
+}
+
+.fare-matrix .admin-field label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+
+.fare-matrix .admin-field input {
+  text-align: right;
+}
+
+.ride-filters {
+  grid-template-columns: repeat(2, minmax(180px, 240px));
+  margin-bottom: 1rem;
+}
+
+.admin-table-wrap {
+  overflow-x: auto;
+}
+
+.admin-rides-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.admin-rides-table th,
+.admin-rides-table td {
+  padding: 0.75rem 0.6rem;
+  border-bottom: 1px solid var(--color-border);
+  vertical-align: top;
+}
+
+.admin-rides-table th {
+  color: var(--color-slate);
+  font-size: 0.78rem;
+  white-space: nowrap;
+}
+
+.admin-rides-table td {
+  font-size: 0.86rem;
+}
+
+.admin-empty {
+  padding: 1rem 0;
+}
+
+.admin-prototype-note,
+.admin-demo-note {
+  margin: 0;
+  color: var(--color-slate);
+  font-size: 0.82rem;
+}
+
+.admin-auth-shell .admin-demo-note {
+  margin-top: 1.25rem;
+}
+
+.admin-message {
+  margin: 0;
+  padding: 0.8rem 1rem;
+  border-radius: var(--radius-sm);
+}
+
+.admin-message.status-message {
+  background: var(--color-brand-soft);
+}
+
+.admin-message.error-message {
+  background: #fae9e9;
+  color: #a52c2c;
+}
+
+@media (max-width: 800px) {
+  .admin-heading,
+  .admin-section-heading {
+    display: grid;
+  }
+
+  .admin-section-heading p {
+    text-align: left;
+  }
+
+  .admin-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-location-create {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .admin-shell {
+    width: min(var(--container-width), calc(100% - 1.2rem));
+    padding-block: 1.25rem 3rem;
+  }
+
+  .admin-shortcuts {
+    gap: 0.4rem;
+  }
+
+  .admin-shortcuts a {
+    font-size: 0.76rem;
+  }
+
+  .admin-record {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .admin-record-actions {
+    justify-content: flex-start;
+  }
+
+  .admin-location-create,
+  .admin-location-form,
+  .ride-filters {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-location-form {
+    width: 100%;
+  }
+
+  .fare-matrix {
+    grid-template-columns: minmax(80px, 1fr) repeat(3, minmax(58px, 1fr));
+    gap: 0.25rem;
+  }
+
+  .fare-matrix-heading {
+    padding: 0.2rem 0;
+    font-size: 0.65rem;
+    overflow-wrap: anywhere;
+  }
+
+  .fare-matrix-row-label {
+    font-size: 0.7rem;
+    overflow-wrap: anywhere;
+  }
+
+  .fare-matrix .admin-field input {
+    min-height: 42px;
+    padding-inline: 0.35rem;
+    font-size: 0.85rem;
+  }
+}

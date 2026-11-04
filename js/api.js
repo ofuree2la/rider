@@ -5,6 +5,8 @@ const STORAGE_KEYS = Object.freeze({
   session: "rider.session",
   rides: "rider.rides",
   drivers: "rider.drivers",
+  locations: "rider.locations",
+  pricing: "rider.pricing",
   onlineDrivers: "rider.onlineDrivers",
 });
 
@@ -55,7 +57,14 @@ function getUsers() {
     user.role === "student" ? { ...user, role: "rider" } : user,
   );
 
-  if (users.some((user, index) => user !== storedUsers[index])) {
+  const seededUsers = starterUsers.filter(
+    (starterUser) => !users.some((user) => user.id === starterUser.id),
+  );
+  if (seededUsers.length > 0) {
+    users.push(...clone(seededUsers));
+  }
+
+  if (seededUsers.length > 0 || users.some((user, index) => user !== storedUsers[index])) {
     writeStoredValue(STORAGE_KEYS.users, users);
   }
 
@@ -66,16 +75,31 @@ function getRidesFromStorage() {
   return readCollection(STORAGE_KEYS.rides);
 }
 
+function requireAdmin() {
+  const user = getCurrentUser();
+  if (!user || user.role !== "admin") {
+    throw new Error("Sign in to the Rider Admin portal to make this change.");
+  }
+  return user;
+}
+
+function getDriverStatus(driver) {
+  if (driver.status === "approved" || driver.status === "pending" || driver.status === "suspended") {
+    return driver.status;
+  }
+  return driver.verified ? "approved" : "pending";
+}
+
 function findLocation(locationValue) {
   if (typeof locationValue === "object" && locationValue !== null) {
-    return locations.find(
+    return getLocations().find(
       (location) =>
         location.id === locationValue.id ||
         (location.name === locationValue.name && location.zone === locationValue.zone),
     );
   }
 
-  return locations.find(
+  return getLocations().find(
     (location) => location.id === locationValue || location.name === locationValue,
   );
 }
@@ -94,11 +118,104 @@ function toPublicUser(user) {
 }
 
 export function getLocations() {
-  return clone(locations);
+  return readCollection(STORAGE_KEYS.locations, locations).map(clone);
+}
+
+export function createLocation(locationInput) {
+  requireAdmin();
+  if (!locationInput || typeof locationInput !== "object" || Array.isArray(locationInput)) {
+    throw new TypeError("Location details must be provided.");
+  }
+
+  const name = String(locationInput.name ?? "").trim();
+  const zone = String(locationInput.zone ?? "").trim();
+  const type = String(locationInput.type ?? "building").trim();
+  if (!name) {
+    throw new Error("Enter a location name.");
+  }
+  if (!["standard", "campus", "premium-hostel"].includes(zone)) {
+    throw new Error("Choose a valid location zone.");
+  }
+
+  const currentLocations = getLocations();
+  if (currentLocations.some((location) => location.name.toLowerCase() === name.toLowerCase())) {
+    throw new Error("A location with this name already exists.");
+  }
+
+  const location = {
+    id: makeId("location"),
+    name,
+    zone,
+    type: type || "building",
+  };
+  writeStoredValue(STORAGE_KEYS.locations, [...currentLocations, location]);
+  return clone(location);
+}
+
+export function updateLocation(locationId, updates) {
+  requireAdmin();
+  if (typeof locationId !== "string" || !locationId.trim()) {
+    throw new TypeError("A location ID is required.");
+  }
+  if (!updates || typeof updates !== "object" || Array.isArray(updates)) {
+    throw new TypeError("Location updates must be provided.");
+  }
+
+  const currentLocations = getLocations();
+  const index = currentLocations.findIndex((location) => location.id === locationId);
+  if (index === -1) {
+    throw new Error("This location could not be found.");
+  }
+
+  const name = String(updates.name ?? currentLocations[index].name).trim();
+  const zone = String(updates.zone ?? currentLocations[index].zone).trim();
+  const type = String(updates.type ?? currentLocations[index].type).trim();
+  if (!name) {
+    throw new Error("Enter a location name.");
+  }
+  if (!["standard", "campus", "premium-hostel"].includes(zone)) {
+    throw new Error("Choose a valid location zone.");
+  }
+  if (
+    currentLocations.some(
+      (location, candidateIndex) =>
+        candidateIndex !== index && location.name.toLowerCase() === name.toLowerCase(),
+    )
+  ) {
+    throw new Error("A location with this name already exists.");
+  }
+
+  currentLocations[index] = { ...currentLocations[index], name, zone, type };
+  writeStoredValue(STORAGE_KEYS.locations, currentLocations);
+  return clone(currentLocations[index]);
+}
+
+export function deleteLocation(locationId) {
+  requireAdmin();
+  const currentLocations = getLocations();
+  const location = currentLocations.find((candidate) => candidate.id === locationId);
+  if (!location) {
+    throw new Error("This location could not be found.");
+  }
+
+  const usedByRide = getRidesFromStorage().some(
+    (ride) => ride.pickup?.id === locationId || ride.destination?.id === locationId,
+  );
+  if (usedByRide) {
+    throw new Error("This location is saved on a ride and cannot be deleted.");
+  }
+
+  writeStoredValue(
+    STORAGE_KEYS.locations,
+    currentLocations.filter((candidate) => candidate.id !== locationId),
+  );
 }
 
 export function getDrivers() {
-  return readCollection(STORAGE_KEYS.drivers, mockDrivers).map(clone);
+  return readCollection(STORAGE_KEYS.drivers, mockDrivers).map((driver) => ({
+    ...clone(driver),
+    status: getDriverStatus(driver),
+  }));
 }
 
 function findDriver(driverId) {
@@ -107,6 +224,35 @@ function findDriver(driverId) {
     throw new Error("Choose a valid driver profile.");
   }
   return driver;
+}
+
+export function setDriverStatus(driverId, status) {
+  requireAdmin();
+  if (!["approved", "pending", "suspended"].includes(status)) {
+    throw new Error("Choose a valid driver account status.");
+  }
+  const drivers = readCollection(STORAGE_KEYS.drivers, mockDrivers);
+  const index = drivers.findIndex((driver) => driver.id === driverId);
+  if (index === -1) {
+    throw new Error("This driver could not be found.");
+  }
+
+  const updatedDriver = {
+    ...drivers[index],
+    status,
+    verified: status === "approved",
+  };
+  drivers[index] = updatedDriver;
+  writeStoredValue(STORAGE_KEYS.drivers, drivers);
+
+  if (status !== "approved") {
+    writeStoredValue(
+      STORAGE_KEYS.onlineDrivers,
+      readCollection(STORAGE_KEYS.onlineDrivers).filter((onlineId) => onlineId !== driverId),
+    );
+  }
+
+  return clone(updatedDriver);
 }
 
 export function getCurrentDriver() {
@@ -123,7 +269,10 @@ export function isDriverOnline(driverId) {
 }
 
 export function setDriverOnline(driverId, isOnline) {
-  findDriver(driverId);
+  const driver = findDriver(driverId);
+  if (getDriverStatus(driver) !== "approved") {
+    throw new Error("Your Rider Driver account must be approved before you can go online.");
+  }
   if (typeof isOnline !== "boolean") {
     throw new TypeError("Driver availability must be online or offline.");
   }
@@ -143,6 +292,51 @@ export function getRides(filters = {}) {
     .filter((ride) => !filters.userId || ride.userId === filters.userId)
     .filter((ride) => !filters.status || ride.status === filters.status)
     .map(clone);
+}
+
+export function getPricingConfig(defaultConfig) {
+  if (!defaultConfig || typeof defaultConfig !== "object") {
+    throw new TypeError("Default fare settings are required.");
+  }
+  return clone(readStoredValue(STORAGE_KEYS.pricing, defaultConfig));
+}
+
+export function updatePricingConfig(config) {
+  requireAdmin();
+  if (!config || typeof config !== "object" || Array.isArray(config)) {
+    throw new TypeError("Fare settings must be provided.");
+  }
+
+  const zones = ["standard", "campus", "premium-hostel"];
+  const fareMatrix = config.fareMatrix;
+  if (!fareMatrix || typeof fareMatrix !== "object") {
+    throw new Error("Fare matrix settings are missing.");
+  }
+
+  const cleanMatrix = {};
+  for (const pickupZone of zones) {
+    const row = fareMatrix[pickupZone];
+    if (!row || typeof row !== "object") {
+      throw new Error(`Fare settings for ${pickupZone} are missing.`);
+    }
+    cleanMatrix[pickupZone] = {};
+    for (const destinationZone of zones) {
+      const fare = Number(row[destinationZone]);
+      if (!Number.isFinite(fare) || fare < 0 || fare > 100000) {
+        throw new Error(`Enter a valid fare for ${pickupZone} to ${destinationZone}.`);
+      }
+      cleanMatrix[pickupZone][destinationZone] = fare;
+    }
+  }
+
+  const nextConfig = {
+    ...clone(config),
+    currency: "NGN",
+    fareMatrix: cleanMatrix,
+    roundingIncrement: 50,
+  };
+  writeStoredValue(STORAGE_KEYS.pricing, nextConfig);
+  return clone(nextConfig);
 }
 
 export function getDriverRideRequests(driverId) {
@@ -423,7 +617,8 @@ export function signup(userInput) {
       plateNumber,
       phone,
       rating: 5,
-      verified: true,
+      verified: false,
+      status: "pending",
       demoAccount: true,
     };
   }

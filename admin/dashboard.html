@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#16824b" />
+    <title>Admin dashboard | Rider</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="../css/base.css" />
+    <link rel="stylesheet" href="../css/components.css" />
+    <link rel="stylesheet" href="../css/admin.css" />
+    <script type="module" src="../js/admin.js"></script>
+  </head>
+  <body class="admin-body">
+    <header class="site-header">
+      <div class="container nav-shell admin-nav-shell">
+        <a href="../index.html" class="brand" aria-label="Rider home page">
+          <span class="brand-mark">R</span>
+          <span class="brand-text">Rider Admin</span>
+        </a>
+        <button type="button" class="btn btn-ghost" id="admin-logout">Logout</button>
+      </div>
+    </header>
+
+    <main class="container admin-shell">
+      <div class="admin-heading">
+        <div>
+          <span class="eyebrow accent">Operations</span>
+          <h1>Admin dashboard</h1>
+          <p>Manage the Rider prototype. Changes are saved in this browser only.</p>
+        </div>
+        <nav class="admin-shortcuts" aria-label="Dashboard sections">
+          <a href="#drivers">Drivers</a>
+          <a href="#locations">Locations</a>
+          <a href="#pricing">Pricing</a>
+          <a href="#rides">Rides</a>
+        </nav>
+      </div>
+
+      <p id="admin-status" class="admin-message status-message" role="status" aria-live="polite" hidden></p>
+      <p id="admin-error" class="admin-message error-message" role="alert" aria-live="assertive" hidden></p>
+
+      <section class="admin-stats" aria-label="Rider overview">
+        <article class="admin-stat-card"><span>Total rides</span><strong id="metric-rides">0</strong></article>
+        <article class="admin-stat-card"><span>Online drivers</span><strong id="metric-drivers">0</strong></article>
+        <article class="admin-stat-card"><span>Completed ride revenue</span><strong id="metric-revenue">₦0</strong></article>
+        <article class="admin-stat-card"><span>Average driver rating</span><strong id="metric-rating">—</strong></article>
+      </section>
+
+      <section class="admin-panel" id="drivers" aria-labelledby="drivers-heading">
+        <div class="admin-section-heading">
+          <div><span class="eyebrow accent">Access control</span><h2 id="drivers-heading">Driver approval</h2></div>
+          <p>Only approved drivers can go online and accept ride requests.</p>
+        </div>
+        <div id="driver-list" class="admin-record-list"></div>
+      </section>
+
+      <section class="admin-panel" id="locations" aria-labelledby="locations-heading">
+        <div class="admin-section-heading">
+          <div><span class="eyebrow accent">Service area</span><h2 id="locations-heading">Locations</h2></div>
+          <p>Rides already using a location prevent it from being deleted.</p>
+        </div>
+        <form id="location-create-form" class="admin-form admin-location-create">
+          <div class="admin-field"><label for="new-location-name">Location name</label><input id="new-location-name" name="name" required maxlength="80" /></div>
+          <div class="admin-field"><label for="new-location-zone">Fare zone</label><select id="new-location-zone" name="zone" required><option value="standard">Standard</option><option value="campus">Campus</option><option value="premium-hostel">Premium hostel</option></select></div>
+          <div class="admin-field"><label for="new-location-type">Location type</label><input id="new-location-type" name="type" value="building" maxlength="40" /></div>
+          <button type="submit" class="btn btn-primary">Add location</button>
+        </form>
+        <div id="location-list" class="admin-record-list"></div>
+      </section>
+
+      <section class="admin-panel" id="pricing" aria-labelledby="pricing-heading">
+        <div class="admin-section-heading">
+          <div><span class="eyebrow accent">Fare settings</span><h2 id="pricing-heading">Zone fare matrix</h2></div>
+          <p>Amounts are in naira per passenger and rounded to the nearest ₦50. These are demo values; replace them with real cost-based fares.</p>
+        </div>
+        <form id="pricing-form" class="admin-form">
+          <div id="fare-matrix" class="fare-matrix"></div>
+          <button type="submit" class="btn btn-primary">Save fare settings</button>
+        </form>
+      </section>
+
+      <section class="admin-panel" id="rides" aria-labelledby="rides-heading">
+        <div class="admin-section-heading">
+          <div><span class="eyebrow accent">Activity</span><h2 id="rides-heading">Ride history</h2></div>
+          <p>Filter by ride status and booking or scheduled pickup date.</p>
+        </div>
+        <form id="ride-filters" class="admin-form ride-filters">
+          <div class="admin-field"><label for="ride-status-filter">Status</label><select id="ride-status-filter" name="status"><option value="">All statuses</option><option value="finding">Finding driver</option><option value="accepted">Accepted</option><option value="arriving">Arriving</option><option value="on-trip">On trip</option><option value="completed">Completed</option><option value="cancelled">Cancelled</option></select></div>
+          <div class="admin-field"><label for="ride-date-filter">Booking or pickup date</label><input id="ride-date-filter" name="date" type="date" /></div>
+        </form>
+        <div class="admin-table-wrap">
+          <table class="admin-rides-table">
+            <thead><tr><th>Ride</th><th>Rider</th><th>Status</th><th>Pickup time</th><th>Fare</th></tr></thead>
+            <tbody id="ride-list"></tbody>
+          </table>
+          <p id="ride-empty" class="admin-empty" hidden>No rides match these filters.</p>
+        </div>
+      </section>
+      <p class="admin-prototype-note">Prototype warning: admin access and data live in localStorage. Do not use this client-side access control for a live service.</p>
+    </main>
+  </body>
+</html>
