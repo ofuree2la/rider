@@ -10,6 +10,12 @@ Open `index.html` in a browser. The booking screen is available from the **Book 
 
 This version uses static demo content and browser storage rather than a booking database. The map and fare shown on the booking screen are illustrative. Paystack checkout must be configured as described below before online payments can be used.
 
+## Mobile experience and motion
+
+- Pages share `css/mobile.css` for touch-sized controls, mobile spacing, safe-area support, and reduced-motion preferences.
+- Anime.js 3.2.2 is loaded from jsDelivr for subtle page entrance motion in `js/motion.js`. If the library is unavailable, the page remains usable without the animation.
+- Short vibration feedback is requested on touch for buttons and links where the browser supports the Vibration API. iOS Safari and other unsupported browsers may not provide vibration; no extra permission or hardware is assumed.
+
 ## Online payments (Paystack)
 
 Choose **Pay online** on the booking screen. After a driver is matched, **Pay now** opens Paystack checkout with the driver's subaccount, so Paystack splits the fare automatically (the percentages are set on the subaccount in the Paystack dashboard).

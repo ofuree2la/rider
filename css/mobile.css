@@ -1,0 +1,173 @@
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  overflow-x: clip;
+}
+
+button,
+a,
+input[type="button"],
+input[type="submit"],
+select {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+button:disabled,
+input:disabled,
+select:disabled {
+  cursor: not-allowed;
+}
+
+@media (max-width: 760px) {
+  .container {
+    width: min(var(--container-width), calc(100% - 1.25rem));
+  }
+
+  .btn {
+    min-height: 48px;
+  }
+
+  .auth-body {
+    min-height: 100svh;
+    padding:
+      max(1rem, env(safe-area-inset-top))
+      0
+      max(1rem, env(safe-area-inset-bottom));
+  }
+
+  .auth-shell {
+    width: min(560px, calc(100% - 1.25rem));
+    padding: clamp(1.25rem, 5vw, 1.75rem);
+  }
+
+  .auth-form input,
+  .auth-form select,
+  .admin-form input,
+  .admin-form select,
+  .booking-form input,
+  .booking-form select {
+    font-size: 16px;
+  }
+
+  .ride-shell,
+  .journey-shell,
+  .dashboard-shell,
+  .profile-shell,
+  .admin-shell {
+    width: min(var(--container-width), calc(100% - 1.25rem));
+  }
+
+  .admin-shell {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .admin-shell > *,
+  .admin-heading > *,
+  .admin-section-heading > *,
+  .admin-stat-card {
+    min-width: 0;
+  }
+
+  .admin-shortcuts {
+    max-width: 100%;
+  }
+
+  .admin-stat-card strong {
+    overflow-wrap: anywhere;
+  }
+
+  .ride-panel,
+  .map-card,
+  .journey-card {
+    border-radius: 20px;
+  }
+
+  .journey-shell,
+  .profile-shell {
+    padding-top: 1.25rem;
+    padding-bottom: 2rem;
+  }
+
+  .stat-card {
+    min-width: 0;
+  }
+
+  .ride-history-actions .btn {
+    flex: 1 1 auto;
+  }
+
+  .admin-rides-table {
+    min-width: 620px;
+  }
+}
+
+@media (max-width: 520px) {
+  .ride-panel {
+    padding: 1rem;
+  }
+
+  .ride-options {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.55rem;
+  }
+
+  .ride-option {
+    min-width: 0;
+    min-height: 52px;
+    gap: 0.5rem;
+    padding: 0.65rem;
+    border-radius: 14px;
+  }
+
+  .ride-option .coming-soon {
+    font-size: 0.68rem;
+  }
+
+  .page-heading h1,
+  .admin-heading h1 {
+    overflow-wrap: anywhere;
+  }
+
+  .dashboard-shell .page-heading {
+    align-items: flex-start;
+  }
+
+  .stats-grid,
+  .admin-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .stat-card,
+  .admin-stat-card {
+    padding: 0.85rem;
+  }
+
+  .profile-card-shell {
+    padding: 1.1rem;
+  }
+
+  .profile-body .nav-shell > .btn {
+    min-height: 44px;
+    padding-inline: 0.8rem;
+  }
+
+  .bottom-nav {
+    bottom: max(10px, env(safe-area-inset-bottom, 0px));
+    width: min(calc(100% - 20px), 420px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
