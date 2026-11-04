@@ -10,6 +10,19 @@ Open `index.html` in a browser. The booking screen is available from the **Book 
 
 This version uses static demo content and browser storage rather than a booking database. The map and fare shown on the booking screen are illustrative. Paystack checkout must be configured as described below before online payments can be used.
 
+## Supabase backend foundation
+
+The Supabase project URL and publishable browser key are configured in `js/supabase-config.js`; the publishable key is safe for browser use when Row Level Security (RLS) is enabled. Never put a Supabase `service_role` key or database password in website files.
+
+The initial schema and RLS policies are in `supabase/migrations/20261104230300_rider_initial_schema.sql`. To initialize the project:
+1. Open the Supabase project SQL Editor and run the migration file.
+2. Create the first Admin user in Supabase Authentication.
+3. In the SQL Editor, promote that account by running:
+   `update public.profiles set role = 'admin' where id = (select id from auth.users where email = lower('YOUR_ADMIN_EMAIL'));`
+4. Verify the migration completed and the Admin profile exists.
+
+This is the database foundation only: existing screens still use the local demo API until their authentication and data calls are migrated to Supabase. Do not treat the hosted Supabase project as the live app backend yet.
+
 ## Mobile experience and motion
 
 - Pages share `css/mobile.css` for touch-sized controls, mobile spacing, safe-area support, and reduced-motion preferences.
