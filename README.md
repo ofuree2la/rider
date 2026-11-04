@@ -1,14 +1,14 @@
 # Rider
 
-Rider is a front-end prototype for campus keke bookings at Veritas University, Abuja.
+Rider is a mobile-first campus keke booking web app for Veritas University, Abuja. Its current rider, driver, and Admin workflows use Supabase Authentication and Postgres; the older local mock API remains in the repository but is no longer used by these pages.
 
 ## Run locally
 
-Open `index.html` in a browser. The booking screen is available from the **Book a Ride** button on the landing page.
+Serve the repository over HTTP (ES modules do not work reliably from `file://`) and open `index.html`. The booking screen is available from **Book a Ride**. Configure Supabase Auth Site URL and redirect URLs for the local or deployed origin.
 
 ## Prototype status
 
-This version uses static demo content and browser storage rather than a booking database. The map and fare shown on the booking screen are illustrative. Paystack checkout must be configured as described below before online payments can be used.
+The Supabase publishable browser key is configured in `js/supabase-config.js`. It is safe for browser use only with the database Row Level Security (RLS) policies enabled. Never put a Supabase `service_role` key or database password in website files.
 
 ## Supabase backend foundation
 
@@ -16,12 +16,14 @@ The Supabase project URL and publishable browser key are configured in `js/supab
 
 The initial schema and RLS policies are in `supabase/migrations/20261104230300_rider_initial_schema.sql`. To initialize the project:
 1. Open the Supabase project SQL Editor and run the migration file.
-2. Create the first Admin user in Supabase Authentication.
-3. In the SQL Editor, promote that account by running:
+2. Run `supabase/migrations/20261104234900_rider_workflow_functions.sql` in the SQL Editor.
+3. Set the Supabase Auth Site URL to the deployed Rider URL and allow the Rider login URLs as redirects.
+4. Create the first Admin user through the Rider sign-up page as a rider account, then confirm the email.
+5. In the SQL Editor, promote that account by running:
    `update public.profiles set role = 'admin' where id = (select id from auth.users where email = lower('YOUR_ADMIN_EMAIL'));`
-4. Verify the migration completed and the Admin profile exists.
+6. Verify the profile role is `admin`, then sign in at `admin/login.html`.
 
-This is the database foundation only: existing screens still use the local demo API until their authentication and data calls are migrated to Supabase. Do not treat the hosted Supabase project as the live app backend yet.
+Rider and driver authentication, profiles, bookings, tracking, history, driver workflows, Admin management, locations, and fare matrix settings use Supabase. Online payment is disabled until a server-side Paystack verification endpoint is deployed and integrated. Fares are currently placeholders, and time-based surcharges/shared-fare options are off. Do not use the app for production rides until payment, deployment, and operational/security checks are complete.
 
 ## Mobile experience and motion
 
@@ -29,25 +31,11 @@ This is the database foundation only: existing screens still use the local demo 
 - Anime.js 3.2.2 is loaded from jsDelivr for subtle page entrance motion in `js/motion.js`. If the library is unavailable, the page remains usable without the animation.
 - Short vibration feedback is requested on touch for buttons and links where the browser supports the Vibration API. iOS Safari and other unsupported browsers may not provide vibration; no extra permission or hardware is assumed.
 
-## Online payments (Paystack)
-
-Choose **Pay online** on the booking screen. After a driver is matched, **Pay now** opens Paystack checkout with the driver's subaccount, so Paystack splits the fare automatically (the percentages are set on the subaccount in the Paystack dashboard).
-
-Setup:
-1. Put your Paystack **public** key in `js/paystack-config.js`.
-2. Give each driver a `subaccountCode` in `js/mockData.js`.
-3. Deploy `api/verify-payment.js` (for example on Vercel) with the environment variable `PAYSTACK_SECRET_KEY`, then put its URL in `js/paystack-config.js`.
-
-Never put the secret key (`sk_...`) in any website file.
-
 ## Rider and driver accounts
 
-- Riders use `login.html` and `signup.html`; rider sign-up creates a rider account and sends the user to booking.
-- Drivers use `driver/login.html` and `driver/signup.html`; driver registration also collects a phone number and keke plate number, then opens the driver dashboard.
-- The Admin portal is at `admin/login.html`. The demo account is `admin@rider.demo` with password `RiderAdmin123!`.
-- Riders can update their name, email, and phone number at `profile.html`. Drivers can also edit their keke plate number at `driver/profile.html`.
-- The prototype stores accounts, rides, locations, and fare settings in localStorage. New driver accounts start pending and must be approved in the Admin portal before going online or accepting requests. Approval is only a local demo state and does not verify driver documents or vehicle ownership.
-- Admins can view overview metrics and rides, approve or suspend drivers, manage locations, and edit the zone fare matrix. Location and fare changes affect new booking estimates in the same browser.
-- Existing local non-driver accounts are migrated to the general `rider` role when the mock API reads them.
-- The seeded demo rider can sign in with `rider@rider.demo` and `RiderDemo123!`; the seeded demo driver can sign in with `driver@rider.demo` and `RiderDemo123!`. Use a different email when testing registration.
-- Admin authorization and all data are client-side and stored in localStorage. This portal is for demonstrations only; it is not suitable for real access control, authentication, or storing real passwords.
+- Riders use `login.html` and `signup.html`. Drivers use `driver/login.html` and `driver/signup.html`; registration collects a phone number and keke plate number, and new driver accounts must be approved by an Admin before going online.
+- The Admin portal is at `admin/login.html`. There is no shared/demo Admin password: use an account whose `profiles.role` has been promoted to `admin` by a trusted project owner.
+- To provision the first Admin, sign up and confirm an account, then use the SQL promotion command in the Supabase setup steps above. Never expose database credentials or grant Admin access through public signup.
+- Riders can update their name, email, and phone at `profile.html`; drivers can also edit their keke plate number at `driver/profile.html`.
+- Admins can view ride/driver metrics, approve or suspend drivers, manage locations, and edit the fare matrix. Database authorization is enforced through Supabase RLS and restricted RPC functions.
+- Existing local mock data is not automatically migrated to Supabase. Create accounts again through the Supabase-backed signup pages.

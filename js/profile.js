@@ -1,4 +1,4 @@
-import { getCurrentDriver, getCurrentUser, logout, updateCurrentUserProfile } from "./api.js";
+import { getCurrentDriver, getCurrentUser, logout, updateCurrentUserProfile } from "./supabase-api.js";
 
 const expectedRole = document.body.dataset.accountRole;
 const form = document.querySelector("#profile-form");
@@ -24,8 +24,8 @@ function showMessage(text, isError = false) {
   message.classList.toggle("error-message", isError);
 }
 
-function loadProfile() {
-  const user = getCurrentUser();
+async function loadProfile() {
+  const user = await getCurrentUser();
   if (!user || user.role !== expectedRole) {
     window.location.replace(getLoginPath(user?.role));
     return false;
@@ -36,13 +36,13 @@ function loadProfile() {
   phoneInput.value = user.phone ?? "";
 
   if (expectedRole === "driver" && plateInput) {
-    plateInput.value = getCurrentDriver().plateNumber ?? "";
+    plateInput.value = (await getCurrentDriver()).plateNumber ?? "";
   }
 
   return true;
 }
 
-function handleSubmit(event) {
+async function handleSubmit(event) {
   event.preventDefault();
   showMessage("");
 
@@ -57,16 +57,16 @@ function handleSubmit(event) {
   }
 
   try {
-    updateCurrentUserProfile(updates);
-    showMessage("Your profile has been updated.");
+    await updateCurrentUserProfile(updates);
+    showMessage("Your profile has been updated. If you changed your email, confirm it from the message we sent.");
   } catch (error) {
     showMessage(error.message || "Your profile could not be updated.", true);
   }
 }
 
-function handleLogout() {
+async function handleLogout() {
   try {
-    logout();
+    await logout();
     window.location.assign(getLoginPath());
   } catch (error) {
     showMessage(`You could not be logged out: ${error.message}`, true);
@@ -78,7 +78,7 @@ if (!form || !message || !nameInput || !emailInput || !phoneInput || !logoutButt
 }
 
 try {
-  if (loadProfile()) {
+  if (await loadProfile()) {
     form.addEventListener("submit", handleSubmit);
     logoutButton.addEventListener("click", handleLogout);
   }

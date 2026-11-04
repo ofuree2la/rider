@@ -1,4 +1,4 @@
-import { cancelScheduledRide, getRides } from "./api.js?v=step4";
+import { cancelScheduledRide, getRides } from "./supabase-api.js";
 
 const upcomingList = document.querySelector("#upcoming-rides");
 const pastList = document.querySelector("#past-rides");
@@ -97,8 +97,8 @@ function makeRideCard(ride, canCancel) {
   return card;
 }
 
-function renderRides() {
-  const rides = getRides().sort(
+async function renderRides() {
+  const rides = (await getRides()).sort(
     (first, second) => new Date(first.scheduledAt) - new Date(second.scheduledAt),
   );
   const upcoming = [];
@@ -130,7 +130,7 @@ function renderRides() {
   pastEmpty.hidden = past.length > 0;
 }
 
-function handleCancel(event) {
+async function handleCancel(event) {
   const button = event.target.closest("[data-ride-id]");
   if (!button) {
     return;
@@ -141,7 +141,7 @@ function handleCancel(event) {
   }
 
   try {
-    cancelScheduledRide(button.dataset.rideId);
+    await cancelScheduledRide(button.dataset.rideId);
     clearMessages();
     showStatus("Your scheduled ride has been cancelled.");
     renderRides();
@@ -151,7 +151,7 @@ function handleCancel(event) {
 }
 
 try {
-  renderRides();
+  await renderRides();
   upcomingList.addEventListener("click", handleCancel);
 } catch (error) {
   showError(`Ride history could not be loaded: ${error.message}`);

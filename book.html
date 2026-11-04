@@ -114,7 +114,7 @@
             <label for="payment-method">Payment method</label>
             <select id="payment-method" name="paymentMethod">
               <option value="cash" selected>Cash</option>
-              <option value="online">Pay online (card, bank, USSD)</option>
+              <option value="online" disabled>Pay online (setup in progress)</option>
             </select>
           </div>
 
@@ -138,6 +138,7 @@
           </section>
 
           <p id="booking-error" class="booking-message error-message" role="alert" hidden></p>
+          <a id="booking-signin-link" class="btn btn-secondary" href="login.html" hidden>Sign in to request a ride</a>
           <p id="booking-status" class="booking-message status-message" role="status" aria-live="polite" hidden></p>
 
           <button id="find-ride" type="submit" class="btn btn-primary btn-large">Find a ride</button>

@@ -1,4 +1,4 @@
-import { getRide, rateRide, updateRide } from "./api.js?v=step4";
+import { getRide, rateRide } from "./supabase-api.js";
 
 const rideId = new URLSearchParams(window.location.search).get("id");
 const trackingError = document.querySelector("#tracking-error");
@@ -40,7 +40,7 @@ const currencyFormatter = new Intl.NumberFormat("en-NG", {
 });
 
 let ride = null;
-let simulationTimer = null;
+let refreshTimer = null;
 
 function showError(message) {
   trackingError.textContent = message;
@@ -143,57 +143,30 @@ function renderRide() {
   } else if (ride.timing === "scheduled" && new Date(ride.scheduledAt) > new Date()) {
     showStatus("Your scheduled ride is confirmed. Ride progress will update around pickup time.");
   } else if (!["completed", "cancelled"].includes(ride.status)) {
-    showStatus("Ride status updates automatically in this demo.");
+    showStatus("Ride status updates automatically when your driver changes the trip status.");
   } else {
     hideMessages();
   }
 }
 
-function scheduleNextStage(expectedStatus, delay) {
-  window.clearTimeout(simulationTimer);
-  simulationTimer = window.setTimeout(() => {
-    try {
-      const latestRide = getRide(ride.id);
-      if (!latestRide || latestRide.status !== expectedStatus) {
-        return;
-      }
-
-      const nextStage = RIDE_STAGES[getStageIndex(expectedStatus) + 1];
-      if (!nextStage) {
-        return;
-      }
-
-      const timestamps = {
-        arriving: { arrivedAt: new Date().toISOString() },
-        "on-trip": { startedAt: new Date().toISOString() },
-        completed: { completedAt: new Date().toISOString() },
-      };
-      ride = updateRide(ride.id, {
-        status: nextStage.status,
-        ...timestamps[nextStage.status],
-      });
-      renderRide();
-
-      if (nextStage.status === "arriving") {
-        scheduleNextStage("arriving", 4200);
-      } else if (nextStage.status === "on-trip") {
-        scheduleNextStage("on-trip", 6500);
-      }
-    } catch (error) {
-      showError(`Ride progress could not be updated: ${error.message}`);
-    }
-  }, delay);
-}
-
-function startProgressSimulation() {
-  if (
-    ride.status !== "accepted" ||
-    (ride.timing === "scheduled" && new Date(ride.scheduledAt) > new Date())
-  ) {
+function scheduleRideRefresh() {
+  window.clearTimeout(refreshTimer);
+  if (["completed", "cancelled"].includes(ride.status)) {
     return;
   }
-
-  scheduleNextStage("accepted", 4200);
+  refreshTimer = window.setTimeout(async () => {
+    try {
+      const latestRide = await getRide(ride.id);
+      if (latestRide) {
+        ride = latestRide;
+        renderRide();
+      }
+      scheduleRideRefresh();
+    } catch (error) {
+      showError(`Ride status could not be refreshed: ${error.message}`);
+      refreshTimer = window.setTimeout(scheduleRideRefresh, 10000);
+    }
+  }, 5000);
 }
 
 async function shareTrip() {
@@ -220,14 +193,14 @@ async function shareTrip() {
   }
 }
 
-function submitRating(event) {
+async function submitRating(event) {
   event.preventDefault();
   const formData = new FormData(ratingForm);
   const ratingValue = Number(formData.get("rating"));
   const comment = String(formData.get("comment") ?? "");
 
   try {
-    ride = rateRide(ride.id, ratingValue, comment);
+    ride = await rateRide(ride.id, ratingValue, comment);
     hideMessages();
     renderRating();
   } catch (error) {
@@ -235,24 +208,24 @@ function submitRating(event) {
   }
 }
 
-function startTrackingPage() {
+async function startTrackingPage() {
   if (!rideId) {
     throw new Error("Open ride tracking from a booking or ride history entry.");
   }
 
-  ride = getRide(rideId);
+  ride = await getRide(rideId);
   if (!ride) {
     throw new Error("This ride was not found. It may have been cleared from this browser.");
   }
 
   renderRide();
-  startProgressSimulation();
+  scheduleRideRefresh();
   ratingForm.addEventListener("submit", submitRating);
   shareButton.addEventListener("click", shareTrip);
 }
 
 try {
-  startTrackingPage();
+  await startTrackingPage();
 } catch (error) {
   showError(error.message);
 }

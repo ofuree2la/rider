@@ -1,4 +1,4 @@
-import { getLocations, getPricingConfig } from "./api.js?v=admin";
+import { getPricingConfig } from "./supabase-api.js";
 
 // PLACEHOLDER flat fares. Replace them with real figures from a cost-per-trip
 // calculation before using Rider operationally. These are final fares per rider;
@@ -45,12 +45,16 @@ export const FARE_CONFIG = {
   },
 };
 
+let activeFareConfig = FARE_CONFIG;
+
+export async function loadFareConfig() {
+  activeFareConfig = await getPricingConfig(FARE_CONFIG);
+  return activeFareConfig;
+}
+
 function getZone(locationValue, fieldName) {
   if (typeof locationValue === "string" && locationValue.trim()) {
-    const location = getLocations().find(
-      (candidate) => candidate.id === locationValue || candidate.name === locationValue,
-    );
-    return location?.zone ?? locationValue;
+    return locationValue;
   }
   if (locationValue && typeof locationValue.zone === "string" && locationValue.zone) {
     return locationValue.zone;
@@ -63,7 +67,7 @@ export function calculateFare(pickup, destination, time = new Date(), passengers
   // fares do not vary by time, so it intentionally has no effect on the estimate.
   void time;
 
-  const config = getPricingConfig(FARE_CONFIG);
+  const config = activeFareConfig;
   const pickupZone = getZone(pickup, "Pickup");
   const destinationZone = getZone(destination, "Destination");
   const passengerCount = Number(passengers);

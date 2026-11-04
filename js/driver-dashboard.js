@@ -9,9 +9,10 @@ import {
   setDriverOnline,
   isDriverOnline,
   updateDriverRideStatus,
-} from "./api.js";
+} from "./supabase-api.js";
 
 let driver = null;
+let isAutoRefreshRunning = false;
 const driverNameHeading = document.querySelector("#driver-name-heading");
 const driverOnlineToggle = document.querySelector("#driver-online-toggle");
 const pendingCount = document.querySelector("#pending-count");
@@ -33,6 +34,7 @@ const allTimeEarnings = document.querySelector("#alltime-earnings");
 const dashboardStatus = document.querySelector("#dashboard-status");
 const dashboardError = document.querySelector("#dashboard-error");
 const logoutButton = document.querySelector("#logout-button");
+const DASHBOARD_REFRESH_INTERVAL_MS = 15_000;
 
 const currencyFormatter = new Intl.NumberFormat("en-NG", {
   style: "currency",
@@ -64,6 +66,16 @@ function hideMessages() {
 
 function formatCash(amount) {
   return currencyFormatter.format(Number(amount ?? 0));
+}
+
+function escapeHtml(value) {
+  return String(value ?? "").replace(/[&<>"']/g, (character) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;",
+  })[character]);
 }
 
 function formatRideTime(value) {
@@ -117,7 +129,7 @@ function getDriverRideSummary(allRides) {
   };
 }
 
-function renderProfile() {
+async function renderProfile() {
   driverNameHeading.textContent = driver.name;
   profileName.textContent = driver.name;
   profilePlate.textContent = driver.plateNumber;
@@ -132,7 +144,7 @@ function renderProfile() {
   driverAvatar.textContent = driver.name.split(" ").slice(0, 2).map((part) => part[0]).join("").toUpperCase();
   const canGoOnline = driver.status === "approved";
   driverOnlineToggle.disabled = !canGoOnline;
-  driverOnlineToggle.checked = canGoOnline && isDriverOnline(driver.id);
+  driverOnlineToggle.checked = canGoOnline && (await isDriverOnline(driver.id));
   if (!canGoOnline) {
     showStatus(
       driver.status === "suspended"
@@ -142,7 +154,7 @@ function renderProfile() {
   }
 }
 
-function renderRequests() {
+async function renderRequests() {
   if (driver.status !== "approved") {
     pendingCount.textContent = "0";
     requestList.innerHTML = `<div class="request-card empty-state-box"><p>${
@@ -153,7 +165,7 @@ function renderRequests() {
     return;
   }
 
-  const requests = getDriverRideRequests(driver.id);
+  const requests = await getDriverRideRequests(driver.id);
   pendingCount.textContent = String(requests.length);
 
   if (requests.length === 0) {
@@ -166,7 +178,7 @@ function renderRequests() {
       (ride) => `
         <article class="request-card">
           <div class="request-top">
-            <h3>${ride.pickup?.name ?? "Pickup"} to ${ride.destination?.name ?? "Destination"}</h3>
+            <h3>${escapeHtml(ride.pickup?.name ?? "Pickup")} to ${escapeHtml(ride.destination?.name ?? "Destination")}</h3>
             <span class="badge">${ride.timing === "scheduled" ? "Scheduled" : "Now"}</span>
           </div>
           <div class="request-meta">
@@ -175,11 +187,11 @@ function renderRequests() {
           </div>
           <div class="request-meta">
             <span>${formatRideTime(ride.scheduledAt)}</span>
-            <span>${ride.paymentMethod ?? "Cash"}</span>
+            <span>${escapeHtml(ride.paymentMethod ?? "Cash")}</span>
           </div>
           <div class="request-actions">
-            <button type="button" class="btn btn-primary" data-action="accept" data-ride-id="${ride.id}">Accept</button>
-            <button type="button" class="btn btn-danger" data-action="decline" data-ride-id="${ride.id}">Decline</button>
+            <button type="button" class="btn btn-primary" data-action="accept" data-ride-id="${escapeHtml(ride.id)}">Accept</button>
+            <button type="button" class="btn btn-danger" data-action="decline" data-ride-id="${escapeHtml(ride.id)}">Decline</button>
           </div>
         </article>
       `,
@@ -187,8 +199,8 @@ function renderRequests() {
     .join("");
 }
 
-function renderActiveRide() {
-  const rides = getDriverRides(driver.id)
+async function renderActiveRide() {
+  const rides = (await getDriverRides(driver.id))
     .filter((ride) => ride.status && !["finding", "cancelled"].includes(ride.status))
     .sort((first, second) => new Date(second.createdAt) - new Date(first.createdAt));
 
@@ -214,9 +226,9 @@ function renderActiveRide() {
   activeRideCard.innerHTML = `
     <div class="trip-top">
       <div>
-        <h3>${activeRide.pickup?.name ?? "Pickup"} to ${activeRide.destination?.name ?? "Destination"}</h3>
+        <h3>${escapeHtml(activeRide.pickup?.name ?? "Pickup")} to ${escapeHtml(activeRide.destination?.name ?? "Destination")}</h3>
       </div>
-      <span class="status-pill">${activeRide.status.replace("-", " ")}</span>
+      <span class="status-pill">${escapeHtml(activeRide.status.replace("-", " "))}</span>
     </div>
     <div class="route-summary-row">
       <span>${activeRide.passengers} passenger${activeRide.passengers > 1 ? "s" : ""}</span>
@@ -227,13 +239,13 @@ function renderActiveRide() {
       <span>${formatRideTime(activeRide.scheduledAt)}</span>
     </div>
     <div class="trip-actions">
-      <button type="button" class="btn btn-primary" data-action="advance-status" data-ride-id="${activeRide.id}" ${actionInfo.nextStatus ? "" : "disabled"}>${actionInfo.label}</button>
+      <button type="button" class="btn btn-primary" data-action="advance-status" data-ride-id="${escapeHtml(activeRide.id)}" ${actionInfo.nextStatus ? "" : "disabled"}>${actionInfo.label}</button>
     </div>
   `;
 }
 
-function renderScheduledRides() {
-  const rides = getDriverRides(driver.id).filter((ride) => ride.timing === "scheduled" && ride.status !== "cancelled");
+async function renderScheduledRides() {
+  const rides = (await getDriverRides(driver.id)).filter((ride) => ride.timing === "scheduled" && ride.status !== "cancelled");
 
   if (rides.length === 0) {
     scheduledRides.innerHTML = '<div class="scheduled-item empty-state-box"><p>No future scheduled rides yet.</p></div>';
@@ -245,8 +257,8 @@ function renderScheduledRides() {
       (ride) => `
         <article class="scheduled-item">
           <div class="scheduled-meta">
-            <h3>${ride.pickup?.name ?? "Pickup"} to ${ride.destination?.name ?? "Destination"}</h3>
-            <span class="badge">${ride.status}</span>
+            <h3>${escapeHtml(ride.pickup?.name ?? "Pickup")} to ${escapeHtml(ride.destination?.name ?? "Destination")}</h3>
+            <span class="badge">${escapeHtml(ride.status)}</span>
           </div>
           <div class="request-meta">
             <span>${formatRideTime(ride.scheduledAt)}</span>
@@ -258,8 +270,8 @@ function renderScheduledRides() {
     .join("");
 }
 
-function renderEarnings() {
-  const rides = getDriverRides(driver.id);
+async function renderEarnings() {
+  const rides = await getDriverRides(driver.id);
   const summary = getDriverRideSummary(rides);
   todayCount.textContent = String(summary.todayCount);
   todayEarnings.textContent = formatCash(summary.todayEarnings);
@@ -268,13 +280,15 @@ function renderEarnings() {
   allTimeEarnings.textContent = formatCash(summary.allTimeTotal);
 }
 
-function refreshDashboard() {
+async function refreshDashboard() {
   hideMessages();
-  renderProfile();
-  renderRequests();
-  renderActiveRide();
-  renderScheduledRides();
-  renderEarnings();
+  await Promise.all([
+    renderProfile(),
+    renderRequests(),
+    renderActiveRide(),
+    renderScheduledRides(),
+    renderEarnings(),
+  ]);
 }
 
 async function handleRideAction(event) {
@@ -287,13 +301,13 @@ async function handleRideAction(event) {
 
   try {
     if (action === "accept") {
-      acceptRideRequest(rideId, driver.id);
+      await acceptRideRequest(rideId, driver.id);
       showStatus("Ride accepted. The rider can now track your progress.");
     } else if (action === "decline") {
-      declineRideRequest(rideId, driver.id);
+      await declineRideRequest(rideId, driver.id);
       showStatus("Ride request declined.");
     } else if (action === "advance-status") {
-      const ride = getDriverRides(driver.id).find((candidate) => candidate.id === rideId);
+      const ride = (await getDriverRides(driver.id)).find((candidate) => candidate.id === rideId);
       if (!ride) {
         throw new Error("This ride no longer exists.");
       }
@@ -306,21 +320,21 @@ async function handleRideAction(event) {
       if (!nextStatus) {
         throw new Error("This ride is already complete.");
       }
-      updateDriverRideStatus(rideId, driver.id, nextStatus);
+      await updateDriverRideStatus(rideId, driver.id, nextStatus);
       showStatus(`Ride status updated to ${nextStatus.replace("-", " ")}.`);
     }
 
-    refreshDashboard();
+    await refreshDashboard();
   } catch (error) {
     showError(error.message);
   }
 }
 
-function handleOnlineToggle(event) {
+async function handleOnlineToggle(event) {
   const isOnline = event.target.checked;
 
   try {
-    setDriverOnline(driver.id, isOnline);
+    await setDriverOnline(driver.id, isOnline);
     showStatus(`${driver.name} is now ${isOnline ? "online" : "offline"}.`);
   } catch (error) {
     showError(error.message);
@@ -328,28 +342,39 @@ function handleOnlineToggle(event) {
   }
 }
 
-function startDriverDashboard() {
+async function startDriverDashboard() {
   try {
-    const user = getCurrentUser();
+    const user = await getCurrentUser();
     if (!user || user.role !== "driver") {
       window.location.replace(user?.role === "rider" ? "../login.html" : user?.role === "admin" ? "../admin/login.html" : "login.html");
       return;
     }
 
-    driver = getCurrentDriver();
+    driver = await getCurrentDriver();
     logoutButton.addEventListener("click", () => {
-      try {
-        logout();
-        window.location.assign("login.html");
-      } catch (error) {
+      logout().then(() => window.location.assign("login.html")).catch((error) => {
         showError(`Logout failed: ${error.message}`);
-      }
+      });
     });
 
     requestList.addEventListener("click", handleRideAction);
     activeRideCard.addEventListener("click", handleRideAction);
     driverOnlineToggle.addEventListener("change", handleOnlineToggle);
-    refreshDashboard();
+    await refreshDashboard();
+    window.setInterval(async () => {
+      if (document.visibilityState !== "visible" || isAutoRefreshRunning) {
+        return;
+      }
+
+      isAutoRefreshRunning = true;
+      try {
+        await refreshDashboard();
+      } catch (error) {
+        showError(`The driver dashboard could not be refreshed: ${error.message}`);
+      } finally {
+        isAutoRefreshRunning = false;
+      }
+    }, DASHBOARD_REFRESH_INTERVAL_MS);
   } catch (error) {
     showError(`The driver dashboard could not be loaded: ${error.message}`);
   }

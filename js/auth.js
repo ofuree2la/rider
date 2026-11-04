@@ -1,4 +1,4 @@
-import { getCurrentUser, login, logout, signup } from "./api.js";
+import { getCurrentUser, login, logout, signup } from "./supabase-api.js";
 
 const form = document.querySelector("[data-auth-form]");
 const message = document.querySelector("#auth-message");
@@ -16,9 +16,9 @@ function showMessage(text, isError = true) {
   message.classList.toggle("status-message", !isError);
 }
 
-function redirectForExistingSession() {
+async function redirectForExistingSession() {
   try {
-    const user = getCurrentUser();
+    const user = await getCurrentUser();
     if (!user) {
       return;
     }
@@ -36,7 +36,7 @@ function redirectForExistingSession() {
   }
 }
 
-function handleSubmit(event) {
+async function handleSubmit(event) {
   event.preventDefault();
   showMessage("");
 
@@ -53,7 +53,7 @@ function handleSubmit(event) {
         throw new Error("The passwords do not match.");
       }
 
-      user = signup({
+      user = await signup({
         name: formData.get("fullName"),
         email,
         phone: formData.get("phone"),
@@ -63,8 +63,13 @@ function handleSubmit(event) {
           ? { plateNumber: formData.get("plateNumber") }
           : {}),
       });
+      if (user.confirmationRequired) {
+        showMessage("Check your email to confirm your account, then return here to sign in.", false);
+        form.reset();
+        return;
+      }
     } else {
-      user = login(email, password, accountRole);
+      user = await login(email, password, accountRole);
     }
 
     window.location.assign(getDestination(user.role));
@@ -86,9 +91,9 @@ window.addEventListener("pageshow", (event) => {
   }
 });
 
-document.querySelector("[data-logout]")?.addEventListener("click", () => {
+document.querySelector("[data-logout]")?.addEventListener("click", async () => {
   try {
-    logout();
+    await logout();
     showMessage("You have been logged out.", false);
   } catch (error) {
     showMessage(`Logout failed: ${error.message}`);

@@ -6,12 +6,11 @@ import {
   getLocations,
   getPricingConfig,
   getRides,
-  isDriverOnline,
   logout,
   setDriverStatus,
   updateLocation,
   updatePricingConfig,
-} from "./api.js?v=admin";
+} from "./supabase-api.js";
 import { FARE_CONFIG } from "./pricing.js?v=admin";
 
 const adminStatus = document.querySelector("#admin-status");
@@ -82,7 +81,7 @@ function setText(selector, text) {
 
 function renderMetrics(drivers, rides) {
   const onlineDrivers = drivers.filter(
-    (driver) => driver.status === "approved" && isDriverOnline(driver.id),
+    (driver) => driver.status === "approved" && driver.isOnline,
   ).length;
   const completedRides = rides.filter((ride) => ride.status === "completed");
   const revenue = completedRides.reduce(
@@ -285,11 +284,13 @@ function renderRides(rides) {
   rideEmpty.hidden = filteredRides.length > 0;
 }
 
-function refreshDashboard() {
-  const drivers = getDrivers();
-  const locations = getLocations();
-  const rides = getRides();
-  const pricing = getPricingConfig(FARE_CONFIG);
+async function refreshDashboard() {
+  const [drivers, locations, rides, pricing] = await Promise.all([
+    getDrivers(),
+    getLocations(),
+    getRides(),
+    getPricingConfig(FARE_CONFIG),
+  ]);
   renderMetrics(drivers, rides);
   renderDrivers(drivers);
   renderLocations(locations);
@@ -297,21 +298,21 @@ function refreshDashboard() {
   renderRides(rides);
 }
 
-function handleDriverAction(event) {
+async function handleDriverAction(event) {
   const button = event.target.closest("button[data-action='driver-status']");
   if (!button) {
     return;
   }
   try {
-    setDriverStatus(button.dataset.id, button.dataset.status);
+    await setDriverStatus(button.dataset.id, button.dataset.status);
     showStatus(`Driver account ${button.dataset.status}.`);
-    refreshDashboard();
+    await refreshDashboard();
   } catch (error) {
     showError(error.message);
   }
 }
 
-function handleLocationSubmit(event) {
+async function handleLocationSubmit(event) {
   const form = event.target;
   if (!(form instanceof HTMLFormElement) || !form.matches(".admin-location-form")) {
     return;
@@ -319,95 +320,101 @@ function handleLocationSubmit(event) {
   event.preventDefault();
   const data = new FormData(form);
   try {
-    updateLocation(form.dataset.locationId, {
+    await updateLocation(form.dataset.locationId, {
       name: data.get("name"),
       zone: data.get("zone"),
       type: data.get("type"),
     });
     showStatus("Location updated.");
-    refreshDashboard();
+    await refreshDashboard();
   } catch (error) {
     showError(error.message);
   }
 }
 
-function handleLocationDelete(event) {
+async function handleLocationDelete(event) {
   const button = event.target.closest("button[data-action='delete-location']");
   if (!button) {
     return;
   }
   try {
-    deleteLocation(button.dataset.id);
+    await deleteLocation(button.dataset.id);
     showStatus("Location deleted.");
-    refreshDashboard();
+    await refreshDashboard();
   } catch (error) {
     showError(error.message);
   }
 }
 
-function handleLocationCreate(event) {
+async function handleLocationCreate(event) {
   event.preventDefault();
   const data = new FormData(event.currentTarget);
   try {
-    createLocation({
+    await createLocation({
       name: data.get("name"),
       zone: data.get("zone"),
       type: data.get("type"),
     });
     event.currentTarget.reset();
     showStatus("Location added.");
-    refreshDashboard();
+    await refreshDashboard();
   } catch (error) {
     showError(error.message);
   }
 }
 
-function handlePricingSubmit(event) {
+async function handlePricingSubmit(event) {
   event.preventDefault();
   const data = new FormData(event.currentTarget);
-  const config = getPricingConfig(FARE_CONFIG);
-  for (const pickupZone of Object.keys(zoneNames)) {
-    for (const destinationZone of Object.keys(zoneNames)) {
-      config.fareMatrix[pickupZone][destinationZone] = Number(
-        data.get(`${pickupZone}:${destinationZone}`),
-      );
-    }
-  }
   try {
-    updatePricingConfig(config);
+    const config = await getPricingConfig(FARE_CONFIG);
+    for (const pickupZone of Object.keys(zoneNames)) {
+      for (const destinationZone of Object.keys(zoneNames)) {
+        config.fareMatrix[pickupZone][destinationZone] = Number(
+          data.get(`${pickupZone}:${destinationZone}`),
+        );
+      }
+    }
+    await updatePricingConfig(config);
     showStatus("Fare settings saved. New estimates and bookings will use these prices.");
-    refreshDashboard();
+    await refreshDashboard();
   } catch (error) {
     showError(error.message);
   }
 }
 
-function handleLogout() {
+async function handleLogout() {
   try {
-    logout();
+    await logout();
     window.location.assign("login.html");
   } catch (error) {
     showError(`Logout failed: ${error.message}`);
   }
 }
 
-function startAdminDashboard() {
+async function startAdminDashboard() {
   try {
-    const user = getCurrentUser();
+    const user = await getCurrentUser();
     if (!user || user.role !== "admin") {
       const destination = user?.role === "driver" ? "../driver/login.html" : "../login.html";
       window.location.replace(destination);
       return;
     }
 
-    refreshDashboard();
+    await refreshDashboard();
     document.querySelector("#admin-logout").addEventListener("click", handleLogout);
     driverList.addEventListener("click", handleDriverAction);
     locationList.addEventListener("click", handleLocationDelete);
     locationList.addEventListener("submit", handleLocationSubmit);
     document.querySelector("#location-create-form").addEventListener("submit", handleLocationCreate);
     document.querySelector("#pricing-form").addEventListener("submit", handlePricingSubmit);
-    document.querySelector("#ride-filters").addEventListener("input", () => renderRides(getRides()));
+    document.querySelector("#ride-filters").addEventListener("input", async () => {
+      try {
+        renderRides(await getRides());
+      } catch (error) {
+        showError(error.message);
+      }
+    });
   } catch (error) {
     showError(`The admin dashboard could not be loaded: ${error.message}`);
   }

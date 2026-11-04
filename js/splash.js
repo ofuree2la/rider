@@ -1,4 +1,4 @@
-import { getCurrentUser } from "./api.js";
+import { getCurrentUser } from "./supabase-api.js";
 
 const SPLASH_SESSION_KEY = "rider.splash.seen";
 const STANDARD_DELAY_MS = 2000;
@@ -8,9 +8,9 @@ function isReducedMotionPreferred() {
   return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
-function getDestination() {
+async function getDestination() {
   try {
-    return getCurrentUser() ? "book.html" : "index.html";
+    return (await getCurrentUser()) ? "book.html" : "index.html";
   } catch (error) {
     console.error("Could not check the Rider session before redirecting:", error);
     return "index.html";
@@ -25,7 +25,7 @@ function redirectTo(destination, sessionStorageAvailable = true) {
   window.location.replace(url.href);
 }
 
-function startSplash() {
+async function startSplash() {
   if (document.body.hasAttribute("data-splash-entry")) {
     const url = new URL(window.location.href);
     if (url.searchParams.get("splash") === "complete") {
@@ -53,7 +53,7 @@ function startSplash() {
   let sessionStorageAvailable = true;
   try {
     if (window.sessionStorage.getItem(SPLASH_SESSION_KEY) === "true") {
-      redirectTo(getDestination());
+      redirectTo(await getDestination());
       return;
     }
   } catch (error) {
@@ -66,7 +66,7 @@ function startSplash() {
   const leaveDelay = reducedMotion ? 0 : 300;
   const splashScreen = document.querySelector(".splash-screen");
 
-  window.setTimeout(() => {
+  window.setTimeout(async () => {
     splashScreen.classList.add("is-leaving");
     window.setTimeout(() => {
       if (sessionStorageAvailable) {
@@ -78,7 +78,7 @@ function startSplash() {
         }
       }
 
-      redirectTo(getDestination(), sessionStorageAvailable);
+      redirectTo(await getDestination(), sessionStorageAvailable);
     }, leaveDelay);
   }, delay - leaveDelay);
 }
