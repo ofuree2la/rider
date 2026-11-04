@@ -45,6 +45,10 @@ export const mockDrivers = [
     phone: "+234 803 000 1001",
     rating: 4.8,
     verified: true,
+    // Paystack subaccount code (Dashboard > Subaccounts). Payments for this driver
+    // are split automatically. This is the TEST subaccount; give each real driver
+    // their own code. Drivers without one can only be booked for cash.
+    subaccountCode: "ACCT_lyjzq924fn0negg",
   },
   {
     id: "driver-002",

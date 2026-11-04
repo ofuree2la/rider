@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#16824b" />
+    <title>Driver Dashboard | Rider</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="../css/base.css" />
+    <link rel="stylesheet" href="../css/components.css" />
+    <link rel="stylesheet" href="../css/driver.css" />
+    <script type="module" src="../js/driver-dashboard.js"></script>
+  </head>
+  <body class="driver-body">
+    <header class="site-header">
+      <div class="container nav-shell">
+        <a href="../index.html" class="brand" aria-label="Rider home page">
+          <span class="brand-mark">R</span>
+          <span class="brand-text">Rider Driver</span>
+        </a>
+
+        <div class="university-picker">
+          <label for="university">Select University</label>
+          <select id="university" name="university" aria-label="Select university">
+            <option value="veritas-university" selected>Veritas University</option>
+          </select>
+        </div>
+
+        <nav class="site-nav" aria-label="Driver navigation">
+          <a href="dashboard.html">Dashboard</a>
+          <a href="../history.html">Trips</a>
+        </nav>
+
+        <div class="nav-actions">
+          <button type="button" class="btn btn-ghost" id="logout-button">Logout</button>
+        </div>
+      </div>
+    </header>
+
+    <main class="container dashboard-shell">
+      <div class="page-heading">
+        <div>
+          <span class="eyebrow accent">Driver portal</span>
+          <h1>Welcome back, <span id="driver-name-heading">Driver</span></h1>
+        </div>
+        <label class="availability-toggle" for="driver-online-toggle">
+          <span>Online</span>
+          <input id="driver-online-toggle" type="checkbox" />
+          <span class="toggle-slider" aria-hidden="true"></span>
+        </label>
+      </div>
+
+      <p id="dashboard-status" class="dashboard-message status-message" role="status" aria-live="polite" hidden></p>
+      <p id="dashboard-error" class="dashboard-message error-message" role="alert" hidden></p>
+
+      <section class="stats-grid" aria-label="Driver metrics">
+        <article class="stat-card">
+          <span>Pending requests</span>
+          <strong id="pending-count">0</strong>
+        </article>
+        <article class="stat-card">
+          <span>Active rides</span>
+          <strong id="active-count">0</strong>
+        </article>
+        <article class="stat-card">
+          <span>Completed today</span>
+          <strong id="today-count">0</strong>
+        </article>
+        <article class="stat-card">
+          <span>Today earnings</span>
+          <strong id="today-earnings">₦0</strong>
+        </article>
+      </section>
+
+      <div class="dashboard-grid">
+        <section class="panel" aria-labelledby="incoming-title">
+          <div class="panel-header">
+            <div>
+              <span class="eyebrow accent">Incoming</span>
+              <h2 id="incoming-title">Ride requests</h2>
+            </div>
+          </div>
+          <div id="request-list" class="ride-list" aria-live="polite"></div>
+        </section>
+
+        <aside class="panel" aria-labelledby="profile-title">
+          <div class="panel-header">
+            <div>
+              <span class="eyebrow accent">Profile</span>
+              <h2 id="profile-title">Your keke</h2>
+            </div>
+          </div>
+
+          <div class="profile-card">
+            <div class="driver-avatar" id="driver-avatar">R</div>
+            <div class="profile-main">
+              <h3 id="profile-name">Driver name</h3>
+              <p id="profile-plate">Plate number</p>
+            </div>
+          </div>
+
+          <dl class="driver-metadata">
+            <div>
+              <dt>Rating</dt>
+              <dd id="profile-rating">★ 0.0</dd>
+            </div>
+            <div>
+              <dt>Verification</dt>
+              <dd id="profile-verification">Verified</dd>
+            </div>
+            <div>
+              <dt>Phone</dt>
+              <dd id="profile-phone">+234 000 000 0000</dd>
+            </div>
+          </dl>
+        </aside>
+      </div>
+
+      <div class="dashboard-grid secondary-grid">
+        <section class="panel" aria-labelledby="active-title">
+          <div class="panel-header">
+            <div>
+              <span class="eyebrow accent">Current trip</span>
+              <h2 id="active-title">Active ride</h2>
+            </div>
+          </div>
+
+          <div id="active-ride-card" class="active-ride-card empty-state-box">
+            <p>No active ride yet. Accept a student request to get started.</p>
+          </div>
+        </section>
+
+        <section class="panel" aria-labelledby="earnings-title">
+          <div class="panel-header">
+            <div>
+              <span class="eyebrow accent">Earnings</span>
+              <h2 id="earnings-title">This week</h2>
+            </div>
+          </div>
+
+          <div class="earnings-grid">
+            <div>
+              <span>Week total</span>
+              <strong id="week-earnings">₦0</strong>
+            </div>
+            <div>
+              <span>Total completed</span>
+              <strong id="completed-total">0 rides</strong>
+            </div>
+            <div>
+              <span>All-time total</span>
+              <strong id="alltime-earnings">₦0</strong>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <section class="panel" aria-labelledby="scheduled-title">
+        <div class="panel-header">
+          <div>
+            <span class="eyebrow accent">Planned</span>
+            <h2 id="scheduled-title">Scheduled rides</h2>
+          </div>
+        </div>
+        <div id="scheduled-rides" class="scheduled-rides" aria-live="polite"></div>
+      </section>
+    </main>
+  </body>
+</html>

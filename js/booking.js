@@ -1,5 +1,6 @@
-import { createRide, getDrivers, getLocations, updateRide } from "./api.js?v=seats4";
+import { createRide, getCurrentUser, getDrivers, getLocations, updateRide } from "./api.js?v=seats4";
 import { calculateFare } from "./pricing.js?v=seats4";
+import { makePaymentReference, payForRide, verifyPayment } from "./payment.js";
 
 const form = document.querySelector("#booking-form");
 const pickupInput = document.querySelector("#pickup");
@@ -19,6 +20,13 @@ const matchCard = document.querySelector("#match-card");
 const matchDetails = document.querySelector("#match-details");
 const matchTrackingLink = document.querySelector("#match-tracking-link");
 const mapRouteLabel = document.querySelector("#map-route-label");
+const paymentMethodSelect = document.querySelector("#payment-method");
+const emailField = document.querySelector("#email-field");
+const emailInput = document.querySelector("#customer-email");
+const payNowButton = document.querySelector("#pay-now");
+const paymentMessage = document.querySelector("#payment-message");
+
+let matchedRide = null;
 
 const currencyFormatter = new Intl.NumberFormat("en-NG", {
   style: "currency",
@@ -328,13 +336,83 @@ function validateBooking() {
   return { pickup, destination };
 }
 
-function selectDemoDriver(drivers) {
-  const verifiedDrivers = drivers.filter((driver) => driver.verified);
+function selectDemoDriver(drivers, needsOnlinePayment = false) {
+  const verifiedDrivers = drivers.filter(
+    (driver) => driver.verified && (!needsOnlinePayment || driver.subaccountCode),
+  );
   if (verifiedDrivers.length === 0) {
-    throw new Error("No verified drivers are available for this demo.");
+    throw new Error(
+      needsOnlinePayment
+        ? "No drivers can take online payments right now. Choose cash instead."
+        : "No verified drivers are available for this demo.",
+    );
   }
 
   return verifiedDrivers[Math.floor(Math.random() * verifiedDrivers.length)];
+}
+
+function updatePaymentFields() {
+  const isOnline = paymentMethodSelect.value === "online";
+  emailField.hidden = !isOnline;
+  emailInput.required = isOnline;
+  if (isOnline && !emailInput.value) {
+    try {
+      emailInput.value = getCurrentUser()?.email ?? "";
+    } catch {
+      // A broken saved session should not stop booking; the student can type an email.
+    }
+  }
+}
+
+function showPaymentMessage(message) {
+  paymentMessage.textContent = message;
+  paymentMessage.hidden = !message;
+}
+
+async function startPayment() {
+  if (!matchedRide) {
+    return;
+  }
+
+  payNowButton.disabled = true;
+  showPaymentMessage("Opening secure payment...");
+
+  try {
+    const reference = makePaymentReference(matchedRide.id);
+    const amountNaira = matchedRide.fare.rideTotal;
+
+    const payment = await payForRide({
+      email: matchedRide.customerEmail,
+      amountNaira,
+      subaccountCode: matchedRide.driver.subaccountCode,
+      reference,
+      metadata: { rideId: matchedRide.id, driverId: matchedRide.driver.id },
+    });
+
+    showPaymentMessage("Payment received. Confirming it now...");
+    let verification = { verified: false, checked: false };
+    try {
+      verification = await verifyPayment(payment.reference, amountNaira);
+    } catch {
+      // Network trouble while confirming: keep the payment, mark it unconfirmed.
+    }
+
+    matchedRide = updateRide(matchedRide.id, {
+      paymentStatus: verification.verified ? "paid" : "paid-unverified",
+      paymentReference: payment.reference,
+      paidAt: new Date().toISOString(),
+    });
+
+    payNowButton.hidden = true;
+    showPaymentMessage(
+      verification.verified
+        ? "Payment confirmed. Thank you!"
+        : "Payment received. Confirmation is pending.",
+    );
+  } catch (error) {
+    showPaymentMessage(error.message);
+    payNowButton.disabled = false;
+  }
 }
 
 function wait(milliseconds) {
@@ -349,6 +427,9 @@ async function findRide(event) {
   let route;
   let fare;
   try {
+    if (form.elements.paymentMethod.value === "online" && !emailInput.checkValidity()) {
+      throw new Error("Enter a valid email address for your payment receipt.");
+    }
     route = validateBooking();
     fare = getFareForCurrentSelection();
     if (!fare) {
@@ -371,6 +452,8 @@ async function findRide(event) {
     timing,
     scheduledAt,
     paymentMethod: form.elements.paymentMethod.value,
+    customerEmail: emailInput.value.trim(),
+    paymentStatus: form.elements.paymentMethod.value === "online" ? "unpaid" : "cash",
     rideType: "keke",
     fare,
   };
@@ -383,8 +466,9 @@ async function findRide(event) {
     const ride = createRide(rideInput);
     await wait(1400);
 
-    const driver = selectDemoDriver(getDrivers());
-    const matchedRide = updateRide(ride.id, {
+    const needsOnlinePayment = rideInput.paymentMethod === "online";
+    const driver = selectDemoDriver(getDrivers(), needsOnlinePayment);
+    matchedRide = updateRide(ride.id, {
       status: "accepted",
       driver,
       matchedAt: new Date().toISOString(),
@@ -394,6 +478,10 @@ async function findRide(event) {
       `${driver.name} · ${driver.plateNumber} · ★ ${driver.rating} · ${matchedRide.pickup.name} to ${matchedRide.destination.name}`;
     matchTrackingLink.href = `tracking.html?id=${encodeURIComponent(matchedRide.id)}`;
     matchCard.hidden = false;
+    showPaymentMessage("");
+    payNowButton.hidden = !needsOnlinePayment;
+    payNowButton.disabled = false;
+    payNowButton.textContent = `Pay ${currencyFormatter.format(matchedRide.fare.rideTotal)} now`;
     showStatus("Your keke has been matched. Open ride tracking to see driver details and ride progress.");
   } catch (error) {
     showError(error.message);
@@ -419,6 +507,9 @@ function startBookingPage() {
   form.querySelectorAll('input[name="timing"]').forEach((input) => {
     input.addEventListener("change", updateTimingFields);
   });
+  paymentMethodSelect.addEventListener("change", updatePaymentFields);
+  payNowButton.addEventListener("click", startPayment);
+  updatePaymentFields();
   form.addEventListener("submit", findRide);
 }
 

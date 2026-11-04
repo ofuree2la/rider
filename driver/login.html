@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#16824b" />
+    <title>Rider Driver sign in</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="../css/base.css" />
+    <link rel="stylesheet" href="../css/components.css" />
+    <link rel="stylesheet" href="../css/auth.css" />
+    <script type="module" src="../js/auth.js"></script>
+  </head>
+  <body class="auth-body" data-account-role="driver">
+    <main class="auth-shell driver-auth-shell">
+      <a class="eyebrow driver-auth-brand" href="../index.html">Rider Driver</a>
+      <h1>Driver sign in</h1>
+      <p>Manage your availability, requests, and campus trips.</p>
+
+      <form class="auth-form" data-auth-form data-auth-mode="login">
+        <div class="field">
+          <label for="email">Email</label>
+          <input id="email" name="email" type="email" autocomplete="email" placeholder="you@example.com" required />
+        </div>
+
+        <div class="field">
+          <label for="password">Password</label>
+          <input id="password" name="password" type="password" autocomplete="current-password" placeholder="Enter password" required />
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-large">Sign in to Rider Driver</button>
+      </form>
+
+      <p id="auth-message" class="auth-message" role="alert" aria-live="polite" hidden></p>
+      <p class="auth-note">New to Rider Driver? <a href="signup.html">Create a driver account</a></p>
+      <p class="auth-note">Student? <a href="../login.html">Go to student sign in</a></p>
+    </main>
+  </body>
+</html>

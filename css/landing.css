@@ -253,6 +253,23 @@
   padding: 1.5rem;
 }
 
+.driver-cta-actions {
+  display: grid;
+  justify-items: start;
+  gap: 0.75rem;
+}
+
+.driver-login-link {
+  color: var(--color-brand);
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+
+.driver-login-link:hover,
+.driver-login-link:focus-visible {
+  color: var(--color-brand-dark);
+}
+
 .faq-wrap {
   display: grid;
   gap: 1.25rem;

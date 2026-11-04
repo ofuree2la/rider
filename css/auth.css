@@ -1,7 +1,7 @@
 .auth-body {
   min-height: 100vh;
   display: grid;
-  place-items: center;
+  place-items: safe center;
   padding: 1.5rem 0;
   background: #f6f7f6;
 }
@@ -65,6 +65,38 @@
 .auth-note a {
   color: var(--color-brand);
   font-weight: 700;
+}
+
+.auth-message {
+  margin: 1rem 0;
+  padding: 0.8rem 1rem;
+  border-radius: 12px;
+  background: rgba(142, 44, 44, 0.08);
+  color: #8e2c2c;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.auth-message.status-message {
+  background: rgba(22, 130, 75, 0.08);
+  color: var(--color-success);
+}
+
+.driver-auth-shell {
+  border-top: 5px solid var(--color-brand);
+}
+
+.driver-auth-brand {
+  color: var(--color-brand);
+  font-weight: 800;
+}
+
+.driver-auth-note {
+  padding: 0.85rem 1rem;
+  border-radius: 12px;
+  background: var(--color-brand-soft);
+  color: var(--color-forest);
+  font-size: 0.86rem;
 }
 
 @media (min-width: 640px) {

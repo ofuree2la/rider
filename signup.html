@@ -3,33 +3,26 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Sign up | Rider</title>
+    <title>Student sign up | Rider</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="css/base.css" />
     <link rel="stylesheet" href="css/components.css" />
     <link rel="stylesheet" href="css/auth.css" />
+    <script type="module" src="js/auth.js"></script>
   </head>
-  <body class="auth-body">
+  <body class="auth-body" data-account-role="student">
     <main class="auth-shell">
       <span class="eyebrow accent">Rider</span>
-      <h1>Create your account</h1>
-      <p>Get started with Rider.</p>
+      <h1>Create your student account</h1>
+      <p>Sign up to book campus rides at Veritas University.</p>
 
-      <form class="auth-form" action="index.html">
+      <form class="auth-form" data-auth-form data-auth-mode="signup">
         <div class="form-grid">
           <div class="field">
             <label for="fullName">Full name</label>
-            <input id="fullName" name="fullName" type="text" placeholder="Enter your name" />
-          </div>
-
-          <div class="field">
-            <label for="role">Account type</label>
-            <select id="role" name="role">
-              <option value="student">Student</option>
-              <option value="driver">Driver</option>
-            </select>
+            <input id="fullName" name="fullName" type="text" autocomplete="name" placeholder="Enter your name" required />
           </div>
 
           <div class="field">
@@ -39,19 +32,26 @@
 
           <div class="field">
             <label for="phone">Phone number</label>
-            <input id="phone" name="phone" type="tel" autocomplete="tel" placeholder="0803 000 0000" />
+            <input id="phone" name="phone" type="tel" autocomplete="tel" placeholder="0803 000 0000" required />
           </div>
 
           <div class="field">
             <label for="password">Password</label>
-            <input id="password" name="password" type="password" autocomplete="new-password" placeholder="Create password" required />
+            <input id="password" name="password" type="password" autocomplete="new-password" placeholder="At least 8 characters" minlength="8" required />
+          </div>
+
+          <div class="field">
+            <label for="passwordConfirmation">Confirm password</label>
+            <input id="passwordConfirmation" name="passwordConfirmation" type="password" autocomplete="new-password" placeholder="Re-enter password" minlength="8" required />
           </div>
         </div>
 
         <button type="submit" class="btn btn-primary btn-large">Create account</button>
       </form>
 
+      <p id="auth-message" class="auth-message" role="alert" aria-live="polite" hidden></p>
       <p class="auth-note">Already have an account? <a href="login.html">Login</a></p>
+      <p class="auth-note">Driving with Rider? <a href="driver/signup.html">Apply as a Rider Driver</a></p>
     </main>
   </body>
 </html>

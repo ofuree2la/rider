@@ -4,6 +4,8 @@ const STORAGE_KEYS = Object.freeze({
   users: "rider.users",
   session: "rider.session",
   rides: "rider.rides",
+  drivers: "rider.drivers",
+  onlineDrivers: "rider.onlineDrivers",
 });
 
 function clone(value) {
@@ -87,7 +89,42 @@ export function getLocations() {
 }
 
 export function getDrivers() {
-  return clone(mockDrivers);
+  return readCollection(STORAGE_KEYS.drivers, mockDrivers).map(clone);
+}
+
+function findDriver(driverId) {
+  const driver = getDrivers().find((candidate) => candidate.id === driverId);
+  if (!driver) {
+    throw new Error("Choose a valid driver profile.");
+  }
+  return driver;
+}
+
+export function getCurrentDriver() {
+  const user = getCurrentUser();
+  if (!user || user.role !== "driver" || !user.driverId) {
+    throw new Error("Sign in with a Rider Driver account to open the driver dashboard.");
+  }
+  return clone(findDriver(user.driverId));
+}
+
+export function isDriverOnline(driverId) {
+  findDriver(driverId);
+  return readCollection(STORAGE_KEYS.onlineDrivers).includes(driverId);
+}
+
+export function setDriverOnline(driverId, isOnline) {
+  findDriver(driverId);
+  if (typeof isOnline !== "boolean") {
+    throw new TypeError("Driver availability must be online or offline.");
+  }
+
+  const onlineDriverIds = readCollection(STORAGE_KEYS.onlineDrivers);
+  const nextOnlineDriverIds = isOnline
+    ? [...new Set([...onlineDriverIds, driverId])]
+    : onlineDriverIds.filter((onlineId) => onlineId !== driverId);
+  writeStoredValue(STORAGE_KEYS.onlineDrivers, nextOnlineDriverIds);
+  return isOnline;
 }
 
 export function getRides(filters = {}) {
@@ -96,6 +133,21 @@ export function getRides(filters = {}) {
   return rides
     .filter((ride) => !filters.userId || ride.userId === filters.userId)
     .filter((ride) => !filters.status || ride.status === filters.status)
+    .map(clone);
+}
+
+export function getDriverRideRequests(driverId) {
+  findDriver(driverId);
+  return getRidesFromStorage()
+    .filter((ride) => ride.status === "finding")
+    .filter((ride) => !ride.declinedBy?.includes(driverId))
+    .map(clone);
+}
+
+export function getDriverRides(driverId) {
+  findDriver(driverId);
+  return getRidesFromStorage()
+    .filter((ride) => ride.driver?.id === driverId)
     .map(clone);
 }
 
@@ -168,6 +220,71 @@ export function updateRide(rideId, updates) {
   return clone(rides[rideIndex]);
 }
 
+export function acceptRideRequest(rideId, driverId) {
+  const driver = findDriver(driverId);
+  if (!driver.verified) {
+    throw new Error("Only verified drivers can accept ride requests.");
+  }
+  if (!isDriverOnline(driverId)) {
+    throw new Error("Go online before accepting a ride request.");
+  }
+
+  const ride = getRide(rideId);
+  if (!ride) {
+    throw new Error("This ride request could not be found.");
+  }
+  if (ride.status !== "finding" || ride.driver) {
+    throw new Error("This ride request has already been accepted or closed.");
+  }
+
+  return updateRide(rideId, {
+    status: "accepted",
+    driver: clone(driver),
+    matchedAt: new Date().toISOString(),
+    declinedBy: [],
+  });
+}
+
+export function declineRideRequest(rideId, driverId) {
+  findDriver(driverId);
+  const ride = getRide(rideId);
+  if (!ride) {
+    throw new Error("This ride request could not be found.");
+  }
+  if (ride.status !== "finding" || ride.driver) {
+    throw new Error("This ride request has already been accepted or closed.");
+  }
+
+  const declinedBy = [...new Set([...(ride.declinedBy ?? []), driverId])];
+  return updateRide(rideId, { declinedBy });
+}
+
+export function updateDriverRideStatus(rideId, driverId, nextStatus) {
+  findDriver(driverId);
+  const ride = getRide(rideId);
+  if (!ride) {
+    throw new Error("This ride could not be found.");
+  }
+  if (ride.driver?.id !== driverId) {
+    throw new Error("This ride is not assigned to the selected driver.");
+  }
+
+  const transitions = {
+    accepted: { next: "arriving", timestamp: "arrivedAt" },
+    arriving: { next: "on-trip", timestamp: "startedAt" },
+    "on-trip": { next: "completed", timestamp: "completedAt" },
+  };
+  const transition = transitions[ride.status];
+  if (!transition || nextStatus !== transition.next) {
+    throw new Error("That ride status update is not allowed.");
+  }
+
+  return updateRide(rideId, {
+    status: nextStatus,
+    [transition.timestamp]: new Date().toISOString(),
+  });
+}
+
 export function cancelScheduledRide(rideId) {
   const ride = getRide(rideId);
   if (!ride) {
@@ -221,7 +338,7 @@ export function rateRide(rideId, rating, comment = "") {
   });
 }
 
-export function login(email, password) {
+export function login(email, password, expectedRole) {
   if (typeof email !== "string" || typeof password !== "string" || !email.trim() || !password) {
     throw new TypeError("Enter your email and password.");
   }
@@ -231,6 +348,11 @@ export function login(email, password) {
 
   if (!user || user.password !== password) {
     throw new Error("Email or password is incorrect.");
+  }
+  if (expectedRole && user.role !== expectedRole) {
+    throw new Error(
+      `This account is registered as a ${user.role}. Use the ${user.role} sign-in page.`,
+    );
   }
 
   writeStoredValue(STORAGE_KEYS.session, {
@@ -268,14 +390,50 @@ export function signup(userInput) {
     throw new Error("An account with this email already exists.");
   }
 
+  let driverProfile = null;
+  if (role === "driver") {
+    const phone = String(userInput.phone ?? "").trim();
+    const plateNumber = String(userInput.plateNumber ?? "").trim().toUpperCase();
+    const phoneDigits = phone.replace(/\D/g, "");
+
+    if (phoneDigits.length < 10 || phoneDigits.length > 15) {
+      throw new Error("Enter a valid phone number, including your country code if needed.");
+    }
+    if (!plateNumber) {
+      throw new Error("Enter your keke plate number.");
+    }
+
+    const drivers = readCollection(STORAGE_KEYS.drivers, mockDrivers);
+    if (drivers.some((driver) => driver.plateNumber?.toLowerCase() === plateNumber.toLowerCase())) {
+      throw new Error("A driver account with this plate number already exists.");
+    }
+
+    driverProfile = {
+      id: makeId("driver"),
+      name,
+      plateNumber,
+      phone,
+      rating: 5,
+      verified: true,
+      demoAccount: true,
+    };
+  }
+
   const user = {
     ...clone(userInput),
     id: makeId("user"),
     name,
     email,
     role,
+    ...(driverProfile ? { driverId: driverProfile.id } : {}),
     createdAt: new Date().toISOString(),
   };
+
+  if (driverProfile) {
+    const drivers = readCollection(STORAGE_KEYS.drivers, mockDrivers);
+    drivers.push(driverProfile);
+    writeStoredValue(STORAGE_KEYS.drivers, drivers);
+  }
 
   users.push(user);
   writeStoredValue(STORAGE_KEYS.users, users);

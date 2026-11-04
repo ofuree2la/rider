@@ -106,8 +106,13 @@
             <label for="payment-method">Payment method</label>
             <select id="payment-method" name="paymentMethod">
               <option value="cash" selected>Cash</option>
-              <option value="transfer">Bank transfer</option>
+              <option value="online">Pay online (card, bank, USSD)</option>
             </select>
+          </div>
+
+          <div id="email-field" class="field-row" hidden>
+            <label for="customer-email">Email for your payment receipt</label>
+            <input id="customer-email" name="customerEmail" type="email" placeholder="you@example.com" autocomplete="email" />
           </div>
 
           <section class="fare-total" aria-labelledby="fare-title">
@@ -134,6 +139,8 @@
           <span class="match-badge">Driver found</span>
           <h2 id="match-title">Your keke is matched</h2>
           <p id="match-details"></p>
+          <p id="payment-message" class="booking-message status-message" role="status" aria-live="polite" hidden></p>
+          <button id="pay-now" type="button" class="btn btn-primary" hidden>Pay now</button>
           <a id="match-tracking-link" class="btn btn-primary" href="tracking.html">Track your ride</a>
         </section>
       </section>
