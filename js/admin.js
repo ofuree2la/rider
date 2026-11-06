@@ -5,6 +5,7 @@ import {
   getDrivers,
   getLocations,
   getPricingConfig,
+  getRegisteredUsers,
   getRides,
   logout,
   setDriverStatus,
@@ -15,6 +16,7 @@ import { FARE_CONFIG } from "./pricing.js?v=admin";
 
 const adminStatus = document.querySelector("#admin-status");
 const adminError = document.querySelector("#admin-error");
+const registeredUserList = document.querySelector("#registered-user-list");
 const driverList = document.querySelector("#driver-list");
 const locationList = document.querySelector("#location-list");
 const fareMatrix = document.querySelector("#fare-matrix");
@@ -79,7 +81,7 @@ function setText(selector, text) {
   element.textContent = text;
 }
 
-function renderMetrics(drivers, rides) {
+function renderMetrics(drivers, rides, users) {
   const onlineDrivers = drivers.filter(
     (driver) => driver.status === "approved" && driver.isOnline,
   ).length;
@@ -94,9 +96,46 @@ function renderMetrics(drivers, rides) {
     : null;
 
   setText("#metric-rides", String(rides.length));
+  setText("#metric-users", String(users.length));
   setText("#metric-drivers", String(onlineDrivers));
   setText("#metric-revenue", formatCash(revenue));
   setText("#metric-rating", averageRating === null ? "—" : `${averageRating.toFixed(1)} / 5`);
+}
+
+function renderRegisteredUsers(users) {
+  registeredUserList.replaceChildren();
+  if (users.length === 0) {
+    const empty = document.createElement("p");
+    empty.className = "admin-empty";
+    empty.textContent = "No Rider or driver accounts have been registered.";
+    registeredUserList.append(empty);
+    return;
+  }
+
+  for (const user of users) {
+    const card = document.createElement("article");
+    card.className = "admin-record";
+    const main = document.createElement("div");
+    main.className = "admin-record-main";
+
+    const name = document.createElement("h3");
+    name.textContent = user.name || "Unnamed account";
+    const detail = document.createElement("p");
+    const registeredDate = user.registeredAt ? new Date(user.registeredAt) : null;
+    const registeredLabel =
+      registeredDate && !Number.isNaN(registeredDate.getTime())
+        ? `Registered ${dateFormatter.format(registeredDate)}`
+        : "Registration date unavailable";
+    detail.textContent = `${user.phone || "No phone number"} · ${registeredLabel}`;
+
+    const role = document.createElement("span");
+    role.className = `admin-status-badge ${user.role}`;
+    role.textContent = user.role;
+
+    main.append(name, detail, role);
+    card.append(main);
+    registeredUserList.append(card);
+  }
 }
 
 function makeButton(label, action, id, status, className = "btn btn-secondary") {
@@ -285,13 +324,15 @@ function renderRides(rides) {
 }
 
 async function refreshDashboard() {
-  const [drivers, locations, rides, pricing] = await Promise.all([
+  const [drivers, locations, rides, pricing, users] = await Promise.all([
     getDrivers(),
     getLocations(),
     getRides(),
     getPricingConfig(FARE_CONFIG),
+    getRegisteredUsers(),
   ]);
-  renderMetrics(drivers, rides);
+  renderMetrics(drivers, rides, users);
+  renderRegisteredUsers(users);
   renderDrivers(drivers);
   renderLocations(locations);
   renderFareMatrix(pricing);

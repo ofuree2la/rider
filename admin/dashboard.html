@@ -32,9 +32,10 @@
         <div>
           <span class="eyebrow accent">Operations</span>
           <h1>Admin dashboard</h1>
-          <p>Manage the Rider prototype. Changes are saved in this browser only.</p>
+          <p>Manage Rider users, drivers, locations, fares, and rides.</p>
         </div>
         <nav class="admin-shortcuts" aria-label="Dashboard sections">
+          <a href="#users">Users</a>
           <a href="#drivers">Drivers</a>
           <a href="#locations">Locations</a>
           <a href="#pricing">Pricing</a>
@@ -47,9 +48,18 @@
 
       <section class="admin-stats" aria-label="Rider overview">
         <article class="admin-stat-card"><span>Total rides</span><strong id="metric-rides">0</strong></article>
+        <article class="admin-stat-card"><span>Registered users</span><strong id="metric-users">0</strong></article>
         <article class="admin-stat-card"><span>Online drivers</span><strong id="metric-drivers">0</strong></article>
         <article class="admin-stat-card"><span>Completed ride revenue</span><strong id="metric-revenue">₦0</strong></article>
         <article class="admin-stat-card"><span>Average driver rating</span><strong id="metric-rating">—</strong></article>
+      </section>
+
+      <section class="admin-panel" id="users" aria-labelledby="users-heading">
+        <div class="admin-section-heading">
+          <div><span class="eyebrow accent">Accounts</span><h2 id="users-heading">Registered users</h2></div>
+          <p>Accounts registered with Rider, including riders, drivers, and Admins.</p>
+        </div>
+        <div id="registered-user-list" class="admin-record-list" aria-live="polite"></div>
       </section>
 
       <section class="admin-panel" id="drivers" aria-labelledby="drivers-heading">

@@ -247,6 +247,22 @@ export async function getDrivers() {
   }));
 }
 
+export async function getRegisteredUsers() {
+  await requireUser("admin");
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("id, full_name, phone, role, created_at")
+    .order("created_at", { ascending: false });
+  throwOnError(error);
+  return (data ?? []).map((profile) => ({
+    id: profile.id,
+    name: profile.full_name,
+    phone: profile.phone ?? "",
+    role: profile.role,
+    registeredAt: profile.created_at,
+  }));
+}
+
 export async function setDriverStatus(driverId, status) {
   if (!["approved", "pending", "suspended"].includes(status)) {
     throw new Error("Choose a valid driver account status.");
