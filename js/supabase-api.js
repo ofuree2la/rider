@@ -435,6 +435,9 @@ export async function getRide(rideId) {
 
 export async function createRide(input) {
   await requireUser("rider");
+  if (input.paymentMethod !== "cash") {
+    throw new Error("Online payments are not available yet. Choose cash.");
+  }
   const { data, error } = await supabase.rpc("create_ride", {
     pickup_location_id: input.pickup?.id,
     destination_location_id: input.destination?.id,
