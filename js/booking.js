@@ -38,6 +38,7 @@ const passengerCountFormatter = new Intl.NumberFormat("en-NG", {
 });
 
 let locations = [];
+let currentUser = null;
 let selectedPickup = null;
 let selectedDestination = null;
 const activeSuggestionIndexes = new WeakMap();
@@ -339,10 +340,9 @@ function validateBooking() {
 async function updatePaymentFields() {
   const isOnline = paymentMethodSelect.value === "online";
   emailField.hidden = !isOnline;
-  emailInput.required = isOnline;
-  if (isOnline && !emailInput.value) {
-    emailInput.value = (await getCurrentUser())?.email ?? "";
-  }
+  emailInput.required = false;
+  emailInput.readOnly = true;
+  emailInput.value = currentUser?.email ?? "";
 }
 
 function showPaymentMessage(message) {
@@ -406,9 +406,6 @@ async function findRide(event) {
   let route;
   let fare;
   try {
-    if (form.elements.paymentMethod.value === "online" && !emailInput.checkValidity()) {
-      throw new Error("Enter a valid email address for your payment receipt.");
-    }
     route = validateBooking();
     fare = getFareForCurrentSelection();
     if (!fare) {
@@ -431,7 +428,7 @@ async function findRide(event) {
     timing,
     scheduledAt,
     paymentMethod: form.elements.paymentMethod.value,
-    customerEmail: emailInput.value.trim(),
+    customerEmail: currentUser.email,
     paymentStatus: form.elements.paymentMethod.value === "online" ? "unpaid" : "cash",
     rideType: "keke",
     fare,
@@ -465,14 +462,15 @@ async function findRide(event) {
 
 async function startBookingPage() {
   scheduledAtInput.min = localDateTimeValue(new Date(Date.now() + 60_000));
-  const user = await getCurrentUser();
-  if (!user || user.role !== "rider") {
+  currentUser = await getCurrentUser();
+  if (!currentUser || currentUser.role !== "rider") {
     showError("Sign in with a Rider account before requesting a ride.");
     const signInLink = document.querySelector("#booking-signin-link");
     signInLink.hidden = false;
     findRideButton.disabled = true;
     return;
   }
+  emailInput.value = currentUser.email;
   await loadFareConfig();
   await populateLocations();
   updateFareEstimate();
