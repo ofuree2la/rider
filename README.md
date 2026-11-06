@@ -10,6 +10,8 @@ Serve the repository over HTTP (ES modules do not work reliably from `file://`) 
 
 The Supabase publishable browser key is configured in `js/supabase-config.js`. It is safe for browser use only with the database Row Level Security (RLS) policies enabled. Never put a Supabase `service_role` key or database password in website files.
 
+Keep server-only credentials in local environment files or your hosting provider's secret manager. `.env` files are ignored by Git; only non-secret `.env.example` templates may be committed.
+
 ## Supabase backend foundation
 
 The Supabase project URL and publishable browser key are configured in `js/supabase-config.js`; the publishable key is safe for browser use when Row Level Security (RLS) is enabled. Never put a Supabase `service_role` key or database password in website files.
