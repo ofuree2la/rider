@@ -1,5 +1,6 @@
 import { getRide, rateRide } from "./supabase-api.js";
 import { initializeRidePayment, isOnlinePaymentConfigured } from "./payment.js";
+import { mountRideChat } from "./ride-chat.js";
 
 const rideId = new URLSearchParams(window.location.search).get("id");
 const paymentResult = new URLSearchParams(window.location.search).get("payment");
@@ -15,10 +16,16 @@ const destinationElement = document.querySelector("#ride-destination");
 const scheduleElement = document.querySelector("#ride-schedule");
 const driverAvatar = document.querySelector("#driver-avatar");
 const driverName = document.querySelector("#driver-name");
+const driverVehicle = document.querySelector("#driver-vehicle");
 const driverPlate = document.querySelector("#driver-plate");
 const driverRating = document.querySelector("#driver-rating");
 const driverPhone = document.querySelector("#driver-phone");
 const verifiedBadge = document.querySelector("#verified-badge");
+const deliverySummary = document.querySelector("#delivery-summary");
+const deliveryDescription = document.querySelector("#delivery-description");
+const deliveryRecipient = document.querySelector("#delivery-recipient");
+const rideChatCard = document.querySelector("#ride-chat-card");
+const rideChatRoot = document.querySelector("#ride-chat");
 const ratingForm = document.querySelector("#rating-form");
 const ratingThanks = document.querySelector("#rating-thanks");
 const shareButton = document.querySelector("#share-trip");
@@ -46,6 +53,8 @@ const currencyFormatter = new Intl.NumberFormat("en-NG", {
 
 let ride = null;
 let refreshTimer = null;
+let chatRideId = null;
+let chatCleanup = null;
 
 function showError(message) {
   trackingError.textContent = message;
@@ -69,6 +78,23 @@ function getStageIndex(status) {
 }
 
 function getStatusLabel(status) {
+  if (ride?.serviceType === "delivery") {
+    const deliveryLabels = {
+      accepted: "Courier accepted",
+      arriving: "Courier arriving",
+      "on-trip": "Package on the way",
+      completed: "Delivery complete",
+    };
+    if (deliveryLabels[status]) {
+      return deliveryLabels[status];
+    }
+    if (status === "finding") {
+      return "Finding a bike courier";
+    }
+    if (status === "cancelled") {
+      return "Delivery cancelled";
+    }
+  }
   const stage = RIDE_STAGES.find((candidate) => candidate.status === status);
   if (stage) {
     return stage.label;
@@ -91,10 +117,15 @@ function getRideTotal(currentRide) {
 function renderProgress(status) {
   const stageIndex = getStageIndex(status);
   const progress = stageIndex >= 0 ? (stageIndex + 1) * 25 : 0;
+  const labels =
+    ride.serviceType === "delivery"
+      ? ["Courier accepted", "Courier arriving", "Package on the way", "Delivery complete"]
+      : ["Driver accepted", "Driver arriving", "On your way", "Ride completed"];
   progressFill.dataset.progress = String(progress);
   progressTrack.setAttribute("aria-valuenow", String(progress));
 
   statusSteps.forEach((step, index) => {
+    step.textContent = labels[index];
     step.classList.toggle("is-complete", stageIndex >= 0 && index < stageIndex);
     step.classList.toggle("is-current", index === stageIndex);
     if (index === stageIndex) {
@@ -106,12 +137,18 @@ function renderProgress(status) {
 }
 
 function renderRating() {
+  const isDelivery = ride.serviceType === "delivery";
+  ratingForm.querySelector("#rating-form-title").textContent =
+    isDelivery ? "How was your delivery?" : "How was your ride?";
+  ratingThanks.querySelector("#rating-thanks-title").textContent =
+    isDelivery ? "Thanks for using Rider delivery" : "Thanks for riding with Rider";
+  ratingForm.querySelector(".eyebrow").textContent = isDelivery ? "Delivery complete" : "Ride complete";
   if (ride.rating) {
     ratingForm.hidden = true;
     ratingThanks.hidden = false;
     const stars = "★".repeat(ride.rating.stars);
     ratingThanks.querySelector("p").textContent =
-      `You rated this ride ${stars}. Thanks for helping improve Rider.`;
+      `You rated this ${isDelivery ? "delivery" : "ride"} ${stars}. Thanks for helping improve Rider.`;
     return;
   }
 
@@ -163,26 +200,60 @@ function renderRide() {
   pickupElement.textContent = ride.pickup?.name ?? "Pickup unavailable";
   destinationElement.textContent = ride.destination?.name ?? "Destination unavailable";
   scheduleElement.textContent =
-    `${ride.timing === "scheduled" ? "Scheduled pickup" : "Requested"} · ${formatScheduledTime(ride.scheduledAt)} · ${currencyFormatter.format(getRideTotal(ride))}`;
+    `${ride.timing === "scheduled" ? "Scheduled pickup · " + formatScheduledTime(ride.scheduledAt) : "Requested now"} · ${currencyFormatter.format(getRideTotal(ride))}`;
+  deliverySummary.hidden = ride.serviceType !== "delivery";
+  if (ride.serviceType === "delivery") {
+    deliveryDescription.textContent = ride.deliveryDescription ?? "Not provided";
+    deliveryRecipient.textContent =
+      `${ride.recipientName ?? "Not provided"} · ${ride.recipientPhone ?? "No phone number"}`;
+  }
 
   const driver = ride.driver;
   driverName.textContent = driver?.name ?? "Driver details unavailable";
+  driverVehicle.textContent =
+    driver
+      ? {
+          bike: "Bike courier",
+          keke: "Keke",
+          minivan: "Minivan",
+        }[driver.vehicleType] ?? "Vehicle"
+      : "Assigned after acceptance";
   driverPlate.textContent = driver?.plateNumber ?? "Not provided";
   driverRating.textContent = driver?.rating ? `★ ${driver.rating} / 5` : "Not rated";
   driverPhone.textContent = driver?.phone ?? "Not provided";
   driverPhone.href = driver?.phone ? `tel:${driver.phone.replace(/[^\d+]/g, "")}` : "";
-  driverAvatar.textContent = driver?.name
-    ? driver.name.split(/\s+/).slice(0, 2).map((part) => part[0]).join("").toUpperCase()
-    : "R";
+  if (driver?.avatarUrl) {
+    const image = document.createElement("img");
+    image.src = driver.avatarUrl;
+    image.alt = "";
+    driverAvatar.replaceChildren(image);
+  } else {
+    driverAvatar.textContent = driver?.name
+      ? driver.name.split(/\s+/).slice(0, 2).map((part) => part[0]).join("").toUpperCase()
+      : "R";
+  }
   verifiedBadge.hidden = !driver?.verified;
+  const canChat = Boolean(ride.driverId) && ["accepted", "arriving", "on-trip"].includes(ride.status);
+  rideChatCard.hidden = !canChat;
+  if (canChat && chatRideId !== ride.id) {
+    chatCleanup?.();
+    rideChatRoot.replaceChildren();
+    chatRideId = ride.id;
+    chatCleanup = mountRideChat(rideChatRoot, ride.id);
+  } else if (!canChat && chatCleanup) {
+    chatCleanup();
+    chatCleanup = null;
+    chatRideId = null;
+    rideChatRoot.replaceChildren();
+  }
   renderProgress(ride.status);
   renderRating();
   renderPayment();
 
   if (ride.status === "cancelled") {
-    showStatus("This scheduled ride was cancelled.");
+    showStatus(`This ${ride.serviceType === "delivery" ? "delivery" : "booking"} was cancelled.`);
   } else if (ride.timing === "scheduled" && new Date(ride.scheduledAt) > new Date()) {
-    showStatus("Your scheduled ride is confirmed. Ride progress will update around pickup time.");
+    showStatus(`Your scheduled ${ride.serviceType === "delivery" ? "delivery" : "ride"} is confirmed. Updates will continue around pickup time.`);
   } else if (!["completed", "cancelled"].includes(ride.status)) {
     showStatus("Ride status updates automatically when your driver changes the trip status.");
   } else {
@@ -213,7 +284,7 @@ function scheduleRideRefresh() {
 async function shareTrip() {
   const shareUrl = new URL(window.location.href);
   const shareData = {
-    title: "My Rider trip",
+    title: ride.serviceType === "delivery" ? "My Rider delivery" : "My Rider trip",
     text: `${ride.pickup.name} to ${ride.destination.name} with ${ride.driver?.name ?? "my Rider driver"}.`,
     url: shareUrl.href,
   };

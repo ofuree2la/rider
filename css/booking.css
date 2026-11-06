@@ -69,6 +69,7 @@
 
 .ride-options {
   display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 0.8rem;
   margin-bottom: 1.5rem;
 }
@@ -121,6 +122,26 @@
   font-weight: 700;
 }
 
+.delivery-fields {
+  display: grid;
+  gap: 0.8rem;
+  margin: 0;
+  padding: 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  background: #f7faf7;
+}
+
+.delivery-fields legend {
+  padding: 0 0.4rem;
+  color: var(--color-forest);
+  font-weight: 800;
+}
+
+.delivery-fields[hidden] {
+  display: none;
+}
+
 .booking-form {
   display: grid;
   gap: 1rem;
@@ -131,6 +152,10 @@
   display: grid;
   position: relative;
   gap: 0.45rem;
+}
+
+.field-row[hidden] {
+  display: none;
 }
 
 .field-row label {

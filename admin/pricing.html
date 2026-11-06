@@ -22,8 +22,19 @@
       <p id="admin-status" class="admin-message status-message" role="status" aria-live="polite" hidden></p>
       <p id="admin-error" class="admin-message error-message" role="alert" aria-live="assertive" hidden></p>
       <section class="admin-panel" aria-labelledby="pricing-heading">
-        <div class="admin-section-heading"><div><span class="eyebrow accent">Fare settings</span><h2 id="pricing-heading">Zone fare matrix</h2></div><p>Amounts are in naira per passenger and rounded to the nearest ₦50. These are demo values; replace them with real cost-based fares.</p></div>
-        <form id="pricing-form" class="admin-form"><div id="fare-matrix" class="fare-matrix"></div><button type="submit" class="btn btn-primary">Save fare settings</button></form>
+        <div class="admin-section-heading"><div><span class="eyebrow accent">Fare settings</span><h2 id="pricing-heading">Vehicle zone fare matrix</h2></div><p>Fares are in naira per passenger (or per bike delivery), rounded to the nearest ₦50. Replace the placeholders with cost-based figures.</p></div>
+        <form id="pricing-form" class="admin-form">
+          <div class="admin-field pricing-vehicle-field">
+            <label for="fare-vehicle-type">Vehicle</label>
+            <select id="fare-vehicle-type" name="vehicleType">
+              <option value="keke">Keke</option>
+              <option value="minivan">Minivan</option>
+              <option value="bike">Bike delivery</option>
+            </select>
+          </div>
+          <div id="fare-matrix" class="fare-matrix"></div>
+          <button type="submit" class="btn btn-primary">Save fare settings</button>
+        </form>
       </section>
     </main>
     <nav class="bottom-nav admin-bottom-nav" aria-label="Admin dashboard navigation">

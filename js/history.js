@@ -73,7 +73,13 @@ function makeRideCard(ride, canCancel) {
 
   const details = document.createElement("p");
   details.className = "ride-history-meta";
-  details.textContent = `${ride.timing === "scheduled" ? "Scheduled" : "Requested"} · ${formatDate(ride.scheduledAt)} · ${currencyFormatter.format(getTotalFare(ride))}`;
+  const bookingType =
+    ride.serviceType === "delivery"
+      ? `Bike delivery · ${ride.deliveryDescription || "Package"}`
+      : `${ride.vehicleType === "minivan" ? "Minivan" : "Keke"} · ${ride.passengers} passenger${ride.passengers === 1 ? "" : "s"}`;
+  const pickupTime =
+    ride.timing === "scheduled" ? formatDate(ride.scheduledAt) : "Requested now";
+  details.textContent = `${bookingType} · ${pickupTime} · ${currencyFormatter.format(getTotalFare(ride))}`;
 
   const actions = document.createElement("div");
   actions.className = "ride-history-actions";
@@ -81,7 +87,10 @@ function makeRideCard(ride, canCancel) {
     const trackingLink = document.createElement("a");
     trackingLink.className = "btn btn-secondary";
     trackingLink.href = `tracking.html?id=${encodeURIComponent(ride.id)}`;
-    trackingLink.textContent = ride.status === "completed" ? "Ride details" : "Track ride";
+    trackingLink.textContent =
+      ride.serviceType === "delivery"
+        ? ride.status === "completed" ? "Delivery details" : "Track delivery"
+        : ride.status === "completed" ? "Ride details" : "Track ride";
     actions.append(trackingLink);
   }
   if (canCancel) {
@@ -89,7 +98,7 @@ function makeRideCard(ride, canCancel) {
     cancelButton.type = "button";
     cancelButton.className = "btn btn-ghost cancel-ride-button";
     cancelButton.dataset.rideId = ride.id;
-    cancelButton.textContent = "Cancel scheduled ride";
+    cancelButton.textContent = "Cancel scheduled booking";
     actions.append(cancelButton);
   }
 
@@ -143,7 +152,7 @@ async function handleCancel(event) {
   try {
     await cancelScheduledRide(button.dataset.rideId);
     clearMessages();
-    showStatus("Your scheduled ride has been cancelled.");
+    showStatus("Your scheduled booking has been cancelled.");
     renderRides();
   } catch (error) {
     showError(error.message);

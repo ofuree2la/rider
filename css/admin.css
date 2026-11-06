@@ -111,6 +111,27 @@ body.admin-body .admin-bottom-nav {
   gap: 0.7rem;
 }
 
+.driver-status-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  margin-bottom: 1rem;
+}
+
+.driver-status-filters button[aria-pressed="true"] {
+  border-color: var(--color-brand);
+  background: var(--color-brand-soft);
+  color: var(--color-brand-dark);
+}
+
+.admin-driver-avatar {
+  flex: 0 0 auto;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
 .admin-record {
   display: flex;
   align-items: center;
@@ -230,6 +251,10 @@ body.admin-body .admin-bottom-nav {
   gap: 0.5rem;
   align-items: end;
   max-width: 760px;
+}
+
+.pricing-vehicle-field {
+  width: min(280px, 100%);
 }
 
 .fare-matrix-heading {

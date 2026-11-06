@@ -15,10 +15,12 @@ function mapProfile(profile, authUser, driver = null) {
     email: authUser.email ?? "",
     phone: profile.phone ?? "",
     role: profile.role,
+    avatarPath: profile.avatar_path ?? null,
     driverId: driver ? driver.profile_id : undefined,
     ...(driver
       ? {
           plateNumber: driver.plate_number,
+          vehicleType: driver.vehicle_type,
           rating: Number(driver.rating),
           status: driver.status,
           verified: driver.status === "approved",
@@ -49,6 +51,11 @@ function mapRide(row, driver = null) {
     pickup: row.pickup,
     destination: row.destination,
     passengers: row.passengers,
+    serviceType: row.service_type ?? "passenger",
+    vehicleType: row.vehicle_type ?? "keke",
+    deliveryDescription: row.delivery_description ?? null,
+    recipientName: row.delivery_recipient_name ?? null,
+    recipientPhone: row.delivery_recipient_phone ?? null,
     timing: row.timing,
     scheduledAt: row.scheduled_at,
     status: row.status,
@@ -73,7 +80,10 @@ async function mapRideWithDriver(row) {
   }
   const { data, error } = await supabase.rpc("get_ride_driver", { target_ride_id: row.id });
   throwOnError(error);
-  return mapRide(row, data ?? null);
+  const driver = data
+    ? { ...data, avatarUrl: await getProfilePhotoUrl(data.avatarPath) }
+    : null;
+  return mapRide(row, driver);
 }
 
 export async function getCurrentUser() {
@@ -89,22 +99,90 @@ export async function getCurrentUser() {
 
   const { data: profile, error } = await supabase
     .from("profiles")
-    .select("id, full_name, phone, role")
+    .select("id, full_name, phone, role, avatar_path")
     .eq("id", authUser.id)
     .single();
   throwOnError(error);
 
+  const avatarUrl = await getProfilePhotoUrl(profile.avatar_path);
   if (profile.role !== "driver") {
-    return mapProfile(profile, authUser);
+    return { ...mapProfile(profile, authUser), avatarUrl };
   }
 
   const { data: driver, error: driverError } = await supabase
     .from("drivers")
-    .select("profile_id, plate_number, rating, status, is_online, subaccount_code")
+    .select("profile_id, plate_number, vehicle_type, rating, status, is_online, subaccount_code")
     .eq("profile_id", authUser.id)
     .single();
   throwOnError(driverError);
-  return mapProfile(profile, authUser, driver);
+  return { ...mapProfile(profile, authUser, driver), avatarUrl };
+}
+
+async function getProfilePhotoUrl(path) {
+  if (!path) {
+    return null;
+  }
+  const { data, error } = await supabase.storage
+    .from("profile-photos")
+    .createSignedUrl(path, 60 * 60);
+  throwOnError(error);
+  return data.signedUrl;
+}
+
+export async function uploadProfilePhoto(file) {
+  const user = await requireUser();
+  const allowedTypes = new Map([
+    ["image/jpeg", "jpg"],
+    ["image/png", "png"],
+    ["image/webp", "webp"],
+  ]);
+  if (!(file instanceof File) || !allowedTypes.has(file.type)) {
+    throw new TypeError("Choose a JPG, PNG, or WebP profile photo.");
+  }
+  if (file.size === 0 || file.size > 5 * 1024 * 1024) {
+    throw new RangeError("Profile photos must be smaller than 5 MB.");
+  }
+
+  const { data: currentProfile, error: profileError } = await supabase
+    .from("profiles")
+    .select("avatar_path")
+    .eq("id", user.id)
+    .single();
+  throwOnError(profileError);
+
+  const photoPath = `${user.id}/${crypto.randomUUID()}.${allowedTypes.get(file.type)}`;
+  const { error: uploadError } = await supabase.storage
+    .from("profile-photos")
+    .upload(photoPath, file, { contentType: file.type, upsert: false });
+  throwOnError(uploadError);
+
+  const { error: updateError } = await supabase
+    .from("profiles")
+    .update({ avatar_path: photoPath })
+    .eq("id", user.id);
+  if (updateError) {
+    const { error: cleanupError } = await supabase.storage
+      .from("profile-photos")
+      .remove([photoPath]);
+    if (cleanupError) {
+      throw new Error(
+        `The photo could not be saved (${updateError.message}); the temporary upload could not be removed (${cleanupError.message}).`,
+      );
+    }
+    throwOnError(updateError);
+  }
+
+  let warning = "";
+  if (currentProfile.avatar_path) {
+    const { error: removeError } = await supabase.storage
+      .from("profile-photos")
+      .remove([currentProfile.avatar_path]);
+    if (removeError) {
+      warning = `The new photo was saved, but the previous photo could not be removed: ${removeError.message}`;
+    }
+  }
+
+  return { user: await getCurrentUser(), warning };
 }
 
 export async function login(email, password, expectedRole) {
@@ -132,6 +210,7 @@ export async function signup(userInput) {
   const role = userInput?.role ?? "rider";
   const phone = String(userInput?.phone ?? "").trim();
   const plateNumber = String(userInput?.plateNumber ?? "").trim().toUpperCase();
+  const vehicleType = String(userInput?.vehicleType ?? "");
 
   if (!name) {
     throw new Error("Enter your name.");
@@ -149,7 +228,10 @@ export async function signup(userInput) {
     throw new Error("Enter a valid phone number, including your country code if needed.");
   }
   if (role === "driver" && !plateNumber) {
-    throw new Error("Enter your keke plate number.");
+    throw new Error("Enter your vehicle registration or plate number.");
+  }
+  if (role === "driver" && !["bike", "keke", "minivan"].includes(vehicleType)) {
+    throw new Error("Choose a supported vehicle type.");
   }
 
   const { data, error } = await supabase.auth.signUp({
@@ -160,7 +242,9 @@ export async function signup(userInput) {
         full_name: name,
         phone,
         role,
-        ...(role === "driver" ? { plate_number: plateNumber } : {}),
+        ...(role === "driver"
+          ? { plate_number: plateNumber, vehicle_type: vehicleType }
+          : {}),
       },
       emailRedirectTo: new URL("login.html", window.location.href).href,
     },
@@ -198,7 +282,7 @@ export async function updateCurrentUserProfile(input) {
   const plateNumber =
     user.role === "driver" ? String(input.plateNumber ?? "").trim().toUpperCase() : "";
   if (user.role === "driver" && !plateNumber) {
-    throw new Error("Enter your keke plate number.");
+    throw new Error("Enter your vehicle registration or plate number.");
   }
 
   if (requestedEmail && requestedEmail !== user.email.toLowerCase()) {
@@ -229,22 +313,27 @@ export async function getCurrentDriver() {
 }
 
 export async function getDrivers() {
+  await requireUser("admin");
   const { data, error } = await supabase
     .from("drivers")
-    .select("profile_id, plate_number, rating, status, is_online, subaccount_code, profiles!drivers_profile_id_fkey(full_name, phone)")
+    .select("profile_id, plate_number, vehicle_type, rating, status, is_online, subaccount_code, profiles!drivers_profile_id_fkey(full_name, phone, avatar_path)")
     .order("created_at", { ascending: false });
   throwOnError(error);
-  return (data ?? []).map((driver) => ({
-    id: driver.profile_id,
-    name: driver.profiles?.full_name ?? "Driver",
-    phone: driver.profiles?.phone ?? "",
-    plateNumber: driver.plate_number,
-    rating: Number(driver.rating),
-    status: driver.status,
-    verified: driver.status === "approved",
-    isOnline: driver.is_online,
-    subaccountCode: driver.subaccount_code,
-  }));
+  return Promise.all(
+    (data ?? []).map(async (driver) => ({
+      id: driver.profile_id,
+      name: driver.profiles?.full_name ?? "Driver",
+      phone: driver.profiles?.phone ?? "",
+      avatarUrl: await getProfilePhotoUrl(driver.profiles?.avatar_path),
+      plateNumber: driver.plate_number,
+      vehicleType: driver.vehicle_type,
+      rating: Number(driver.rating),
+      status: driver.status,
+      verified: driver.status === "approved",
+      isOnline: driver.is_online,
+      subaccountCode: driver.subaccount_code,
+    })),
+  );
 }
 
 export async function getRegisteredUsers() {
@@ -363,21 +452,26 @@ export async function getPricingConfig(defaultConfig) {
     ...defaultConfig,
     currency: data.currency,
     roundingIncrement: data.rounding_increment,
-    fareMatrix: data.fare_matrix,
+    fareMatrices: data.fare_matrix,
   };
 }
 
 export async function updatePricingConfig(config) {
   await requireUser("admin");
-  const fareMatrix = {};
-  for (const pickupZone of ZONES) {
-    fareMatrix[pickupZone] = {};
-    for (const destinationZone of ZONES) {
-      const fare = Number(config?.fareMatrix?.[pickupZone]?.[destinationZone]);
-      if (!Number.isFinite(fare) || fare < 0 || fare > 100000) {
-        throw new Error(`Enter a valid fare for ${pickupZone} to ${destinationZone}.`);
+  const fareMatrices = {};
+  for (const vehicleType of ["keke", "minivan", "bike"]) {
+    fareMatrices[vehicleType] = {};
+    for (const pickupZone of ZONES) {
+      fareMatrices[vehicleType][pickupZone] = {};
+      for (const destinationZone of ZONES) {
+        const fare = Number(config?.fareMatrices?.[vehicleType]?.[pickupZone]?.[destinationZone]);
+        if (!Number.isFinite(fare) || fare < 0 || fare > 100000) {
+          throw new Error(
+            `Enter a valid ${vehicleType} fare for ${pickupZone} to ${destinationZone}.`,
+          );
+        }
+        fareMatrices[vehicleType][pickupZone][destinationZone] = fare;
       }
-      fareMatrix[pickupZone][destinationZone] = fare;
     }
   }
   const { data, error } = await supabase
@@ -385,7 +479,7 @@ export async function updatePricingConfig(config) {
     .update({
       currency: "NGN",
       rounding_increment: 50,
-      fare_matrix: fareMatrix,
+      fare_matrix: fareMatrices,
       updated_at: new Date().toISOString(),
     })
     .eq("id", 1)
@@ -396,7 +490,7 @@ export async function updatePricingConfig(config) {
     ...config,
     currency: data.currency,
     roundingIncrement: data.rounding_increment,
-    fareMatrix: data.fare_matrix,
+    fareMatrices: data.fare_matrix,
   };
 }
 
@@ -427,6 +521,7 @@ export async function getDriverRideRequests(driverId) {
   return (data ?? [])
     .filter(
       (ride) =>
+        ride.vehicle_type === user.vehicleType &&
         !(ride.declined_by ?? []).includes(driverId) &&
         (ride.payment_method !== "online" || user.subaccountCode),
     )
@@ -456,15 +551,67 @@ export async function getRide(rideId) {
 export async function createRide(input) {
   await requireUser("rider");
   const { data, error } = await supabase.rpc("create_ride", {
+    selected_service_type: input.serviceType,
+    selected_vehicle_type: input.vehicleType,
     pickup_location_id: input.pickup?.id,
     destination_location_id: input.destination?.id,
     passenger_count: Number(input.passengers),
     ride_timing: input.timing,
     pickup_time: input.timing === "scheduled" ? input.scheduledAt : null,
     selected_payment_method: input.paymentMethod,
+    package_description: input.deliveryDescription ?? null,
+    recipient_full_name: input.recipientName ?? null,
+    recipient_contact: input.recipientPhone ?? null,
   });
   throwOnError(error);
   return mapRide(data);
+}
+
+export async function getRideMessages(rideId) {
+  const { data: authData, error: authError } = await supabase.auth.getUser();
+  throwOnError(authError);
+  if (!authData.user) {
+    throw new Error("Please sign in to view ride messages.");
+  }
+  const { data, error } = await supabase
+    .from("ride_messages")
+    .select("id, ride_id, sender_id, body, created_at")
+    .eq("ride_id", rideId)
+    .order("created_at", { ascending: true });
+  throwOnError(error);
+  return (data ?? []).map((message) => ({
+    id: message.id,
+    rideId: message.ride_id,
+    senderId: message.sender_id,
+    body: message.body,
+    createdAt: message.created_at,
+  }));
+}
+
+export async function sendRideMessage(rideId, body) {
+  const { data: authData, error: authError } = await supabase.auth.getUser();
+  throwOnError(authError);
+  const user = authData.user;
+  if (!user) {
+    throw new Error("Please sign in to send a ride message.");
+  }
+  const message = String(body ?? "").trim();
+  if (!message || message.length > 1000) {
+    throw new TypeError("Messages must be between 1 and 1,000 characters.");
+  }
+  const { data, error } = await supabase
+    .from("ride_messages")
+    .insert({ ride_id: rideId, sender_id: user.id, body: message })
+    .select("id, ride_id, sender_id, body, created_at")
+    .single();
+  throwOnError(error);
+  return {
+    id: data.id,
+    rideId: data.ride_id,
+    senderId: data.sender_id,
+    body: data.body,
+    createdAt: data.created_at,
+  };
 }
 
 export async function acceptRideRequest(rideId, driverId) {

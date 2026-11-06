@@ -44,6 +44,17 @@
         <p id="profile-message" class="auth-message" role="status" aria-live="polite" hidden></p>
 
         <form id="profile-form" class="auth-form">
+          <div class="profile-photo-control">
+            <div class="profile-photo-frame">
+              <img id="profile-photo" alt="Your profile photo" hidden />
+              <span id="profile-photo-initials" aria-hidden="true">R</span>
+            </div>
+            <div class="field">
+              <label for="profile-photo-input">Profile photo</label>
+              <input id="profile-photo-input" name="profilePhoto" type="file" accept="image/jpeg,image/png,image/webp" />
+              <small>JPG, PNG, or WebP; maximum 5 MB. Other signed-in users can view your photo.</small>
+            </div>
+          </div>
           <div class="field">
             <label for="profile-name">Full name</label>
             <input id="profile-name" name="name" type="text" autocomplete="name" required />

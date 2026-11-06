@@ -1,6 +1,6 @@
 # Rider
 
-Rider is a mobile-first campus keke booking web app for Veritas University, Abuja. Its current rider, driver, and Admin workflows use Supabase Authentication and Postgres; the older local mock API remains in the repository but is no longer used by these pages.
+Rider is a mobile-first campus ride and delivery web app for Veritas University, Abuja. Its current rider, driver, and Admin workflows use Supabase Authentication, Postgres, and private Supabase Storage; the older local mock API remains in the repository but is no longer used by these pages.
 
 ## Run locally
 
@@ -21,11 +21,12 @@ The initial schema and RLS policies are in `supabase/migrations/20261104230300_r
 2. Run `supabase/migrations/20261104234900_rider_workflow_functions.sql` in the SQL Editor.
 3. Run `supabase/migrations/20261106140000_enforce_cash_only_ride_payments.sql` in the SQL Editor.
 4. To enable the secure Paystack flow, also run `supabase/migrations/20261107000000_secure_online_ride_payments.sql`.
-5. Set the Supabase Auth Site URL to the deployed Rider URL and allow the Rider login URLs as redirects.
-6. Create the first Admin user through the Rider sign-up page as a rider account, then confirm the email.
-7. In the SQL Editor, promote that account by running:
+5. Run `supabase/migrations/20261108000000_vehicles_deliveries_photos_chat.sql` after the preceding migrations. It adds vehicle-specific fares, package deliveries, profile photos, and ride chat with database access policies.
+6. Set the Supabase Auth Site URL to the deployed Rider URL and allow the Rider login URLs as redirects.
+7. Create the first Admin user through the Rider sign-up page as a rider account, then confirm the email.
+8. In the SQL Editor, promote that account by running:
    `update public.profiles set role = 'admin' where id = (select id from auth.users where email = lower('YOUR_ADMIN_EMAIL'));`
-8. Verify the profile role is `admin`, then sign in at `admin/login.html`.
+9. Verify the profile role is `admin`, then sign in at `admin/login.html`.
 
 Rider and driver authentication, profiles, bookings, tracking, history, driver workflows, Admin management, locations, and fare matrix settings use Supabase. Online rides may be accepted by a driver while payment is pending, but the driver cannot start the trip until Paystack confirms payment.
 
@@ -53,9 +54,10 @@ Fares are currently placeholders, and time-based surcharges/shared-fare options 
 
 ## Rider and driver accounts
 
-- Riders use `login.html` and `signup.html`. Drivers use `driver/login.html` and `driver/signup.html`; registration collects a phone number and keke plate number, and new driver accounts must be approved by an Admin before going online.
+- Riders use `login.html` and `signup.html`. Drivers use `driver/login.html` and `driver/signup.html`; registration collects a phone number, vehicle type, and registration/plate number. Keke drivers can accept passenger bookings (up to 4), minivans up to 6, and bike drivers can accept package deliveries only. New driver accounts must be approved by an Admin before going online.
 - The Admin portal is at `admin/login.html`. There is no shared/demo Admin password: use an account whose `profiles.role` has been promoted to `admin` by a trusted project owner.
 - To provision the first Admin, sign up and confirm an account, then use the SQL promotion command in the Supabase setup steps above. Never expose database credentials or grant Admin access through public signup.
-- Riders can update their name, email, and phone at `profile.html`; drivers can also edit their keke plate number at `driver/profile.html`.
-- Admins can view registered account names, phone numbers, roles, and registration dates; view ride/driver metrics; approve or suspend drivers; manage locations; and edit the fare matrix. The overview is at `admin/dashboard.html`; users, drivers, locations, pricing, and rides each have their own page linked from the Admin navigation. Database authorization is enforced through Supabase RLS and restricted RPC functions.
+- Riders can update their name, email, phone, and profile photo at `profile.html`; drivers can also edit their vehicle registration at `driver/profile.html`. Photos accept JPG, PNG, or WebP up to 5 MB. They are stored in a private bucket and served to signed-in users through temporary signed URLs.
+- After a driver accepts, riders and the assigned driver can exchange messages in a ride-scoped chat while the ride is active. Only the rider and assigned driver can read or send those messages; chat access ends when the ride completes or is cancelled.
+- Admins can view registered account names, phone numbers, roles, and registration dates; view ride/driver metrics; filter drivers by pending approval, approved, or suspended; manage locations; and edit a separate zone fare matrix for each vehicle type. The initial keke, minivan, and bike matrices intentionally use the existing placeholder figures and must be replaced with cost-based prices before launch. The overview is at `admin/dashboard.html`; users, drivers, locations, pricing, and rides each have their own page linked from the Admin navigation. Database authorization is enforced through Supabase RLS and restricted RPC functions.
 - Existing local mock data is not automatically migrated to Supabase. Create accounts again through the Supabase-backed signup pages.

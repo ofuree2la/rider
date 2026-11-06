@@ -11,6 +11,7 @@
     <link rel="stylesheet" href="../css/base.css" />
     <link rel="stylesheet" href="../css/components.css" />
     <link rel="stylesheet" href="../css/driver.css" />
+    <link rel="stylesheet" href="../css/chat.css" />
     <link rel="stylesheet" href="../css/mobile.css" />
     <script type="module" src="../js/driver-dashboard.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/animejs@3.2.2/lib/anime.min.js" defer></script>
@@ -93,7 +94,7 @@
           <div class="panel-header">
             <div>
               <span class="eyebrow accent">Profile</span>
-              <h2 id="profile-title">Your keke</h2>
+              <h2 id="profile-title">Your vehicle</h2>
             </div>
           </div>
 
@@ -101,7 +102,8 @@
             <div class="driver-avatar" id="driver-avatar">R</div>
             <div class="profile-main">
               <h3 id="profile-name">Driver name</h3>
-              <p id="profile-plate">Plate number</p>
+              <p id="profile-vehicle">Vehicle type</p>
+              <p id="profile-plate">Registration number</p>
             </div>
           </div>
 
@@ -134,6 +136,10 @@
           <div id="active-ride-card" class="active-ride-card empty-state-box">
             <p>No active ride yet. Accept a ride request to get started.</p>
           </div>
+          <section id="driver-chat-card" class="driver-chat-card" aria-labelledby="driver-chat-title" hidden>
+            <h3 id="driver-chat-title">Chat with rider</h3>
+            <div id="driver-chat"></div>
+          </section>
         </section>
 
         <section class="panel" aria-labelledby="earnings-title">

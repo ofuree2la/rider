@@ -60,7 +60,10 @@ async function handleSubmit(event) {
         password,
         role: accountRole,
         ...(accountRole === "driver"
-          ? { plateNumber: formData.get("plateNumber") }
+          ? {
+              plateNumber: formData.get("plateNumber"),
+              vehicleType: formData.get("vehicleType"),
+            }
           : {}),
       });
       if (user.confirmationRequired) {

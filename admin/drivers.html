@@ -21,7 +21,14 @@
       <div class="admin-heading"><div><span class="eyebrow accent">Access control</span><h1>Driver approval</h1><p>Review and manage driver accounts.</p></div><nav class="admin-shortcuts" aria-label="Admin pages"><a href="dashboard.html">Overview</a><a href="users.html">Users</a><a href="drivers.html" aria-current="page">Drivers</a><a href="locations.html">Locations</a><a href="pricing.html">Pricing</a><a href="rides.html">Rides</a></nav></div>
       <p id="admin-status" class="admin-message status-message" role="status" aria-live="polite" hidden></p>
       <p id="admin-error" class="admin-message error-message" role="alert" aria-live="assertive" hidden></p>
-      <section class="admin-panel" aria-labelledby="drivers-heading"><div class="admin-section-heading"><div><span class="eyebrow accent">Driver accounts</span><h2 id="drivers-heading">Drivers</h2></div><p>Only approved drivers can go online and accept ride requests.</p></div><div id="driver-list" class="admin-record-list"></div></section>
+      <section class="admin-panel" aria-labelledby="drivers-heading"><div class="admin-section-heading"><div><span class="eyebrow accent">Driver accounts</span><h2 id="drivers-heading">Drivers</h2></div><p>Review applications and switch between pending, approved, and suspended drivers.</p></div>
+        <div class="driver-status-filters" role="group" aria-label="Filter drivers by approval status">
+          <button type="button" class="btn btn-secondary" data-driver-status-filter="pending" aria-pressed="true">Pending approval <span id="driver-count-pending">0</span></button>
+          <button type="button" class="btn btn-secondary" data-driver-status-filter="approved" aria-pressed="false">Approved <span id="driver-count-approved">0</span></button>
+          <button type="button" class="btn btn-secondary" data-driver-status-filter="suspended" aria-pressed="false">Suspended <span id="driver-count-suspended">0</span></button>
+        </div>
+        <div id="driver-list" class="admin-record-list"></div>
+      </section>
       <p class="admin-prototype-note">Review driver identity and vehicle documents through your approved process before approving an account.</p>
     </main>
     <nav class="bottom-nav admin-bottom-nav" aria-label="Admin dashboard navigation">

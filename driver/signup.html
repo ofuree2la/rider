@@ -20,7 +20,7 @@
     <main class="auth-shell driver-auth-shell">
       <a class="eyebrow driver-auth-brand" href="../index.html">Rider Driver</a>
       <h1>Create a driver account</h1>
-      <p>Register your driver details to apply for access to campus ride requests.</p>
+      <p>Register your vehicle and contact details to apply for campus requests.</p>
 
       <p class="driver-auth-note">
         New driver accounts need admin approval before they can go online or accept requests.
@@ -45,8 +45,17 @@
           </div>
 
           <div class="field">
-            <label for="plateNumber">Keke plate number</label>
-            <input id="plateNumber" name="plateNumber" type="text" autocomplete="off" placeholder="ABC 123 XY" required />
+            <label for="vehicleType">Vehicle type</label>
+            <select id="vehicleType" name="vehicleType" required>
+              <option value="keke">Keke — passenger rides (up to 4)</option>
+              <option value="minivan">Minivan — passenger rides (up to 6)</option>
+              <option value="bike">Bike — deliveries only</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="plateNumber">Vehicle registration / plate number</label>
+            <input id="plateNumber" name="plateNumber" type="text" autocomplete="off" placeholder="Enter your vehicle registration" required />
           </div>
 
           <div class="field">

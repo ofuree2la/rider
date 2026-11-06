@@ -10,10 +10,11 @@
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="css/base.css" />
     <link rel="stylesheet" href="css/components.css" />
-    <link rel="stylesheet" href="css/tracking.css?v=step4" />
+    <link rel="stylesheet" href="css/tracking.css?v=vehicles-chat" />
+    <link rel="stylesheet" href="css/chat.css" />
     <link rel="stylesheet" href="css/bottom-nav.css" />
     <link rel="stylesheet" href="css/mobile.css" />
-    <script type="module" src="js/tracking.js?v=step4"></script>
+    <script type="module" src="js/tracking.js?v=vehicles-chat"></script>
     <script src="js/bottom-nav.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/animejs@3.2.2/lib/anime.min.js" defer></script>
     <script src="js/motion.js" defer></script>
@@ -37,7 +38,7 @@
       <div class="page-heading">
         <span class="eyebrow accent">Your journey</span>
         <h1>Track your ride</h1>
-        <p>Ride progress and driver details for your campus trip.</p>
+        <p>Booking progress, driver or courier details, and ride-scoped chat.</p>
       </div>
 
       <p id="tracking-error" class="journey-message error-message" role="alert" hidden></p>
@@ -74,20 +75,26 @@
             </div>
           </div>
           <p id="ride-schedule" class="ride-meta"></p>
+          <div id="delivery-summary" class="delivery-summary" hidden>
+            <h3>Delivery details</h3>
+            <p><strong>Package:</strong> <span id="delivery-description"></span></p>
+            <p><strong>Recipient:</strong> <span id="delivery-recipient"></span></p>
+          </div>
         </div>
 
         <section class="journey-card driver-card" aria-labelledby="driver-title">
           <div class="driver-heading">
             <div class="driver-avatar" id="driver-avatar" aria-hidden="true">R</div>
             <div>
-              <span class="eyebrow accent">Your keke driver</span>
+              <span class="eyebrow accent">Your assigned driver</span>
               <h2 id="driver-title">Driver details</h2>
             </div>
             <span id="verified-badge" class="verified-badge">Verified</span>
           </div>
           <dl class="driver-details">
             <div><dt>Driver</dt><dd id="driver-name"></dd></div>
-            <div><dt>Keke plate</dt><dd id="driver-plate"></dd></div>
+            <div><dt>Vehicle</dt><dd id="driver-vehicle"></dd></div>
+            <div><dt>Registration</dt><dd id="driver-plate"></dd></div>
             <div><dt>Rating</dt><dd id="driver-rating"></dd></div>
             <div><dt>Phone</dt><dd><a id="driver-phone" href=""></a></dd></div>
           </dl>
@@ -95,6 +102,12 @@
             <button id="share-trip" class="btn btn-secondary" type="button">Share my trip</button>
             <a class="btn btn-ghost emergency-action" href="tel:112">Emergency call · 112</a>
           </div>
+        </section>
+
+        <section id="ride-chat-card" class="journey-card" aria-labelledby="ride-chat-title" hidden>
+          <span class="eyebrow accent">Ride chat</span>
+          <h2 id="ride-chat-title">Message your driver</h2>
+          <div id="ride-chat"></div>
         </section>
 
         <section id="ride-payment-card" class="journey-card" aria-labelledby="ride-payment-title" hidden>

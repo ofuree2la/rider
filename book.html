@@ -9,10 +9,10 @@
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="css/base.css" />
     <link rel="stylesheet" href="css/components.css" />
-    <link rel="stylesheet" href="css/booking.css?v=seats4" />
+    <link rel="stylesheet" href="css/booking.css?v=vehicles" />
     <link rel="stylesheet" href="css/bottom-nav.css" />
     <link rel="stylesheet" href="css/mobile.css" />
-    <script type="module" src="js/booking.js?v=seats4"></script>
+    <script type="module" src="js/booking.js?v=vehicles"></script>
     <script src="js/bottom-nav.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/animejs@3.2.2/lib/anime.min.js" defer></script>
     <script src="js/motion.js" defer></script>
@@ -42,25 +42,26 @@
       <section class="ride-panel" aria-labelledby="ride-title">
         <div class="panel-header">
           <span class="eyebrow accent">Get a ride</span>
-          <h1 id="ride-title">Get a ride with:</h1>
+          <h1 id="ride-title">Book a ride or delivery</h1>
         </div>
 
         <div class="ride-options" role="radiogroup" aria-label="Ride options">
           <label class="ride-option active">
-            <input type="radio" name="ride-type" value="keke" checked />
+            <input type="radio" name="vehicle-type" value="keke" checked />
             <span class="option-label">Keke</span>
+            <span class="coming-soon">Up to 4 passengers</span>
           </label>
 
-          <label class="ride-option disabled">
-            <input type="radio" name="ride-type" value="bike" disabled />
-            <span class="option-label">Bike</span>
-            <span class="coming-soon">Coming soon</span>
+          <label class="ride-option">
+            <input type="radio" name="vehicle-type" value="minivan" />
+            <span class="option-label">Minivan</span>
+            <span class="coming-soon">Up to 6 passengers</span>
           </label>
 
-          <label class="ride-option disabled">
-            <input type="radio" name="ride-type" value="mini-bus" disabled />
-            <span class="option-label">Mini Bus</span>
-            <span class="coming-soon">Coming soon</span>
+          <label class="ride-option">
+            <input type="radio" name="vehicle-type" value="bike" />
+            <span class="option-label">Bike delivery</span>
+            <span class="coming-soon">Packages only</span>
           </label>
 
           <label class="ride-option disabled">
@@ -82,6 +83,22 @@
             <input id="destination" name="destination" type="text" placeholder="Type a destination" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="destination-suggestions" autocomplete="off" required />
             <div id="destination-suggestions" class="location-suggestions" role="listbox" aria-label="Destination suggestions" hidden></div>
           </div>
+
+          <fieldset id="delivery-fields" class="delivery-fields" hidden>
+            <legend>Delivery details</legend>
+            <div class="field-row">
+              <label for="delivery-description">What are you sending?</label>
+              <input id="delivery-description" name="deliveryDescription" type="text" maxlength="300" placeholder="Describe the package" />
+            </div>
+            <div class="field-row">
+              <label for="recipient-name">Recipient name</label>
+              <input id="recipient-name" name="recipientName" type="text" maxlength="120" autocomplete="name" />
+            </div>
+            <div class="field-row">
+              <label for="recipient-phone">Recipient phone</label>
+              <input id="recipient-phone" name="recipientPhone" type="tel" autocomplete="tel" placeholder="0803 000 0000" />
+            </div>
+          </fieldset>
 
           <fieldset class="timing-options">
             <legend>When do you need your ride?</legend>
@@ -107,6 +124,8 @@
               <option value="2">2 passengers</option>
               <option value="3">3 passengers</option>
               <option value="4">4 passengers</option>
+              <option value="5">5 passengers</option>
+              <option value="6">6 passengers</option>
             </select>
           </div>
 
@@ -145,7 +164,7 @@
         </form>
 
         <section id="match-card" class="match-card" aria-labelledby="match-title" hidden>
-          <span class="match-badge">Driver found</span>
+          <span class="match-badge">Request sent</span>
           <h2 id="match-title">Your keke is matched</h2>
           <p id="match-details"></p>
           <a id="match-tracking-link" class="btn btn-primary" href="tracking.html">Track your ride</a>

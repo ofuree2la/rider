@@ -44,6 +44,8 @@ const dateFormatter = new Intl.DateTimeFormat("en-NG", {
   dateStyle: "medium",
   timeStyle: "short",
 });
+let driverStatusFilter = "pending";
+let pricingConfig = null;
 
 function showStatus(message) {
   adminStatus.textContent = message;
@@ -154,24 +156,46 @@ function makeButton(label, action, id, status, className = "btn btn-secondary") 
 }
 
 function renderDrivers(drivers) {
+  for (const status of ["pending", "approved", "suspended"]) {
+    const count = document.querySelector(`#driver-count-${status}`);
+    if (count) {
+      count.textContent = String(drivers.filter((driver) => driver.status === status).length);
+    }
+  }
+  document.querySelectorAll("[data-driver-status-filter]").forEach((button) => {
+    button.setAttribute(
+      "aria-pressed",
+      String(button.dataset.driverStatusFilter === driverStatusFilter),
+    );
+  });
+
   driverList.replaceChildren();
-  if (drivers.length === 0) {
+  const visibleDrivers = drivers.filter((driver) => driver.status === driverStatusFilter);
+  if (visibleDrivers.length === 0) {
     const empty = document.createElement("p");
     empty.className = "admin-empty";
-    empty.textContent = "No driver accounts have been registered.";
+    empty.textContent = `No ${driverStatusFilter === "pending" ? "pending" : driverStatusFilter} driver accounts.`;
     driverList.append(empty);
     return;
   }
 
-  for (const driver of drivers) {
+  for (const driver of visibleDrivers) {
     const card = document.createElement("article");
     card.className = "admin-record";
+    if (driver.avatarUrl) {
+      const avatar = document.createElement("img");
+      avatar.className = "admin-driver-avatar";
+      avatar.src = driver.avatarUrl;
+      avatar.alt = `${driver.name}'s profile`;
+      card.append(avatar);
+    }
     const main = document.createElement("div");
     main.className = "admin-record-main";
     const name = document.createElement("h3");
     name.textContent = driver.name;
     const detail = document.createElement("p");
-    detail.textContent = `${driver.plateNumber} · ${driver.phone} · ★ ${Number(driver.rating).toFixed(1)}`;
+    const vehicleNames = { bike: "Bike · delivery", keke: "Keke", minivan: "Minivan" };
+    detail.textContent = `${vehicleNames[driver.vehicleType] ?? "Vehicle"} · ${driver.plateNumber} · ${driver.phone} · ★ ${Number(driver.rating).toFixed(1)}`;
     const badge = document.createElement("span");
     badge.className = `admin-status-badge ${driver.status}`;
     badge.textContent = driver.status;
@@ -256,7 +280,7 @@ function renderLocations(locations) {
   }
 }
 
-function renderFareMatrix(config) {
+function renderFareMatrix(config, vehicleType) {
   fareMatrix.replaceChildren();
   const zones = Object.keys(zoneNames);
   const blank = document.createElement("span");
@@ -282,7 +306,7 @@ function renderFareMatrix(config) {
       input.max = "100000";
       input.step = "50";
       input.required = true;
-      input.value = String(config.fareMatrix[pickupZone][destinationZone]);
+      input.value = String(config.fareMatrices[vehicleType][pickupZone][destinationZone]);
       fareMatrix.append(
         makeField(
           `${zoneNames[pickupZone]} to ${zoneNames[destinationZone]} fare in naira`,
@@ -307,6 +331,11 @@ function renderRides(rides) {
     const row = document.createElement("tr");
     const route = document.createElement("td");
     route.textContent = `${ride.pickup?.name ?? "Pickup"} → ${ride.destination?.name ?? "Destination"}`;
+    const service = document.createElement("td");
+    service.textContent =
+      ride.serviceType === "delivery"
+        ? `Bike delivery · ${ride.deliveryDescription ?? "Package"}`
+        : `${ride.vehicleType === "minivan" ? "Minivan" : "Keke"} · ${ride.passengers} passenger${ride.passengers === 1 ? "" : "s"}`;
     const rider = document.createElement("td");
     rider.textContent = ride.rider?.name ?? ride.user?.name ?? (ride.userId ? "Rider account" : "Guest");
     const status = document.createElement("td");
@@ -319,7 +348,7 @@ function renderRides(rides) {
       : "Not scheduled";
     const fare = document.createElement("td");
     fare.textContent = formatCash(ride.fare?.rideTotal ?? ride.fare?.total ?? 0);
-    row.append(route, rider, status, pickup, fare);
+    row.append(route, service, rider, status, pickup, fare);
     rideList.append(row);
   }
   rideEmpty.hidden = filteredRides.length > 0;
@@ -353,7 +382,12 @@ async function refreshDashboard() {
     requests.push(getLocations().then(renderLocations));
   }
   if (fareMatrix) {
-    requests.push(getPricingConfig(FARE_CONFIG).then(renderFareMatrix));
+    requests.push(
+      getPricingConfig(FARE_CONFIG).then((config) => {
+        pricingConfig = config;
+        renderFareMatrix(config, document.querySelector("#fare-vehicle-type").value);
+      }),
+    );
   }
   if (rideList) {
     requests.push(getRides().then(renderRides));
@@ -431,16 +465,17 @@ async function handlePricingSubmit(event) {
   event.preventDefault();
   const data = new FormData(event.currentTarget);
   try {
-    const config = await getPricingConfig(FARE_CONFIG);
+    const config = pricingConfig ?? await getPricingConfig(FARE_CONFIG);
+    const vehicleType = String(data.get("vehicleType"));
     for (const pickupZone of Object.keys(zoneNames)) {
       for (const destinationZone of Object.keys(zoneNames)) {
-        config.fareMatrix[pickupZone][destinationZone] = Number(
+        config.fareMatrices[vehicleType][pickupZone][destinationZone] = Number(
           data.get(`${pickupZone}:${destinationZone}`),
         );
       }
     }
-    await updatePricingConfig(config);
-    showStatus("Fare settings saved. New estimates and bookings will use these prices.");
+    pricingConfig = await updatePricingConfig(config);
+    showStatus(`${vehicleType} fare settings saved. New estimates and bookings will use these prices.`);
     await refreshDashboard();
   } catch (error) {
     showError(error.message);
@@ -468,10 +503,21 @@ async function startAdminDashboard() {
     await refreshDashboard();
     document.querySelector("#admin-logout").addEventListener("click", handleLogout);
     driverList?.addEventListener("click", handleDriverAction);
+    document.querySelector(".driver-status-filters")?.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-driver-status-filter]");
+      if (!button) return;
+      driverStatusFilter = button.dataset.driverStatusFilter;
+      getDrivers().then(renderDrivers).catch((error) => showError(error.message));
+    });
     locationList?.addEventListener("click", handleLocationDelete);
     locationList?.addEventListener("submit", handleLocationSubmit);
     document.querySelector("#location-create-form")?.addEventListener("submit", handleLocationCreate);
     document.querySelector("#pricing-form")?.addEventListener("submit", handlePricingSubmit);
+    document.querySelector("#fare-vehicle-type")?.addEventListener("change", (event) => {
+      if (pricingConfig) {
+        renderFareMatrix(pricingConfig, event.target.value);
+      }
+    });
     document.querySelector("#ride-filters")?.addEventListener("input", async () => {
       try {
         renderRides(await getRides());

@@ -10,13 +10,16 @@ import {
   isDriverOnline,
   updateDriverRideStatus,
 } from "./supabase-api.js";
+import { mountRideChat } from "./ride-chat.js";
 
 let driver = null;
 let isAutoRefreshRunning = false;
 const driverNameHeading = document.querySelector("#driver-name-heading");
 const driverOnlineToggle = document.querySelector("#driver-online-toggle");
+const requestHeading = document.querySelector("#incoming-title");
 const pendingCount = document.querySelector("#pending-count");
 const activeCount = document.querySelector("#active-count");
+const activeHeading = document.querySelector("#active-title");
 const todayCount = document.querySelector("#today-count");
 const todayEarnings = document.querySelector("#today-earnings");
 const requestList = document.querySelector("#request-list");
@@ -24,6 +27,7 @@ const scheduledRides = document.querySelector("#scheduled-rides");
 const activeRideCard = document.querySelector("#active-ride-card");
 const profileName = document.querySelector("#profile-name");
 const profilePlate = document.querySelector("#profile-plate");
+const profileVehicle = document.querySelector("#profile-vehicle");
 const profileRating = document.querySelector("#profile-rating");
 const profileVerification = document.querySelector("#profile-verification");
 const profilePhone = document.querySelector("#profile-phone");
@@ -34,7 +38,11 @@ const allTimeEarnings = document.querySelector("#alltime-earnings");
 const dashboardStatus = document.querySelector("#dashboard-status");
 const dashboardError = document.querySelector("#dashboard-error");
 const logoutButton = document.querySelector("#logout-button");
+const driverChatCard = document.querySelector("#driver-chat-card");
+const driverChatRoot = document.querySelector("#driver-chat");
 const DASHBOARD_REFRESH_INTERVAL_MS = 15_000;
+let driverChatRideId = null;
+let driverChatCleanup = null;
 
 const currencyFormatter = new Intl.NumberFormat("en-NG", {
   style: "currency",
@@ -131,8 +139,13 @@ function getDriverRideSummary(allRides) {
 
 async function renderProfile() {
   driverNameHeading.textContent = driver.name;
+  requestHeading.textContent = driver.vehicleType === "bike" ? "Delivery requests" : "Ride requests";
+  activeHeading.textContent = driver.vehicleType === "bike" ? "Active delivery" : "Active ride";
   profileName.textContent = driver.name;
-  profilePlate.textContent = driver.plateNumber;
+  profilePlate.textContent = driver.plateNumber || "Registration unavailable";
+  profileVehicle.textContent =
+    { bike: "Bike · delivery only", keke: "Keke", minivan: "Minivan" }[driver.vehicleType] ??
+    "Vehicle";
   profileRating.textContent = `★ ${driver.rating.toFixed(1)}`;
   profileVerification.textContent =
     driver.status === "suspended"
@@ -141,7 +154,14 @@ async function renderProfile() {
         ? "Awaiting approval"
         : "Approved";
   profilePhone.textContent = driver.phone;
-  driverAvatar.textContent = driver.name.split(" ").slice(0, 2).map((part) => part[0]).join("").toUpperCase();
+  if (driver.avatarUrl) {
+    const image = document.createElement("img");
+    image.src = driver.avatarUrl;
+    image.alt = "";
+    driverAvatar.replaceChildren(image);
+  } else {
+    driverAvatar.textContent = driver.name.split(" ").slice(0, 2).map((part) => part[0]).join("").toUpperCase();
+  }
   const canGoOnline = driver.status === "approved";
   driverOnlineToggle.disabled = !canGoOnline;
   driverOnlineToggle.checked = canGoOnline && (await isDriverOnline(driver.id));
@@ -160,7 +180,7 @@ async function renderRequests() {
     requestList.innerHTML = `<div class="request-card empty-state-box"><p>${
       driver.status === "suspended"
         ? "Your account is suspended. Contact Rider support for help."
-        : "Your account must be approved before you can receive ride requests."
+        : "Your account must be approved before you can receive matching requests."
     }</p></div>`;
     return;
   }
@@ -169,7 +189,7 @@ async function renderRequests() {
   pendingCount.textContent = String(requests.length);
 
   if (requests.length === 0) {
-    requestList.innerHTML = '<div class="request-card empty-state-box"><p>No ride requests right now. Keep your keke online to receive new trips.</p></div>';
+    requestList.innerHTML = `<div class="request-card empty-state-box"><p>No matching requests right now. Keep your ${driver.vehicleType === "bike" ? "bike" : "vehicle"} online to receive new work.</p></div>`;
     return;
   }
 
@@ -179,14 +199,19 @@ async function renderRequests() {
         <article class="request-card">
           <div class="request-top">
             <h3>${escapeHtml(ride.pickup?.name ?? "Pickup")} to ${escapeHtml(ride.destination?.name ?? "Destination")}</h3>
-            <span class="badge">${ride.timing === "scheduled" ? "Scheduled" : "Now"}</span>
+            <span class="badge">${ride.serviceType === "delivery" ? "Delivery" : ride.timing === "scheduled" ? "Scheduled" : "Now"}</span>
           </div>
           <div class="request-meta">
-            <span>${ride.passengers} passenger${ride.passengers > 1 ? "s" : ""}</span>
+            <span>${ride.serviceType === "delivery" ? "Bike delivery" : `${ride.passengers} passenger${ride.passengers > 1 ? "s" : ""}`}</span>
             <span class="value">${formatCash(getRideTotal(ride))}</span>
           </div>
+          ${
+            ride.serviceType === "delivery"
+              ? `<p class="request-description">${escapeHtml(ride.deliveryDescription)} · Recipient: ${escapeHtml(ride.recipientName)} (${escapeHtml(ride.recipientPhone)})</p>`
+              : ""
+          }
           <div class="request-meta">
-            <span>${formatRideTime(ride.scheduledAt)}</span>
+            <span>${ride.timing === "scheduled" ? formatRideTime(ride.scheduledAt) : "Requested now"}</span>
             <span>${
               ride.paymentMethod === "online"
                 ? "Online · rider pays after acceptance"
@@ -214,14 +239,22 @@ async function renderActiveRide() {
   if (!activeRide) {
     activeRideCard.className = "active-ride-card empty-state-box";
     activeRideCard.innerHTML = "<p>No active ride yet. Accept a ride request to get started.</p>";
+    driverChatCard.hidden = true;
+    if (driverChatCleanup) {
+      driverChatCleanup();
+      driverChatCleanup = null;
+      driverChatRideId = null;
+      driverChatRoot.replaceChildren();
+    }
     return;
   }
 
+  const isDelivery = activeRide.serviceType === "delivery";
   const statusButtonMap = {
-    accepted: { label: "Arrived", nextStatus: "arriving" },
-    arriving: { label: "Start trip", nextStatus: "on-trip" },
-    "on-trip": { label: "Complete trip", nextStatus: "completed" },
-    completed: { label: "Ride complete", nextStatus: null },
+    accepted: { label: isDelivery ? "Arrived at pickup" : "Arrived", nextStatus: "arriving" },
+    arriving: { label: isDelivery ? "Start delivery" : "Start trip", nextStatus: "on-trip" },
+    "on-trip": { label: isDelivery ? "Complete delivery" : "Complete trip", nextStatus: "completed" },
+    completed: { label: isDelivery ? "Delivery complete" : "Ride complete", nextStatus: null },
   };
 
   const actionInfo = statusButtonMap[activeRide.status] ?? { label: "Ride in progress", nextStatus: null };
@@ -239,17 +272,36 @@ async function renderActiveRide() {
       <span class="status-pill">${escapeHtml(activeRide.status.replace("-", " "))}</span>
     </div>
     <div class="route-summary-row">
-      <span>${activeRide.passengers} passenger${activeRide.passengers > 1 ? "s" : ""}</span>
+      <span>${activeRide.serviceType === "delivery" ? "Bike delivery" : `${activeRide.passengers} passenger${activeRide.passengers > 1 ? "s" : ""}`}</span>
       <span class="value">${formatCash(getRideTotal(activeRide))}</span>
     </div>
+    ${
+      activeRide.serviceType === "delivery"
+        ? `<div class="request-description"><strong>Package:</strong> ${escapeHtml(activeRide.deliveryDescription)}<br><strong>Recipient:</strong> ${escapeHtml(activeRide.recipientName)} · ${escapeHtml(activeRide.recipientPhone)}</div>`
+        : ""
+    }
     <div class="request-meta">
       <span>${activeRide.timing === "scheduled" ? "Scheduled" : "On demand"}</span>
-      <span>${formatRideTime(activeRide.scheduledAt)}</span>
+      <span>${activeRide.timing === "scheduled" ? formatRideTime(activeRide.scheduledAt) : "Requested now"}</span>
     </div>
     <div class="trip-actions">
       <button type="button" class="btn btn-primary" data-action="advance-status" data-ride-id="${escapeHtml(activeRide.id)}" ${actionInfo.nextStatus && !waitingForPayment ? "" : "disabled"}>${waitingForPayment ? "Waiting for rider payment" : actionInfo.label}</button>
     </div>
   `;
+
+  const canChat = ["accepted", "arriving", "on-trip"].includes(activeRide.status);
+  driverChatCard.hidden = !canChat;
+  if (canChat && driverChatRideId !== activeRide.id) {
+    driverChatCleanup?.();
+    driverChatRoot.replaceChildren();
+    driverChatRideId = activeRide.id;
+    driverChatCleanup = mountRideChat(driverChatRoot, activeRide.id);
+  } else if (!canChat && driverChatCleanup) {
+    driverChatCleanup();
+    driverChatCleanup = null;
+    driverChatRideId = null;
+    driverChatRoot.replaceChildren();
+  }
 }
 
 async function renderScheduledRides() {
@@ -270,7 +322,7 @@ async function renderScheduledRides() {
           </div>
           <div class="request-meta">
             <span>${formatRideTime(ride.scheduledAt)}</span>
-            <span>${ride.passengers} rider${ride.passengers > 1 ? "s" : ""}</span>
+            <span>${ride.serviceType === "delivery" ? "Bike delivery" : `${ride.passengers} rider${ride.passengers > 1 ? "s" : ""}`}</span>
           </div>
         </article>
       `,
@@ -309,8 +361,10 @@ async function handleRideAction(event) {
 
   try {
     if (action === "accept") {
-      await acceptRideRequest(rideId, driver.id);
-      showStatus("Ride accepted. The rider can now track your progress.");
+      const acceptedRide = await acceptRideRequest(rideId, driver.id);
+      showStatus(
+        `${acceptedRide.serviceType === "delivery" ? "Delivery" : "Ride"} accepted. The rider can now track your progress.`,
+      );
     } else if (action === "decline") {
       await declineRideRequest(rideId, driver.id);
       showStatus("Ride request declined.");

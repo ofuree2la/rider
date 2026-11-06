@@ -8,6 +8,11 @@ const destinationInput = document.querySelector("#destination");
 const pickupSuggestions = document.querySelector("#pickup-suggestions");
 const destinationSuggestions = document.querySelector("#destination-suggestions");
 const passengerSelect = document.querySelector("#passengers");
+const vehicleTypeInputs = [...document.querySelectorAll('input[name="vehicle-type"]')];
+const deliveryFields = document.querySelector("#delivery-fields");
+const deliveryDescriptionInput = document.querySelector("#delivery-description");
+const recipientNameInput = document.querySelector("#recipient-name");
+const recipientPhoneInput = document.querySelector("#recipient-phone");
 const scheduledFields = document.querySelector("#scheduled-fields");
 const scheduledAtInput = document.querySelector("#scheduled-at");
 const fareTotalElement = document.querySelector("#fare-total");
@@ -80,7 +85,13 @@ function getFareForCurrentSelection() {
     return null;
   }
 
-  return calculateFare(pickup, destination, getFareTime(), Number(passengerSelect.value));
+  const vehicleType = getVehicleType();
+  const billableCount = vehicleType === "bike" ? 1 : Number(passengerSelect.value);
+  return calculateFare(pickup, destination, getFareTime(), billableCount, vehicleType);
+}
+
+function getVehicleType() {
+  return vehicleTypeInputs.find((input) => input.checked)?.value ?? "keke";
 }
 
 function appendBreakdownRow(label, amount, formatter = currencyFormatter) {
@@ -128,11 +139,17 @@ function updateFareEstimate() {
     fareTotalElement.textContent = currencyFormatter.format(fare.rideTotal);
     fareBreakdownElement.replaceChildren();
 
-    appendBreakdownRow("Fare per passenger", fare.perPassenger);
-    appendBreakdownRow("Passengers", fare.passengers, passengerCountFormatter);
+    if (getVehicleType() === "bike") {
+      appendBreakdownRow("Bike delivery fee", fare.perPassenger);
+    } else {
+      appendBreakdownRow("Fare per passenger", fare.perPassenger);
+      appendBreakdownRow("Passengers", fare.passengers, passengerCountFormatter);
+    }
     appendBreakdownRow("Total fare", fare.rideTotal);
     fareNoteElement.textContent =
-      "Fixed demo fare per person. Time-based surcharges are off; replace placeholder fares before launch.";
+      getVehicleType() === "bike"
+        ? "Fixed demo fee per delivery. Replace placeholder fares before launch."
+        : "Fixed demo fare per person. Replace placeholder fares before launch.";
 
     errorElement.hidden = true;
   } catch (error) {
@@ -311,6 +328,33 @@ function updateTimingFields() {
   updateFareEstimate();
 }
 
+function updateVehicleFields() {
+  const vehicleType = getVehicleType();
+  const isDelivery = vehicleType === "bike";
+  vehicleTypeInputs.forEach((input) => {
+    input.closest(".ride-option").classList.toggle("active", input.checked);
+  });
+  deliveryFields.hidden = !isDelivery;
+  for (const input of [deliveryDescriptionInput, recipientNameInput, recipientPhoneInput]) {
+    input.required = isDelivery;
+    input.disabled = !isDelivery;
+  }
+  passengerSelect.disabled = isDelivery;
+  passengerSelect.required = !isDelivery;
+  passengerSelect.closest(".field-row").hidden = isDelivery;
+
+  const capacity = vehicleType === "minivan" ? 6 : 4;
+  for (const option of passengerSelect.options) {
+    option.disabled = Number(option.value) > capacity;
+  }
+  if (!isDelivery && Number(passengerSelect.value) > capacity) {
+    passengerSelect.value = String(capacity);
+  }
+  findRideButton.textContent = isDelivery ? "Request delivery" : "Find a ride";
+  clearMessages();
+  updateFareEstimate();
+}
+
 function validateBooking() {
   const pickup = selectedPickup;
   const destination = selectedDestination;
@@ -320,6 +364,17 @@ function validateBooking() {
   }
   if (pickup.id === destination.id) {
     throw new Error("Pickup and destination must be different locations.");
+  }
+  if (getVehicleType() === "bike") {
+    if (!deliveryDescriptionInput.value.trim()) {
+      throw new Error("Describe the package you are sending.");
+    }
+    if (!recipientNameInput.value.trim()) {
+      throw new Error("Enter the recipient's name.");
+    }
+    if (recipientPhoneInput.value.replace(/\D/g, "").length < 10) {
+      throw new Error("Enter a valid recipient phone number.");
+    }
   }
   if (form.elements.timing.value === "scheduled") {
     if (!scheduledAtInput.value) {
@@ -370,43 +425,54 @@ async function findRide(event) {
     timing === "scheduled"
       ? new Date(scheduledAtInput.value).toISOString()
       : new Date().toISOString();
+  const vehicleType = getVehicleType();
+  const isDelivery = vehicleType === "bike";
   const rideInput = {
+    serviceType: isDelivery ? "delivery" : "passenger",
+    vehicleType,
     pickup: route.pickup,
     destination: route.destination,
-    passengers: Number(passengerSelect.value),
+    passengers: isDelivery ? 0 : Number(passengerSelect.value),
     timing,
     scheduledAt,
     paymentMethod: form.elements.paymentMethod.value,
     customerEmail: currentUser.email,
     fare,
+    deliveryDescription: isDelivery ? deliveryDescriptionInput.value.trim() : null,
+    recipientName: isDelivery ? recipientNameInput.value.trim() : null,
+    recipientPhone: isDelivery ? recipientPhoneInput.value.trim() : null,
   };
 
   findRideButton.disabled = true;
-  findRideButton.textContent = "Finding your keke...";
-  showStatus("Finding your keke. Please wait while we match you with a verified driver.");
+  findRideButton.textContent = isDelivery ? "Sending request..." : "Finding a driver...";
+  showStatus(
+    isDelivery
+      ? "Sending your package delivery request to approved bike couriers."
+      : "Finding a matching driver for your ride.",
+  );
 
   try {
     if (rideInput.paymentMethod === "online" && !isOnlinePaymentConfigured()) {
       throw new Error("Online payments are not configured yet. Please choose cash.");
     }
     const ride = await createRide(rideInput);
-    matchTitle.textContent = "Ride request submitted";
+    matchTitle.textContent = isDelivery ? "Delivery request submitted" : "Ride request submitted";
     matchDetails.textContent =
       rideInput.paymentMethod === "online"
         ? `Your request is sent to approved drivers. When a driver accepts, open tracking to pay securely before the trip starts.`
-        : `Your ride request is saved for ${ride.pickup.name} to ${ride.destination.name}. A driver can accept it from the Rider Driver dashboard.`;
+        : `Your ${isDelivery ? "delivery" : "ride"} request is saved for ${ride.pickup.name} to ${ride.destination.name}. A matching driver can accept it from the Rider Driver dashboard.`;
     matchTrackingLink.href = `tracking.html?id=${encodeURIComponent(ride.id)}`;
     matchCard.hidden = false;
     showStatus(
       rideInput.paymentMethod === "online"
         ? "Your request is sent. Once a driver accepts, complete payment from the tracking page before the trip starts."
-        : "Your request has been sent to approved drivers. Track this page for acceptance and ride progress.",
+        : "Your request has been sent to matching approved drivers. Track this page for acceptance and progress.",
     );
   } catch (error) {
     showError(error.message);
   } finally {
     findRideButton.disabled = false;
-    findRideButton.textContent = "Find a ride";
+    findRideButton.textContent = getVehicleType() === "bike" ? "Request delivery" : "Find a ride";
   }
 }
 
@@ -438,11 +504,13 @@ async function startBookingPage() {
     selectedDestination = location;
   });
   passengerSelect.addEventListener("change", updateFareEstimate);
+  vehicleTypeInputs.forEach((input) => input.addEventListener("change", updateVehicleFields));
   scheduledAtInput.addEventListener("input", updateFareEstimate);
   form.querySelectorAll('input[name="timing"]').forEach((input) => {
     input.addEventListener("change", updateTimingFields);
   });
   paymentMethodSelect.addEventListener("change", updatePaymentFields);
+  updateVehicleFields();
   await updatePaymentFields();
   form.addEventListener("submit", findRide);
 }
