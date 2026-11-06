@@ -1,6 +1,5 @@
-// Set this to the deployed Vercel project origin, without a trailing slash.
-// The API remains disabled until its URL and server-side secrets are configured.
-export const PAYMENT_API_BASE_URL = "";
+// Payment API origin. Secret keys remain server-side in Vercel environment variables.
+export const PAYMENT_API_BASE_URL = "https://rider-beta-three.vercel.app";
 
 export function isOnlinePaymentConfigured() {
   try {
