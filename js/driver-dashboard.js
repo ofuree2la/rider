@@ -144,7 +144,7 @@ async function renderProfile() {
   profileName.textContent = driver.name;
   profilePlate.textContent = driver.plateNumber || "Registration unavailable";
   profileVehicle.textContent =
-    { bike: "Bike · delivery only", keke: "Keke", minivan: "Minivan" }[driver.vehicleType] ??
+    { bike: "Bike · delivery only", keke: "Keke", minivan: "Mini bus" }[driver.vehicleType] ??
     "Vehicle";
   profileRating.textContent = `★ ${driver.rating.toFixed(1)}`;
   profileVerification.textContent =

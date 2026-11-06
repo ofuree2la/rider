@@ -215,7 +215,7 @@ function renderRide() {
       ? {
           bike: "Bike courier",
           keke: "Keke",
-          minivan: "Minivan",
+          minivan: "Mini bus",
         }[driver.vehicleType] ?? "Vehicle"
       : "Assigned after acceptance";
   driverPlate.textContent = driver?.plateNumber ?? "Not provided";

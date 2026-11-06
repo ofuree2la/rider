@@ -76,7 +76,7 @@ function makeRideCard(ride, canCancel) {
   const bookingType =
     ride.serviceType === "delivery"
       ? `Bike delivery · ${ride.deliveryDescription || "Package"}`
-      : `${ride.vehicleType === "minivan" ? "Minivan" : "Keke"} · ${ride.passengers} passenger${ride.passengers === 1 ? "" : "s"}`;
+      : `${ride.vehicleType === "minivan" ? "Mini bus" : "Keke"} · ${ride.passengers} passenger${ride.passengers === 1 ? "" : "s"}`;
   const pickupTime =
     ride.timing === "scheduled" ? formatDate(ride.scheduledAt) : "Requested now";
   details.textContent = `${bookingType} · ${pickupTime} · ${currencyFormatter.format(getTotalFare(ride))}`;

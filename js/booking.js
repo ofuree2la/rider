@@ -8,6 +8,7 @@ const destinationInput = document.querySelector("#destination");
 const pickupSuggestions = document.querySelector("#pickup-suggestions");
 const destinationSuggestions = document.querySelector("#destination-suggestions");
 const passengerSelect = document.querySelector("#passengers");
+const passengerFields = document.querySelector("#passenger-fields");
 const vehicleTypeInputs = [...document.querySelectorAll('input[name="vehicle-type"]')];
 const deliveryFields = document.querySelector("#delivery-fields");
 const deliveryDescriptionInput = document.querySelector("#delivery-description");
@@ -341,7 +342,7 @@ function updateVehicleFields() {
   }
   passengerSelect.disabled = isDelivery;
   passengerSelect.required = !isDelivery;
-  passengerSelect.closest(".field-row").hidden = isDelivery;
+  passengerFields.hidden = isDelivery;
 
   const capacity = vehicleType === "minivan" ? 6 : 4;
   for (const option of passengerSelect.options) {

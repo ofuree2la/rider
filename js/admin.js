@@ -194,7 +194,7 @@ function renderDrivers(drivers) {
     const name = document.createElement("h3");
     name.textContent = driver.name;
     const detail = document.createElement("p");
-    const vehicleNames = { bike: "Bike · delivery", keke: "Keke", minivan: "Minivan" };
+    const vehicleNames = { bike: "Bike · delivery", keke: "Keke", minivan: "Mini bus" };
     detail.textContent = `${vehicleNames[driver.vehicleType] ?? "Vehicle"} · ${driver.plateNumber} · ${driver.phone} · ★ ${Number(driver.rating).toFixed(1)}`;
     const badge = document.createElement("span");
     badge.className = `admin-status-badge ${driver.status}`;
@@ -335,7 +335,7 @@ function renderRides(rides) {
     service.textContent =
       ride.serviceType === "delivery"
         ? `Bike delivery · ${ride.deliveryDescription ?? "Package"}`
-        : `${ride.vehicleType === "minivan" ? "Minivan" : "Keke"} · ${ride.passengers} passenger${ride.passengers === 1 ? "" : "s"}`;
+        : `${ride.vehicleType === "minivan" ? "Mini bus" : "Keke"} · ${ride.passengers} passenger${ride.passengers === 1 ? "" : "s"}`;
     const rider = document.createElement("td");
     rider.textContent = ride.rider?.name ?? ride.user?.name ?? (ride.userId ? "Rider account" : "Guest");
     const status = document.createElement("td");

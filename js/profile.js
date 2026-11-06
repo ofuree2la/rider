@@ -67,7 +67,7 @@ async function loadProfile() {
     const driver = await getCurrentDriver();
     plateInput.value = driver.plateNumber ?? "";
     vehicleTypeInput.value =
-      { bike: "Bike · delivery only", keke: "Keke · up to 4 passengers", minivan: "Minivan · up to 6 passengers" }[
+      { bike: "Bike · delivery only", keke: "Keke · up to 4 passengers", minivan: "Mini bus · up to 6 passengers" }[
         driver.vehicleType
       ] ?? "Vehicle";
   }

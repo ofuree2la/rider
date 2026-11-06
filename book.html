@@ -12,7 +12,7 @@
     <link rel="stylesheet" href="css/booking.css?v=vehicles" />
     <link rel="stylesheet" href="css/bottom-nav.css" />
     <link rel="stylesheet" href="css/mobile.css" />
-    <script type="module" src="js/booking.js?v=vehicles"></script>
+    <script type="module" src="js/booking.js?v=delivery-passengers"></script>
     <script src="js/bottom-nav.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/animejs@3.2.2/lib/anime.min.js" defer></script>
     <script src="js/motion.js" defer></script>
@@ -54,7 +54,7 @@
 
           <label class="ride-option">
             <input type="radio" name="vehicle-type" value="minivan" />
-            <span class="option-label">Minivan</span>
+            <span class="option-label">Mini bus</span>
             <span class="coming-soon">Up to 6 passengers</span>
           </label>
 
@@ -117,7 +117,7 @@
             <input id="scheduled-at" name="scheduledAt" type="datetime-local" />
           </div>
 
-          <div class="field-row">
+          <div id="passenger-fields" class="field-row">
             <label for="passengers">Passengers</label>
             <select id="passengers" name="passengers" required>
               <option value="1" selected>1 passenger</option>
