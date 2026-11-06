@@ -1,11 +1,18 @@
-// Paystack settings for Rider.
-//
-// PUBLIC key only. It is safe to keep in website code. NEVER put your secret
-// key (sk_live_...) in any file on this site. The secret key lives only in the
-// server function under /api as an environment variable.
-export const PAYSTACK_PUBLIC_KEY = "pk_live_55d13f10e21fd44510006e63850d93dfd9b1bae4";
+// Set this to the deployed Vercel project origin, without a trailing slash.
+// The API remains disabled until its URL and server-side secrets are configured.
+export const PAYMENT_API_BASE_URL = "";
 
-// Address of the deployed verify-payment function (see api/verify-payment.js),
-// for example "https://rider-api.vercel.app/api/verify-payment".
-// While this is empty, online payments still work but stay marked "unverified".
-export const VERIFY_PAYMENT_URL = "";
+export function isOnlinePaymentConfigured() {
+  try {
+    const url = new URL(PAYMENT_API_BASE_URL);
+    return (
+      url.protocol === "https:" &&
+      url.pathname === "/" &&
+      !url.search &&
+      !url.hash &&
+      !url.hostname.includes("your-vercel-project")
+    );
+  } catch {
+    return false;
+  }
+}

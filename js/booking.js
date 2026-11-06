@@ -1,6 +1,6 @@
 import { createRide, getCurrentUser, getLocations } from "./supabase-api.js";
 import { calculateFare, loadFareConfig } from "./pricing.js";
-import { makePaymentReference, payForRide, verifyPayment } from "./payment.js";
+import { isOnlinePaymentConfigured } from "./payment.js";
 
 const form = document.querySelector("#booking-form");
 const pickupInput = document.querySelector("#pickup");
@@ -17,16 +17,14 @@ const errorElement = document.querySelector("#booking-error");
 const statusElement = document.querySelector("#booking-status");
 const findRideButton = document.querySelector("#find-ride");
 const matchCard = document.querySelector("#match-card");
+const matchTitle = document.querySelector("#match-title");
 const matchDetails = document.querySelector("#match-details");
 const matchTrackingLink = document.querySelector("#match-tracking-link");
 const mapRouteLabel = document.querySelector("#map-route-label");
 const paymentMethodSelect = document.querySelector("#payment-method");
+const onlinePaymentOption = paymentMethodSelect.querySelector('option[value="online"]');
 const emailField = document.querySelector("#email-field");
 const emailInput = document.querySelector("#customer-email");
-const payNowButton = document.querySelector("#pay-now");
-const paymentMessage = document.querySelector("#payment-message");
-
-let matchedRide = null;
 
 const currencyFormatter = new Intl.NumberFormat("en-NG", {
   style: "currency",
@@ -345,55 +343,6 @@ async function updatePaymentFields() {
   emailInput.value = currentUser?.email ?? "";
 }
 
-function showPaymentMessage(message) {
-  paymentMessage.textContent = message;
-  paymentMessage.hidden = !message;
-}
-
-async function startPayment() {
-  if (!matchedRide) {
-    return;
-  }
-
-  payNowButton.disabled = true;
-  showPaymentMessage("Opening secure payment...");
-
-  try {
-    const reference = makePaymentReference(matchedRide.id);
-    const amountNaira = matchedRide.fare.rideTotal;
-
-    const payment = await payForRide({
-      email: matchedRide.customerEmail,
-      amountNaira,
-      subaccountCode: matchedRide.driver.subaccountCode,
-      reference,
-      metadata: { rideId: matchedRide.id, driverId: matchedRide.driver.id },
-    });
-
-    showPaymentMessage("Payment received. Confirming it now...");
-    let verification = { verified: false, checked: false };
-    try {
-      verification = await verifyPayment(payment.reference, amountNaira);
-    } catch {
-      // Network trouble while confirming: keep the payment, mark it unconfirmed.
-    }
-
-    if (!verification.verified) {
-      throw new Error("Payment was received, but verification is not configured. Contact Rider support before retrying.");
-    }
-
-    payNowButton.hidden = true;
-    showPaymentMessage(
-      verification.verified
-        ? "Payment confirmed. Thank you!"
-        : "Payment received. Confirmation is pending.",
-    );
-  } catch (error) {
-    showPaymentMessage(error.message);
-    payNowButton.disabled = false;
-  }
-}
-
 function wait(milliseconds) {
   return new Promise((resolve) => window.setTimeout(resolve, milliseconds));
 }
@@ -429,8 +378,6 @@ async function findRide(event) {
     scheduledAt,
     paymentMethod: form.elements.paymentMethod.value,
     customerEmail: currentUser.email,
-    paymentStatus: form.elements.paymentMethod.value === "online" ? "unpaid" : "cash",
-    rideType: "keke",
     fare,
   };
 
@@ -439,19 +386,22 @@ async function findRide(event) {
   showStatus("Finding your keke. Please wait while we match you with a verified driver.");
 
   try {
-    if (rideInput.paymentMethod === "online") {
-      throw new Error("Online payment is temporarily unavailable while payment verification is being connected.");
+    if (rideInput.paymentMethod === "online" && !isOnlinePaymentConfigured()) {
+      throw new Error("Online payments are not configured yet. Please choose cash.");
     }
-    matchedRide = await createRide(rideInput);
+    const ride = await createRide(rideInput);
+    matchTitle.textContent = "Ride request submitted";
     matchDetails.textContent =
-      `Your ride request is saved for ${matchedRide.pickup.name} to ${matchedRide.destination.name}. A driver can accept it from the Rider Driver dashboard.`;
-    matchTrackingLink.href = `tracking.html?id=${encodeURIComponent(matchedRide.id)}`;
+      rideInput.paymentMethod === "online"
+        ? `Your request is sent to approved drivers. When a driver accepts, open tracking to pay securely before the trip starts.`
+        : `Your ride request is saved for ${ride.pickup.name} to ${ride.destination.name}. A driver can accept it from the Rider Driver dashboard.`;
+    matchTrackingLink.href = `tracking.html?id=${encodeURIComponent(ride.id)}`;
     matchCard.hidden = false;
-    showPaymentMessage("");
-    payNowButton.hidden = true;
-    payNowButton.disabled = false;
-    payNowButton.textContent = `Pay ${currencyFormatter.format(matchedRide.fare.rideTotal)} now`;
-    showStatus("Your request has been sent to approved drivers. Track this page for acceptance and ride progress.");
+    showStatus(
+      rideInput.paymentMethod === "online"
+        ? "Your request is sent. Once a driver accepts, complete payment from the tracking page before the trip starts."
+        : "Your request has been sent to approved drivers. Track this page for acceptance and ride progress.",
+    );
   } catch (error) {
     showError(error.message);
   } finally {
@@ -462,6 +412,12 @@ async function findRide(event) {
 
 async function startBookingPage() {
   scheduledAtInput.min = localDateTimeValue(new Date(Date.now() + 60_000));
+  onlinePaymentOption.disabled = !isOnlinePaymentConfigured();
+  if (onlinePaymentOption.disabled) {
+    onlinePaymentOption.textContent = "Pay online (setup in progress)";
+  } else {
+    onlinePaymentOption.textContent = "Pay online (after driver accepts)";
+  }
   currentUser = await getCurrentUser();
   if (!currentUser || currentUser.role !== "rider") {
     showError("Sign in with a Rider account before requesting a ride.");
@@ -487,7 +443,6 @@ async function startBookingPage() {
     input.addEventListener("change", updateTimingFields);
   });
   paymentMethodSelect.addEventListener("change", updatePaymentFields);
-  payNowButton.addEventListener("click", startPayment);
   await updatePaymentFields();
   form.addEventListener("submit", findRide);
 }

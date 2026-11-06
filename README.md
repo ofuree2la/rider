@@ -20,13 +20,30 @@ The initial schema and RLS policies are in `supabase/migrations/20261104230300_r
 1. Open the Supabase project SQL Editor and run the migration file.
 2. Run `supabase/migrations/20261104234900_rider_workflow_functions.sql` in the SQL Editor.
 3. Run `supabase/migrations/20261106140000_enforce_cash_only_ride_payments.sql` in the SQL Editor.
-4. Set the Supabase Auth Site URL to the deployed Rider URL and allow the Rider login URLs as redirects.
-5. Create the first Admin user through the Rider sign-up page as a rider account, then confirm the email.
-6. In the SQL Editor, promote that account by running:
+4. To enable the secure Paystack flow, also run `supabase/migrations/20261107000000_secure_online_ride_payments.sql`.
+5. Set the Supabase Auth Site URL to the deployed Rider URL and allow the Rider login URLs as redirects.
+6. Create the first Admin user through the Rider sign-up page as a rider account, then confirm the email.
+7. In the SQL Editor, promote that account by running:
    `update public.profiles set role = 'admin' where id = (select id from auth.users where email = lower('YOUR_ADMIN_EMAIL'));`
-7. Verify the profile role is `admin`, then sign in at `admin/login.html`.
+8. Verify the profile role is `admin`, then sign in at `admin/login.html`.
 
-Rider and driver authentication, profiles, bookings, tracking, history, driver workflows, Admin management, locations, and fare matrix settings use Supabase. Online payment is disabled in the interface, booking API, and database until a server-side Paystack verification endpoint is deployed and integrated. The cash-only migration also prevents unverified online-payment rides from progressing. Fares are currently placeholders, and time-based surcharges/shared-fare options are off. Do not use the app for production rides until payment, deployment, and operational/security checks are complete.
+Rider and driver authentication, profiles, bookings, tracking, history, driver workflows, Admin management, locations, and fare matrix settings use Supabase. Online rides may be accepted by a driver while payment is pending, but the driver cannot start the trip until Paystack confirms payment.
+
+### Secure Paystack deployment
+
+The payment API runs as Vercel functions in `api/`. Deploy this repository to Vercel and configure these server-side environment variables in the Vercel project:
+
+- `SUPABASE_URL`: the Supabase project URL.
+- `SUPABASE_SERVICE_ROLE_KEY`: the Supabase service-role key. Keep it only in Vercel secrets; never add it to frontend code or Git.
+- `PAYSTACK_SECRET_KEY`: the Paystack secret key. Start with Paystack test credentials and use the matching Paystack public/merchant environment before accepting live payments.
+- `RIDER_APP_URL`: the Rider app URL, including its path, for example `https://ofuree2la.github.io/rider`.
+- `PAYMENT_CALLBACK_URL`: the deployed Vercel URL ending in `/api/verify-payment`.
+
+After deployment, set `PAYMENT_API_BASE_URL` in `js/paystack-config.js` to the Vercel project origin (for example `https://your-project.vercel.app`, with no path or trailing slash). Run the secure online-payment migration above in Supabase before enabling the payment option. Online checkout remains disabled while that URL is blank.
+
+The rider requests a ride first. After a driver accepts, Paystack checkout is initialized server-side using the ride fare stored in Supabase and that driver's configured subaccount. Paystack's callback is verified server-side and the ride is marked paid only when the reference, NGN currency, and amount match. A payment with an unexpected ride state is not applied automatically and requires support follow-up. Create each driver's subaccount in Paystack and store its subaccount code in that driver's `drivers.subaccount_code` field in Supabase before accepting online rides; drivers without a configured code cannot accept online requests.
+
+Fares are currently placeholders, and time-based surcharges/shared-fare options are off. Test the complete flow with Paystack test credentials and a non-production ride before configuring live payment credentials. Do not use the app for production rides until deployment, live-payment verification, fare configuration, and operational checks are complete.
 
 ## Mobile experience and motion
 

@@ -1,6 +1,8 @@
 import { getRide, rateRide } from "./supabase-api.js";
+import { initializeRidePayment, isOnlinePaymentConfigured } from "./payment.js";
 
 const rideId = new URLSearchParams(window.location.search).get("id");
+const paymentResult = new URLSearchParams(window.location.search).get("payment");
 const trackingError = document.querySelector("#tracking-error");
 const trackingStatus = document.querySelector("#tracking-status");
 const trackingContent = document.querySelector("#tracking-content");
@@ -20,6 +22,9 @@ const verifiedBadge = document.querySelector("#verified-badge");
 const ratingForm = document.querySelector("#rating-form");
 const ratingThanks = document.querySelector("#rating-thanks");
 const shareButton = document.querySelector("#share-trip");
+const paymentCard = document.querySelector("#ride-payment-card");
+const paymentMessage = document.querySelector("#ride-payment-message");
+const paymentButton = document.querySelector("#ride-payment-button");
 const statusSteps = [...document.querySelectorAll("[data-status-step]")];
 
 const RIDE_STAGES = [
@@ -115,6 +120,41 @@ function renderRating() {
   ratingThanks.hidden = true;
 }
 
+function renderPayment() {
+  const isOnline = ride.paymentMethod === "online";
+  paymentCard.hidden = !isOnline;
+  if (!isOnline) return;
+
+  paymentButton.hidden = true;
+  paymentButton.disabled = false;
+  if (ride.paymentStatus === "paid") {
+    paymentMessage.textContent = "Payment confirmed. Your driver can start the trip.";
+    return;
+  }
+  if (paymentResult === "review") {
+    paymentMessage.textContent =
+      "Paystack reported a successful payment, but it could not be applied to this ride. Do not pay again; contact Rider support.";
+    return;
+  }
+  if (["accepted", "arriving"].includes(ride.status)) {
+    if (!isOnlinePaymentConfigured()) {
+      paymentMessage.textContent =
+        "Online payment setup is incomplete. Do not start the trip; contact Rider support.";
+      return;
+    }
+    paymentButton.hidden = false;
+    paymentMessage.textContent =
+      paymentResult === "failed"
+        ? "Payment was not confirmed. You can try again."
+        : "Your driver has accepted. Pay securely before the trip starts.";
+    return;
+  }
+  paymentMessage.textContent =
+    ride.status === "finding"
+      ? "Payment becomes available after a driver accepts your request."
+      : "This ride is not currently eligible for online payment.";
+}
+
 function renderRide() {
   trackingContent.hidden = false;
   rideStatusLabel.textContent = getStatusLabel(ride.status);
@@ -137,6 +177,7 @@ function renderRide() {
   verifiedBadge.hidden = !driver?.verified;
   renderProgress(ride.status);
   renderRating();
+  renderPayment();
 
   if (ride.status === "cancelled") {
     showStatus("This scheduled ride was cancelled.");
@@ -208,6 +249,23 @@ async function submitRating(event) {
   }
 }
 
+async function payForRide() {
+  paymentButton.disabled = true;
+  paymentMessage.textContent = "Preparing secure Paystack checkout…";
+  try {
+    const result = await initializeRidePayment(ride.id);
+    if (result.paid) {
+      ride = await getRide(ride.id);
+      renderRide();
+      return;
+    }
+    window.location.assign(result.authorizationUrl);
+  } catch (error) {
+    paymentMessage.textContent = error.message;
+    paymentButton.disabled = false;
+  }
+}
+
 async function startTrackingPage() {
   if (!rideId) {
     throw new Error("Open ride tracking from a booking or ride history entry.");
@@ -222,6 +280,14 @@ async function startTrackingPage() {
   scheduleRideRefresh();
   ratingForm.addEventListener("submit", submitRating);
   shareButton.addEventListener("click", shareTrip);
+  paymentButton.addEventListener("click", payForRide);
+  if (paymentResult === "confirmed") {
+    paymentMessage.textContent = "Payment confirmation received. Refreshing ride status…";
+  } else if (paymentResult === "failed") {
+    paymentMessage.textContent = "Payment was not confirmed. You can try again when eligible.";
+  } else if (paymentResult === "error") {
+    paymentMessage.textContent = "Payment verification could not be completed. Contact Rider support before trying again.";
+  }
 }
 
 try {

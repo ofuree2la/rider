@@ -187,7 +187,11 @@ async function renderRequests() {
           </div>
           <div class="request-meta">
             <span>${formatRideTime(ride.scheduledAt)}</span>
-            <span>${escapeHtml(ride.paymentMethod ?? "Cash")}</span>
+            <span>${
+              ride.paymentMethod === "online"
+                ? "Online · rider pays after acceptance"
+                : "Cash"
+            }</span>
           </div>
           <div class="request-actions">
             <button type="button" class="btn btn-primary" data-action="accept" data-ride-id="${escapeHtml(ride.id)}">Accept</button>
@@ -221,6 +225,10 @@ async function renderActiveRide() {
   };
 
   const actionInfo = statusButtonMap[activeRide.status] ?? { label: "Ride in progress", nextStatus: null };
+  const waitingForPayment =
+    activeRide.paymentMethod === "online" &&
+    activeRide.paymentStatus !== "paid" &&
+    actionInfo.nextStatus === "on-trip";
 
   activeRideCard.className = "active-ride-card";
   activeRideCard.innerHTML = `
@@ -239,7 +247,7 @@ async function renderActiveRide() {
       <span>${formatRideTime(activeRide.scheduledAt)}</span>
     </div>
     <div class="trip-actions">
-      <button type="button" class="btn btn-primary" data-action="advance-status" data-ride-id="${escapeHtml(activeRide.id)}" ${actionInfo.nextStatus ? "" : "disabled"}>${actionInfo.label}</button>
+      <button type="button" class="btn btn-primary" data-action="advance-status" data-ride-id="${escapeHtml(activeRide.id)}" ${actionInfo.nextStatus && !waitingForPayment ? "" : "disabled"}>${waitingForPayment ? "Waiting for rider payment" : actionInfo.label}</button>
     </div>
   `;
 }
