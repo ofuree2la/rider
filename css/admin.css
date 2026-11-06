@@ -45,6 +45,13 @@
   font-weight: 800;
 }
 
+.admin-shortcuts a:hover,
+.admin-shortcuts a:focus-visible,
+.admin-shortcuts a[aria-current="page"] {
+  border-color: var(--color-brand);
+  color: var(--color-brand-dark);
+}
+
 body.admin-body .admin-bottom-nav {
   display: none;
 }

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#16824b" />
+    <title>Ride history | Rider Admin</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="../css/base.css" />
+    <link rel="stylesheet" href="../css/components.css" />
+    <link rel="stylesheet" href="../css/admin.css" />
+    <link rel="stylesheet" href="../css/bottom-nav.css" />
+    <link rel="stylesheet" href="../css/mobile.css" />
+    <script type="module" src="../js/admin.js"></script>
+  </head>
+  <body class="admin-body has-bottom-nav">
+    <header class="site-header"><div class="container nav-shell admin-nav-shell"><a href="dashboard.html" class="brand" aria-label="Rider Admin overview"><span class="brand-mark">R</span><span class="brand-text">Rider Admin</span></a><button type="button" class="btn btn-ghost" id="admin-logout">Logout</button></div></header>
+    <main class="container admin-shell" id="admin-top">
+      <div class="admin-heading"><div><span class="eyebrow accent">Activity</span><h1>Ride history</h1><p>Review rides and filter by status or date.</p></div><nav class="admin-shortcuts" aria-label="Admin pages"><a href="dashboard.html">Overview</a><a href="users.html">Users</a><a href="drivers.html">Drivers</a><a href="locations.html">Locations</a><a href="pricing.html">Pricing</a><a href="rides.html" aria-current="page">Rides</a></nav></div>
+      <p id="admin-status" class="admin-message status-message" role="status" aria-live="polite" hidden></p>
+      <p id="admin-error" class="admin-message error-message" role="alert" aria-live="assertive" hidden></p>
+      <section class="admin-panel" aria-labelledby="rides-heading">
+        <div class="admin-section-heading"><div><span class="eyebrow accent">Activity</span><h2 id="rides-heading">All rides</h2></div><p>Filter by ride status and booking or scheduled pickup date.</p></div>
+        <form id="ride-filters" class="admin-form ride-filters">
+          <div class="admin-field"><label for="ride-status-filter">Status</label><select id="ride-status-filter" name="status"><option value="">All statuses</option><option value="finding">Finding driver</option><option value="accepted">Accepted</option><option value="arriving">Arriving</option><option value="on-trip">On trip</option><option value="completed">Completed</option><option value="cancelled">Cancelled</option></select></div>
+          <div class="admin-field"><label for="ride-date-filter">Booking or pickup date</label><input id="ride-date-filter" name="date" type="date" /></div>
+        </form>
+        <div class="admin-table-wrap"><table class="admin-rides-table"><thead><tr><th>Ride</th><th>Rider</th><th>Status</th><th>Pickup time</th><th>Fare</th></tr></thead><tbody id="ride-list"></tbody></table><p id="ride-empty" class="admin-empty" hidden>No rides match these filters.</p></div>
+      </section>
+    </main>
+    <nav class="bottom-nav admin-bottom-nav" aria-label="Admin dashboard navigation">
+      <a href="dashboard.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11.2 12 4l8 7.2V20a1 1 0 0 1-1 1h-4.5v-5.5h-5V21H5a1 1 0 0 1-1-1z"/></svg><span>Overview</span></a>
+      <a href="users.html"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3.5 19c.5-3 2.4-4.5 5.5-4.5s5 1.5 5.5 4.5M16 5.5a3 3 0 0 1 0 5.8M17 14.8c2.1.5 3.3 1.9 3.5 4.2"/></svg><span>Users</span></a>
+      <a href="drivers.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 16.5h18l-1.6-6a2 2 0 0 0-1.9-1.5h-11a2 2 0 0 0-1.9 1.5zM5 16.5v2M19 16.5v2M6.5 13h11"/></svg><span>Drivers</span></a>
+      <a href="locations.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 10c0 5-7 11-7 11S5 15 5 10a7 7 0 1 1 14 0Z"/><circle cx="12" cy="10" r="2.3"/></svg><span>Locations</span></a>
+      <a href="pricing.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/><circle cx="9" cy="7" r="2"/><circle cx="15" cy="12" r="2"/><circle cx="10" cy="17" r="2"/></svg><span>Pricing</span></a>
+      <a href="rides.html" aria-current="page"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3.5h10a1 1 0 0 1 1 1V21l-2.2-1.6L14 21l-2-1.6L10 21l-1.8-1.6L6 21V4.5a1 1 0 0 1 1-1zM9.5 8.5h5M9.5 12h5"/></svg><span>Rides</span></a>
+    </nav>
+  </body>
+</html>

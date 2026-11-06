@@ -96,7 +96,9 @@ function renderMetrics(drivers, rides, users) {
     : null;
 
   setText("#metric-rides", String(rides.length));
-  setText("#metric-users", String(users.length));
+  if (document.querySelector("#metric-users")) {
+    setText("#metric-users", String(users.length));
+  }
   setText("#metric-drivers", String(onlineDrivers));
   setText("#metric-revenue", formatCash(revenue));
   setText("#metric-rating", averageRating === null ? "—" : `${averageRating.toFixed(1)} / 5`);
@@ -324,19 +326,40 @@ function renderRides(rides) {
 }
 
 async function refreshDashboard() {
-  const [drivers, locations, rides, pricing, users] = await Promise.all([
-    getDrivers(),
-    getLocations(),
-    getRides(),
-    getPricingConfig(FARE_CONFIG),
-    getRegisteredUsers(),
-  ]);
-  renderMetrics(drivers, rides, users);
-  renderRegisteredUsers(users);
-  renderDrivers(drivers);
-  renderLocations(locations);
-  renderFareMatrix(pricing);
-  renderRides(rides);
+  const requests = [];
+
+  if (document.querySelector("#metric-rides")) {
+    requests.push(
+      Promise.all([getDrivers(), getRides(), getRegisteredUsers()]).then(
+        ([drivers, rides, users]) => renderMetrics(drivers, rides, users),
+      ),
+    );
+  } else if (registeredUserList || document.querySelector("#metric-users")) {
+    requests.push(
+      getRegisteredUsers().then((users) => {
+        if (registeredUserList) {
+          renderRegisteredUsers(users);
+        }
+        if (document.querySelector("#metric-users")) {
+          setText("#metric-users", String(users.length));
+        }
+      }),
+    );
+  }
+  if (driverList) {
+    requests.push(getDrivers().then(renderDrivers));
+  }
+  if (locationList) {
+    requests.push(getLocations().then(renderLocations));
+  }
+  if (fareMatrix) {
+    requests.push(getPricingConfig(FARE_CONFIG).then(renderFareMatrix));
+  }
+  if (rideList) {
+    requests.push(getRides().then(renderRides));
+  }
+
+  await Promise.all(requests);
 }
 
 async function handleDriverAction(event) {
@@ -444,12 +467,12 @@ async function startAdminDashboard() {
 
     await refreshDashboard();
     document.querySelector("#admin-logout").addEventListener("click", handleLogout);
-    driverList.addEventListener("click", handleDriverAction);
-    locationList.addEventListener("click", handleLocationDelete);
-    locationList.addEventListener("submit", handleLocationSubmit);
-    document.querySelector("#location-create-form").addEventListener("submit", handleLocationCreate);
-    document.querySelector("#pricing-form").addEventListener("submit", handlePricingSubmit);
-    document.querySelector("#ride-filters").addEventListener("input", async () => {
+    driverList?.addEventListener("click", handleDriverAction);
+    locationList?.addEventListener("click", handleLocationDelete);
+    locationList?.addEventListener("submit", handleLocationSubmit);
+    document.querySelector("#location-create-form")?.addEventListener("submit", handleLocationCreate);
+    document.querySelector("#pricing-form")?.addEventListener("submit", handlePricingSubmit);
+    document.querySelector("#ride-filters")?.addEventListener("input", async () => {
       try {
         renderRides(await getRides());
       } catch (error) {
