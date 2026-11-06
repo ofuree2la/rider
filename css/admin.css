@@ -45,6 +45,10 @@
   font-weight: 800;
 }
 
+body.admin-body .admin-bottom-nav {
+  display: none;
+}
+
 .admin-stats {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
@@ -341,6 +345,28 @@
 
   .admin-shortcuts a {
     font-size: 0.76rem;
+  }
+}
+
+@media (max-width: 760px) {
+  .admin-shortcuts {
+    display: none;
+  }
+
+  body.admin-body .admin-bottom-nav {
+    display: flex;
+    width: min(calc(100% - 20px), 480px);
+  }
+
+  body.admin-body .admin-bottom-nav a {
+    min-width: 0;
+    padding-inline: 1px;
+    font-size: 0.62rem;
+  }
+
+  body.admin-body .admin-bottom-nav svg {
+    width: 22px;
+    height: 22px;
   }
 
   .admin-record {
