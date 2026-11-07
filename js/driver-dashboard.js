@@ -7,7 +7,6 @@ import {
   getDriverRides,
   logout,
   setDriverOnline,
-  isDriverOnline,
   updateDriverRideStatus,
 } from "./supabase-api.js";
 import { mountRideChat } from "./ride-chat.js";
@@ -164,7 +163,7 @@ async function renderProfile() {
   }
   const canGoOnline = driver.status === "approved";
   driverOnlineToggle.disabled = !canGoOnline;
-  driverOnlineToggle.checked = canGoOnline && (await isDriverOnline(driver.id));
+  driverOnlineToggle.checked = canGoOnline && Boolean(driver.isOnline);
   if (!canGoOnline) {
     showStatus(
       driver.status === "suspended"
@@ -393,14 +392,21 @@ async function handleRideAction(event) {
 }
 
 async function handleOnlineToggle(event) {
-  const isOnline = event.target.checked;
+  const nextOnlineState = event.target.checked;
+  const previousOnlineState = Boolean(driver?.isOnline);
+  driverOnlineToggle.disabled = true;
 
   try {
-    await setDriverOnline(driver.id, isOnline);
-    showStatus(`${driver.name} is now ${isOnline ? "online" : "offline"}.`);
+    await setDriverOnline(driver.id, nextOnlineState);
+    driver.isOnline = nextOnlineState;
+    driverOnlineToggle.checked = nextOnlineState;
+    showStatus(`${driver.name} is now ${nextOnlineState ? "online" : "offline"}.`);
   } catch (error) {
+    driver.isOnline = previousOnlineState;
+    driverOnlineToggle.checked = previousOnlineState;
     showError(error.message);
-    driverOnlineToggle.checked = !isOnline;
+  } finally {
+    driverOnlineToggle.disabled = driver.status !== "approved";
   }
 }
 
