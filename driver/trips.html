@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#16824b" />
+    <title>Driver Trips | Rider</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="../css/base.css" />
+    <link rel="stylesheet" href="../css/components.css" />
+    <link rel="stylesheet" href="../css/driver.css?v=driver-pages" />
+    <link rel="stylesheet" href="../css/chat.css" />
+    <link rel="stylesheet" href="../css/bottom-nav.css" />
+    <link rel="stylesheet" href="../css/mobile.css" />
+    <script type="module" src="../js/driver-trips.js?v=driver-pages"></script>
+    <script src="https://cdn.jsdelivr.net/npm/animejs@3.2.2/lib/anime.min.js" defer></script>
+    <script src="../js/motion.js" defer></script>
+  </head>
+  <body class="driver-body has-bottom-nav">
+    <header class="site-header">
+      <div class="container nav-shell">
+        <a href="../index.html" class="brand" aria-label="Rider home page">
+          <span class="brand-mark">R</span>
+          <span class="brand-text">Rider Driver</span>
+        </a>
+        <nav class="site-nav" aria-label="Driver navigation">
+          <a href="dashboard.html">Dashboard</a>
+          <a href="trips.html" aria-current="page">Trips</a>
+          <a href="earnings.html">Earnings</a>
+          <a href="profile.html">Profile</a>
+        </nav>
+        <div class="nav-actions">
+          <button type="button" class="btn btn-ghost" id="logout-button">Logout</button>
+        </div>
+      </div>
+    </header>
+
+    <main class="container dashboard-shell">
+      <div class="page-heading">
+        <div>
+          <span class="eyebrow accent">Trip management</span>
+          <h1><span id="driver-name-heading">Driver</span>'s trips</h1>
+        </div>
+      </div>
+
+      <p id="dashboard-status" class="dashboard-message status-message" role="status" aria-live="polite" hidden></p>
+      <p id="dashboard-error" class="dashboard-message error-message" role="alert" aria-live="assertive" hidden></p>
+
+      <section class="stats-grid driver-overview-stats" aria-label="Trip overview">
+        <article class="stat-card">
+          <span>Pending requests</span>
+          <strong id="pending-count">0</strong>
+        </article>
+        <article class="stat-card">
+          <span>Active trips</span>
+          <strong id="active-count">0</strong>
+        </article>
+      </section>
+
+      <section class="panel" aria-labelledby="incoming-title">
+        <div class="panel-header">
+          <div>
+            <span class="eyebrow accent">Incoming</span>
+            <h2 id="incoming-title">Ride requests</h2>
+          </div>
+        </div>
+        <div id="request-list" class="ride-list" aria-live="polite"></div>
+      </section>
+
+      <section class="panel" aria-labelledby="active-title">
+        <div class="panel-header">
+          <div>
+            <span class="eyebrow accent">Current trip</span>
+            <h2 id="active-title">Active ride</h2>
+          </div>
+        </div>
+        <div id="active-ride-card" class="active-ride-card empty-state-box">
+          <p>No active ride yet. Accept a ride request to get started.</p>
+        </div>
+        <section id="driver-chat-card" class="driver-chat-card" aria-labelledby="driver-chat-title" hidden>
+          <h3 id="driver-chat-title">Chat with rider</h3>
+          <div id="driver-chat"></div>
+        </section>
+      </section>
+
+      <section class="panel" aria-labelledby="scheduled-title">
+        <div class="panel-header">
+          <div>
+            <span class="eyebrow accent">Planned</span>
+            <h2 id="scheduled-title">Scheduled trips</h2>
+          </div>
+        </div>
+        <div id="scheduled-rides" class="scheduled-rides" aria-live="polite"></div>
+      </section>
+
+      <section class="panel" aria-labelledby="trip-history-title">
+        <div class="panel-header">
+          <div>
+            <span class="eyebrow accent">Past trips</span>
+            <h2 id="trip-history-title">Completed and cancelled</h2>
+          </div>
+        </div>
+        <div id="ride-history-list" class="scheduled-rides" aria-live="polite"></div>
+      </section>
+    </main>
+
+    <nav class="bottom-nav driver-bottom-nav" aria-label="Driver dashboard navigation">
+      <a href="dashboard.html">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11.2 12 4l8 7.2V20a1 1 0 0 1-1 1h-4.5v-5.5h-5V21H5a1 1 0 0 1-1-1z"/></svg>
+        <span>Dashboard</span>
+      </a>
+      <a href="trips.html" aria-current="page">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6.5h16M4 12h16M4 17.5h16"/><circle cx="7" cy="6.5" r="1.5"/><circle cx="17" cy="12" r="1.5"/><circle cx="9" cy="17.5" r="1.5"/></svg>
+        <span>Trips</span>
+      </a>
+      <a href="earnings.html">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19.5h16M6.5 16V10m5.5 6V5m5.5 11v-4"/></svg>
+        <span>Earnings</span>
+      </a>
+      <a href="profile.html">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path d="M4.5 20c.7-3.5 3.2-5.5 7.5-5.5s6.8 2 7.5 5.5"/></svg>
+        <span>Profile</span>
+      </a>
+    </nav>
+  </body>
+</html>

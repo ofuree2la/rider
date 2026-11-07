@@ -54,7 +54,7 @@ Fares are currently placeholders, and time-based surcharges/shared-fare options 
 
 ## Rider and driver accounts
 
-- Riders use `login.html` and `signup.html`. Drivers use `driver/login.html` and `driver/signup.html`; registration collects a phone number, vehicle type, and registration/plate number. Keke drivers can accept passenger bookings (up to 4), mini buses up to 6, and bike drivers can accept package deliveries only. New driver accounts must be approved by an Admin before going online.
+- Riders use `login.html` and `signup.html`. Drivers use `driver/login.html` and `driver/signup.html`; registration collects a phone number, vehicle type, and registration/plate number. The driver portal separates the overview (`driver/dashboard.html`), trip requests and history (`driver/trips.html`), earnings (`driver/earnings.html`), and editable profile (`driver/profile.html`). Keke drivers can accept passenger bookings (up to 4), mini buses up to 6, and bike drivers can accept package deliveries only. New driver accounts must be approved by an Admin before going online.
 - The Admin portal is at `admin/login.html`. There is no shared/demo Admin password: use an account whose `profiles.role` has been promoted to `admin` by a trusted project owner.
 - To provision the first Admin, sign up and confirm an account, then use the SQL promotion command in the Supabase setup steps above. Never expose database credentials or grant Admin access through public signup.
 - Riders can update their name, email, phone, and profile photo at `profile.html`; drivers can also edit their vehicle registration at `driver/profile.html`. Photos accept JPG, PNG, or WebP up to 5 MB. They are stored in a private bucket and served to signed-in users through temporary signed URLs.
