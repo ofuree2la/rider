@@ -504,6 +504,9 @@ export async function getRides(filters = {}) {
   if (filters.status) {
     query = query.eq("status", filters.status);
   }
+  if (filters.createdAfter) {
+    query = query.gt("created_at", filters.createdAfter);
+  }
   const { data, error } = await query;
   throwOnError(error);
   return Promise.all((data ?? []).map(mapRideWithDriver));

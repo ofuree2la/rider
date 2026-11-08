@@ -10,6 +10,7 @@ import { calculateFare, loadFareConfig } from "./pricing.js";
 import { isOnlinePaymentConfigured } from "./payment.js";
 import { supabase } from "./supabase-client.js";
 import { clearSavedBookingConfirmation, confirmRideCancellation } from "./cancel-ride-dialog.js";
+import { mountNoRideAvailablePrompt } from "./no-ride-available.js";
 
 const form = document.querySelector("#booking-form");
 const pickupInput = document.querySelector("#pickup");
@@ -37,6 +38,10 @@ const matchDetails = document.querySelector("#match-details");
 const matchTrackingLink = document.querySelector("#match-tracking-link");
 const matchCancelButton = document.querySelector("#match-cancel-button");
 const matchBookAgainLink = document.querySelector("#match-book-again-link");
+const bookingNoRidePromptRoot = document.querySelector("#booking-no-ride-prompt");
+const bookingRetryCard = document.querySelector("#booking-retry-card");
+const bookingRetryDetails = document.querySelector("#booking-retry-details");
+const bookingRetryCreateButton = document.querySelector("#booking-retry-create");
 const mapRouteLabel = document.querySelector("#map-route-label");
 const paymentMethodSelect = document.querySelector("#payment-method");
 const onlinePaymentOption = paymentMethodSelect.querySelector('option[value="online"]');
@@ -62,12 +67,165 @@ let bookingStatusChannel = null;
 let bookingStatusTimer = null;
 let isBookingStatusRefreshRunning = false;
 let isBookingCancellationInProgress = false;
+let isRetryCreateInProgress = false;
 let currentBookingRide = null;
+let pendingReplacementInput = null;
+let pendingReplacementSource = null;
 const activeSuggestionIndexes = new WeakMap();
+const noRidePrompt = mountNoRideAvailablePrompt(bookingNoRidePromptRoot, {
+  onTryAgain: handleTryAgain,
+  onCancel: handleBookingCancellation,
+});
 
 function localDateTimeValue(date) {
   const offsetMilliseconds = date.getTimezoneOffset() * 60_000;
   return new Date(date.getTime() - offsetMilliseconds).toISOString().slice(0, 16);
+}
+
+function getRideInputForRetry(ride) {
+  return {
+    serviceType: ride.serviceType,
+    vehicleType: ride.vehicleType,
+    pickup: ride.pickup,
+    destination: ride.destination,
+    passengers: ride.passengers,
+    timing: "now",
+    scheduledAt: null,
+    paymentMethod: ride.paymentMethod,
+    customerEmail: currentUser.email,
+    fare: ride.fare,
+    deliveryDescription: ride.deliveryDescription,
+    recipientName: ride.recipientName,
+    recipientPhone: ride.recipientPhone,
+  };
+}
+
+async function findOpenImmediateRide() {
+  const rides = await getRides({ userId: currentUser.id, status: "finding" });
+  return rides
+    .filter((ride) => ride.timing === "now" && !ride.scheduledAt)
+    .sort((first, second) => new Date(second.createdAt) - new Date(first.createdAt))[0] ?? null;
+}
+
+function saveBookingRideId(rideId) {
+  try {
+    window.sessionStorage.setItem(LAST_BOOKED_RIDE_KEY, rideId);
+    return true;
+  } catch (error) {
+    console.error("The submitted booking could not be saved for page refresh.", error);
+    return false;
+  }
+}
+
+function completeReplacementBooking(ride) {
+  pendingReplacementInput = null;
+  pendingReplacementSource = null;
+  bookingRetryCard.hidden = true;
+  saveBookingRideId(ride.id);
+  showSubmittedRide(ride);
+  showStatus("Your new request has been sent to matching approved drivers.");
+  if (!["completed", "cancelled"].includes(ride.status)) {
+    watchBookingStatus(ride.id);
+  }
+}
+
+async function createReplacementBooking() {
+  if (!pendingReplacementInput || isRetryCreateInProgress) {
+    return;
+  }
+
+  isRetryCreateInProgress = true;
+  bookingRetryCreateButton.disabled = true;
+  try {
+    const newRide = await createRide(pendingReplacementInput);
+    completeReplacementBooking(newRide);
+  } catch (error) {
+    try {
+      const replacementRide = await findReplacementRide(
+        pendingReplacementSource,
+        pendingReplacementInput,
+      );
+      if (replacementRide) {
+        completeReplacementBooking(replacementRide);
+        showStatus("Your request was already sent. You can track it here.");
+        return;
+      }
+    } catch (lookupError) {
+      console.error("The replacement request outcome could not be checked.", lookupError);
+    }
+
+    console.error("The replacement ride request could not be created.", error);
+    bookingRetryDetails.textContent =
+      "Your previous request was cancelled, but the new request could not be sent. Your booking details are still available; try sending again.";
+  } finally {
+    isRetryCreateInProgress = false;
+    bookingRetryCreateButton.disabled = false;
+  }
+}
+
+async function findReplacementRide(previousRide, input) {
+  const rides = await getRides({
+    userId: currentUser.id,
+    createdAfter: previousRide.createdAt,
+  });
+  const previousCreatedAt = new Date(previousRide.createdAt).getTime();
+  return rides
+    .filter((candidate) =>
+      candidate.id !== previousRide.id &&
+      candidate.timing === "now" &&
+      candidate.status !== "cancelled" &&
+      new Date(candidate.createdAt).getTime() > previousCreatedAt &&
+      candidate.serviceType === input.serviceType &&
+      candidate.vehicleType === input.vehicleType &&
+      candidate.pickup?.id === input.pickup?.id &&
+      candidate.destination?.id === input.destination?.id,
+    )
+    .sort((first, second) => new Date(second.createdAt) - new Date(first.createdAt))[0] ?? null;
+}
+
+async function handleTryAgain(previousRide) {
+  const retryInput = getRideInputForRetry(previousRide);
+  let cancelledRide;
+  try {
+    cancelledRide = await cancelRideRequest(previousRide.id, "other");
+    if (cancelledRide.status !== "cancelled") {
+      throw new Error("The old request was not cancelled.");
+    }
+  } catch (cancelError) {
+    let latestRide;
+    try {
+      latestRide = await getRide(previousRide.id);
+    } catch (refreshError) {
+      showError("Connection problem. Check the ride status before trying again.");
+      console.error("The old request status could not be confirmed after retry cancellation.", {
+        cancelError,
+        refreshError,
+      });
+      return;
+    }
+
+    if (latestRide && ["accepted", "arriving", "on-trip"].includes(latestRide.status)) {
+      currentBookingRide = latestRide;
+      showSubmittedRide(latestRide, true);
+      showStatus("A driver accepted your request. No new request was created.");
+      return;
+    }
+    if (latestRide?.status !== "cancelled") {
+      showError("We couldn’t cancel the existing request, so no new request was created. Please keep waiting or cancel it.");
+      console.error("The old request could not be cancelled before retrying.", cancelError);
+      return;
+    }
+    cancelledRide = latestRide;
+  }
+
+  stopBookingStatusUpdates();
+  clearSavedBookingConfirmation(previousRide.id);
+  showSubmittedRide(cancelledRide, true);
+  pendingReplacementInput = retryInput;
+  pendingReplacementSource = previousRide;
+  bookingRetryDetails.textContent = "Your old request is cancelled. Sending a new request with the same trip details.";
+  bookingRetryCard.hidden = false;
+  await createReplacementBooking();
 }
 
 function showError(message, link = null) {
@@ -79,6 +237,7 @@ function showError(message, link = null) {
     anchor.textContent = link.label;
     errorElement.append(anchor);
   }
+
   errorElement.hidden = false;
   statusElement.hidden = true;
 }
@@ -100,6 +259,11 @@ function getErrorDetails(error) {
 
 async function showBookingSubmissionError(error) {
   const details = getErrorDetails(error);
+  if (/network|fetch|connection|timed?\s*out|offline|load failed/i.test(details)) {
+    showError("Connection problem. Check your connection and try again. Your request may still be open; check Ride history first.");
+    return;
+  }
+
   if (/no more than 5 open scheduled rides/i.test(details)) {
     showError(
       "You already have 5 open scheduled rides. Manage them before booking another.",
@@ -116,6 +280,11 @@ async function showBookingSubmissionError(error) {
     try {
       const rides = await getRides({ userId: currentUser.id, status: "finding" });
       openRide = rides.find((ride) => ride.timing === "now" && !ride.scheduledAt);
+      if (openRide) {
+        saveBookingRideId(openRide.id);
+        showSubmittedRide(openRide, true);
+        watchBookingStatus(openRide.id);
+      }
     } catch (lookupError) {
       console.error("The existing open request could not be found after a duplicate booking.", lookupError);
     }
@@ -150,6 +319,7 @@ function clearMessages() {
 
 function showSubmittedRide(ride, restored = false) {
   currentBookingRide = ride;
+  noRidePrompt.render(ride);
   const isDelivery = ride.serviceType === "delivery";
   const serviceName = isDelivery ? "Delivery" : "Ride";
   if (ride.status === "on-trip") {
@@ -184,16 +354,17 @@ async function handleBookingCancellation() {
   if (!currentBookingRide || !["finding", "accepted", "arriving"].includes(currentBookingRide.status)) {
     return;
   }
-  const confirmation = await confirmRideCancellation(currentBookingRide);
-  if (!confirmation?.confirmed) {
-    return;
-  }
-
-  const rideId = currentBookingRide.id;
-  isBookingCancellationInProgress = true;
-  matchCancelButton.disabled = true;
-  matchCancelButton.textContent = "Cancelling...";
+  noRidePrompt.setBusy(true);
   try {
+    const confirmation = await confirmRideCancellation(currentBookingRide);
+    if (!confirmation?.confirmed) {
+      return;
+    }
+
+    const rideId = currentBookingRide.id;
+    isBookingCancellationInProgress = true;
+    matchCancelButton.disabled = true;
+    matchCancelButton.textContent = "Cancelling...";
     const cancelledRide = await cancelRideRequest(rideId, confirmation.reason);
     if (cancelledRide.status !== "cancelled") {
       throw new Error("The ride was not cancelled. Refresh and check its current status.");
@@ -206,6 +377,7 @@ async function handleBookingCancellation() {
     showError(error.message);
   } finally {
     isBookingCancellationInProgress = false;
+    noRidePrompt.setBusy(false);
     if (currentBookingRide && ["finding", "accepted", "arriving"].includes(currentBookingRide.status)) {
       matchCancelButton.disabled = false;
       matchCancelButton.textContent = "Cancel request";
@@ -309,9 +481,22 @@ async function restoreLastBooking() {
   }
 }
 
+async function restoreOpenImmediateRide() {
+  const openRide = await findOpenImmediateRide();
+  if (!openRide || currentBookingRide?.id === openRide.id) {
+    return;
+  }
+
+  saveBookingRideId(openRide.id);
+  showSubmittedRide(openRide, true);
+  watchBookingStatus(openRide.id);
+}
+
 function resetBookingCardForNewRequest() {
   stopBookingStatusUpdates();
   matchCard.hidden = true;
+  bookingRetryCard.hidden = true;
+  noRidePrompt.render(null);
 }
 
 function getFareTime() {
@@ -700,13 +885,7 @@ async function findRide(event) {
       throw new Error("Online payments are not configured yet. Please choose cash.");
     }
     const ride = await createRide(rideInput);
-    let bookingSavedForRefresh = true;
-    try {
-      window.sessionStorage.setItem(LAST_BOOKED_RIDE_KEY, ride.id);
-    } catch (error) {
-      bookingSavedForRefresh = false;
-      console.error("The submitted booking could not be saved for page refresh.", error);
-    }
+    const bookingSavedForRefresh = saveBookingRideId(ride.id);
     showSubmittedRide(ride);
     showStatus(
       !bookingSavedForRefresh
@@ -744,6 +923,12 @@ async function startBookingPage() {
   }
   emailInput.value = currentUser.email;
   await restoreLastBooking();
+  try {
+    await restoreOpenImmediateRide();
+  } catch (error) {
+    showError("Your existing open request could not be checked. Open Ride history to find or cancel it.");
+    console.error("An open immediate ride could not be restored on the booking page.", error);
+  }
   await loadFareConfig();
   await populateLocations();
   updateFareEstimate();
@@ -769,10 +954,14 @@ async function startBookingPage() {
       }
     }
   });
-  window.addEventListener("pagehide", stopBookingStatusUpdates, { once: true });
+  window.addEventListener("pagehide", () => {
+    stopBookingStatusUpdates();
+    noRidePrompt.cleanup();
+  }, { once: true });
   updateVehicleFields();
   await updatePaymentFields();
   matchCancelButton.addEventListener("click", handleBookingCancellation);
+  bookingRetryCreateButton.addEventListener("click", createReplacementBooking);
   form.addEventListener("submit", findRide);
 }
 

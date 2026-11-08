@@ -171,6 +171,13 @@
           <a id="match-tracking-link" class="btn btn-primary" href="tracking.html">Track your ride</a>
           <button id="match-cancel-button" class="btn btn-danger" type="button" hidden>Cancel request</button>
           <a id="match-book-again-link" class="btn btn-secondary" href="book.html" hidden>Book another ride</a>
+          <div id="booking-no-ride-prompt"></div>
+        </section>
+
+        <section id="booking-retry-card" class="match-card" aria-labelledby="booking-retry-title" hidden>
+          <h2 id="booking-retry-title">Your request was cancelled, but a new request was not sent</h2>
+          <p id="booking-retry-details"></p>
+          <button id="booking-retry-create" class="btn btn-primary" type="button">Retry sending request</button>
         </section>
       </section>
 

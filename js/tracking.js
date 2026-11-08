@@ -1,8 +1,9 @@
-import { cancelRideRequest, getRide, rateRide } from "./supabase-api.js";
+import { cancelRideRequest, createRide, getRide, getRides, rateRide } from "./supabase-api.js";
 import { initializeRidePayment, isOnlinePaymentConfigured } from "./payment.js";
 import { mountRideChat } from "./ride-chat.js";
 import { supabase } from "./supabase-client.js";
 import { clearSavedBookingConfirmation, confirmRideCancellation } from "./cancel-ride-dialog.js";
+import { mountNoRideAvailablePrompt } from "./no-ride-available.js";
 
 const rideId = new URLSearchParams(window.location.search).get("id");
 const paymentResult = new URLSearchParams(window.location.search).get("payment");
@@ -36,7 +37,12 @@ const paymentMessage = document.querySelector("#ride-payment-message");
 const paymentButton = document.querySelector("#ride-payment-button");
 const cancelRideButton = document.querySelector("#cancel-ride-button");
 const cancelRideNotice = document.querySelector("#ride-cancel-notice");
+const trackingNoRidePromptRoot = document.querySelector("#tracking-no-ride-prompt");
+const trackingRetryCard = document.querySelector("#tracking-retry-card");
+const trackingRetryDetails = document.querySelector("#tracking-retry-details");
+const trackingRetryCreateButton = document.querySelector("#tracking-retry-create");
 const statusSteps = [...document.querySelectorAll("[data-status-step]")];
+const LAST_BOOKED_RIDE_KEY = "rider:last-booked-ride";
 
 const RIDE_STAGES = [
   { status: "accepted", label: "Driver accepted" },
@@ -60,9 +66,16 @@ let refreshTimer = null;
 let rideChannel = null;
 let isRefreshRunning = false;
 let isRideCancellationInProgress = false;
+let isRetryCreateInProgress = false;
 let chatRideId = null;
 let chatCleanup = null;
+let pendingReplacementInput = null;
+let pendingReplacementSource = null;
 const REFRESH_INTERVAL_MS = 45_000;
+const noRidePrompt = mountNoRideAvailablePrompt(trackingNoRidePromptRoot, {
+  onTryAgain: handleTryAgain,
+  onCancel: handleRideCancellation,
+});
 
 function showError(message) {
   trackingError.textContent = message;
@@ -202,6 +215,7 @@ function renderPayment() {
 
 function renderRide() {
   trackingContent.hidden = false;
+  noRidePrompt.render(ride);
   cancelRideButton.hidden = !["finding", "accepted", "arriving"].includes(ride.status);
   cancelRideButton.disabled = isRideCancellationInProgress;
   cancelRideButton.textContent = isRideCancellationInProgress ? "Cancelling..." : "Cancel request";
@@ -323,6 +337,7 @@ function cleanupRideTracking() {
   }
   document.removeEventListener("visibilitychange", handleTrackingVisibility);
   window.removeEventListener("pagehide", cleanupRideTracking);
+  noRidePrompt.cleanup();
   chatCleanup?.();
   if (rideChannel) {
     supabase.removeChannel(rideChannel);
@@ -334,15 +349,16 @@ async function handleRideCancellation() {
   if (!ride || !["finding", "accepted", "arriving"].includes(ride.status)) {
     return;
   }
-  const confirmation = await confirmRideCancellation(ride);
-  if (!confirmation?.confirmed) {
-    return;
-  }
-
-  isRideCancellationInProgress = true;
-  cancelRideButton.disabled = true;
-  cancelRideButton.textContent = "Cancelling...";
+  noRidePrompt.setBusy(true);
   try {
+    const confirmation = await confirmRideCancellation(ride);
+    if (!confirmation?.confirmed) {
+      return;
+    }
+
+    isRideCancellationInProgress = true;
+    cancelRideButton.disabled = true;
+    cancelRideButton.textContent = "Cancelling...";
     const cancelledRide = await cancelRideRequest(ride.id, confirmation.reason);
     if (cancelledRide.status !== "cancelled") {
       throw new Error("The ride was not cancelled. Refresh and check its current status.");
@@ -356,11 +372,170 @@ async function handleRideCancellation() {
     showError(error.message);
   } finally {
     isRideCancellationInProgress = false;
+    noRidePrompt.setBusy(false);
     if (ride && ["finding", "accepted", "arriving"].includes(ride.status)) {
       cancelRideButton.disabled = false;
       cancelRideButton.textContent = "Cancel request";
     }
   }
+}
+
+function getRideInputForRetry(currentRide) {
+  return {
+    serviceType: currentRide.serviceType,
+    vehicleType: currentRide.vehicleType,
+    pickup: currentRide.pickup,
+    destination: currentRide.destination,
+    passengers: currentRide.passengers,
+    timing: "now",
+    scheduledAt: null,
+    paymentMethod: currentRide.paymentMethod,
+    fare: currentRide.fare,
+    deliveryDescription: currentRide.deliveryDescription,
+    recipientName: currentRide.recipientName,
+    recipientPhone: currentRide.recipientPhone,
+  };
+}
+
+async function findReplacementRide(previousRide, input) {
+  const rides = await getRides({
+    userId: ride.userId,
+    createdAfter: previousRide.createdAt,
+  });
+  const previousCreatedAt = new Date(previousRide.createdAt).getTime();
+  return rides
+    .filter((candidate) =>
+      candidate.id !== previousRide.id &&
+      candidate.timing === "now" &&
+      candidate.status !== "cancelled" &&
+      new Date(candidate.createdAt).getTime() > previousCreatedAt &&
+      candidate.serviceType === input.serviceType &&
+      candidate.vehicleType === input.vehicleType &&
+      candidate.pickup?.id === input.pickup?.id &&
+      candidate.destination?.id === input.destination?.id,
+    )
+    .sort((first, second) => new Date(second.createdAt) - new Date(first.createdAt))[0] ?? null;
+}
+
+function saveBookingRideId(nextRideId) {
+  try {
+    window.sessionStorage.setItem(LAST_BOOKED_RIDE_KEY, nextRideId);
+  } catch (error) {
+    console.error("The replacement booking could not be saved for page refresh.", error);
+  }
+}
+
+function startRideRealtimeUpdates() {
+  if (rideChannel) {
+    supabase.removeChannel(rideChannel);
+  }
+  rideChannel = supabase
+    .channel(`rider-ride-status:${ride.id}`)
+    .on(
+      "postgres_changes",
+      {
+        event: "UPDATE",
+        schema: "public",
+        table: "rides",
+        filter: `id=eq.${ride.id}`,
+      },
+      refreshRideStatus,
+    )
+    .subscribe(handleRideRealtimeStatus);
+}
+
+function completeReplacementRide(newRide) {
+  pendingReplacementInput = null;
+  pendingReplacementSource = null;
+  trackingRetryCard.hidden = true;
+  ride = newRide;
+  saveBookingRideId(newRide.id);
+  const nextUrl = new URL(window.location.href);
+  nextUrl.searchParams.set("id", newRide.id);
+  nextUrl.searchParams.delete("payment");
+  window.history.replaceState(null, "", nextUrl);
+  renderRide();
+  startRideRealtimeUpdates();
+  showStatus("Your new request has been sent to matching approved drivers.");
+}
+
+async function createReplacementRide() {
+  if (!pendingReplacementInput || isRetryCreateInProgress) {
+    return;
+  }
+
+  isRetryCreateInProgress = true;
+  trackingRetryCreateButton.disabled = true;
+  try {
+    const newRide = await createRide(pendingReplacementInput);
+    completeReplacementRide(newRide);
+  } catch (error) {
+    try {
+      const replacementRide = await findReplacementRide(
+        pendingReplacementSource,
+        pendingReplacementInput,
+      );
+      if (replacementRide) {
+        completeReplacementRide(replacementRide);
+        showStatus("Your request was already sent. Tracking has been updated.");
+        return;
+      }
+    } catch (lookupError) {
+      console.error("The replacement ride outcome could not be checked.", lookupError);
+    }
+
+    console.error("The replacement ride request could not be created.", error);
+    trackingRetryDetails.textContent =
+      "Your previous request was cancelled, but the new request could not be sent. Your trip details are saved; try sending again.";
+  } finally {
+    isRetryCreateInProgress = false;
+    trackingRetryCreateButton.disabled = false;
+  }
+}
+
+async function handleTryAgain(previousRide) {
+  const retryInput = getRideInputForRetry(previousRide);
+  let cancelledRide;
+  try {
+    cancelledRide = await cancelRideRequest(previousRide.id, "other");
+    if (cancelledRide.status !== "cancelled") {
+      throw new Error("The old request was not cancelled.");
+    }
+  } catch (cancelError) {
+    let latestRide;
+    try {
+      latestRide = await getRide(previousRide.id);
+    } catch (refreshError) {
+      showError("Connection problem. Check the ride status before trying again.");
+      console.error("The old request status could not be confirmed after retry cancellation.", {
+        cancelError,
+        refreshError,
+      });
+      return;
+    }
+
+    if (latestRide && ["accepted", "arriving", "on-trip"].includes(latestRide.status)) {
+      ride = latestRide;
+      renderRide();
+      showStatus("A driver accepted your request. No new request was created.");
+      return;
+    }
+    if (latestRide?.status !== "cancelled") {
+      showError("We couldn’t cancel the existing request, so no new request was created. Please keep waiting or cancel it.");
+      console.error("The old request could not be cancelled before retrying.", cancelError);
+      return;
+    }
+    cancelledRide = latestRide;
+  }
+
+  clearSavedBookingConfirmation(previousRide.id);
+  ride = { ...cancelledRide, driver: previousRide.driver };
+  renderRide();
+  pendingReplacementInput = retryInput;
+  pendingReplacementSource = previousRide;
+  trackingRetryDetails.textContent = "Your old request is cancelled. Sending a new request with the same trip details.";
+  trackingRetryCard.hidden = false;
+  await createReplacementRide();
 }
 
 function handleTrackingVisibility() {
@@ -436,19 +611,7 @@ async function startTrackingPage() {
   }
 
   renderRide();
-  rideChannel = supabase
-    .channel(`rider-ride-status:${ride.id}`)
-    .on(
-      "postgres_changes",
-      {
-        event: "UPDATE",
-        schema: "public",
-        table: "rides",
-        filter: `id=eq.${ride.id}`,
-      },
-      refreshRideStatus,
-    )
-    .subscribe(handleRideRealtimeStatus);
+  startRideRealtimeUpdates();
   refreshTimer = window.setInterval(refreshRideStatus, REFRESH_INTERVAL_MS);
   document.addEventListener("visibilitychange", handleTrackingVisibility);
   window.addEventListener("pagehide", cleanupRideTracking, { once: true });
@@ -456,6 +619,7 @@ async function startTrackingPage() {
   shareButton.addEventListener("click", shareTrip);
   paymentButton.addEventListener("click", payForRide);
   cancelRideButton.addEventListener("click", handleRideCancellation);
+  trackingRetryCreateButton.addEventListener("click", createReplacementRide);
   if (paymentResult === "confirmed") {
     paymentMessage.textContent = "Payment confirmation received. Refreshing ride status…";
   } else if (paymentResult === "failed") {

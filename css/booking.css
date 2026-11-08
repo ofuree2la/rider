@@ -390,6 +390,65 @@
   margin-top: 0.9rem;
 }
 
+.no-ride-available {
+  display: grid;
+  gap: 0.65rem;
+  margin-top: 1rem;
+  padding: 1rem;
+  border: 1px solid rgba(166, 105, 18, 0.28);
+  border-radius: 14px;
+  background: #fff8e9;
+  color: var(--color-ink);
+}
+
+.no-ride-available[hidden] {
+  display: none;
+}
+
+.no-ride-available h3,
+.no-ride-available p {
+  margin: 0;
+}
+
+.no-ride-available h3 {
+  color: #704500;
+  font-size: 1rem;
+}
+
+.no-ride-available p {
+  font-size: 0.86rem;
+}
+
+.no-ride-available-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
+.no-ride-available-actions .btn {
+  width: auto;
+  margin-top: 0;
+}
+
+.no-ride-available-actions .btn:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.match-card[hidden],
+#booking-retry-card[hidden] {
+  display: none;
+}
+
+#booking-retry-card {
+  display: grid;
+  gap: 0.7rem;
+}
+
+#booking-retry-card p {
+  margin: 0;
+}
+
 .match-badge {
   display: inline-flex;
   padding: 0.3rem 0.6rem;
