@@ -192,6 +192,10 @@ body .floating-notification a {
   text-underline-offset: 0.15em;
 }
 
+body .driver-request-notification.floating-notification a {
+  text-decoration: none;
+}
+
 body .driver-request-notification.floating-notification {
   display: flex;
   align-items: center;
