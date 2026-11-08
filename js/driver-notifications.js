@@ -13,6 +13,17 @@ if (isFirstModuleInstance) {
 const REFRESH_INTERVAL_MS = 45_000;
 const ACTIVE_REQUEST_REFRESH_INTERVAL_MS = 12_000;
 const REQUEST_LIFETIME_MS = 30_000;
+const REQUEST_ALERT_PATTERN = {
+  frequencies: [880, 1175],
+  repeats: 3,
+  toneDurationSeconds: 0.19,
+  toneGapSeconds: 0.04,
+  ringGapSeconds: 0.12,
+  waveform: "triangle",
+  volume: 0.5,
+  attackSeconds: 0.02,
+  releaseSeconds: 0.035,
+};
 const siteHeader = document.querySelector(".site-header");
 const pageTitle = document.title;
 const notificationControls = document.createElement("div");
@@ -88,6 +99,45 @@ function createAudioContext() {
   return audioContext;
 }
 
+function playAudioPattern(context, pattern) {
+  const compressor = context.createDynamicsCompressor();
+  compressor.threshold.setValueAtTime(-12, context.currentTime);
+  compressor.knee.setValueAtTime(10, context.currentTime);
+  compressor.ratio.setValueAtTime(12, context.currentTime);
+  compressor.attack.setValueAtTime(0.003, context.currentTime);
+  compressor.release.setValueAtTime(0.15, context.currentTime);
+  compressor.connect(context.destination);
+
+  let startTime = context.currentTime;
+  for (let repeat = 0; repeat < pattern.repeats; repeat += 1) {
+    pattern.frequencies.forEach((frequency, index) => {
+      const oscillator = context.createOscillator();
+      const gain = context.createGain();
+      const toneEnd = startTime + pattern.toneDurationSeconds;
+
+      oscillator.type = pattern.waveform;
+      oscillator.frequency.setValueAtTime(frequency, startTime);
+      gain.gain.setValueAtTime(0.0001, startTime);
+      gain.gain.linearRampToValueAtTime(pattern.volume, startTime + pattern.attackSeconds);
+      gain.gain.setValueAtTime(pattern.volume, toneEnd - pattern.releaseSeconds);
+      gain.gain.linearRampToValueAtTime(0.0001, toneEnd);
+      oscillator.connect(gain);
+      gain.connect(compressor);
+      oscillator.start(startTime);
+      oscillator.stop(toneEnd);
+
+      startTime = toneEnd;
+      if (index < pattern.frequencies.length - 1) {
+        startTime += pattern.toneGapSeconds;
+      }
+    });
+    if (repeat < pattern.repeats - 1) {
+      startTime += pattern.ringGapSeconds;
+    }
+  }
+  window.setTimeout(() => compressor.disconnect(), Math.max(0, startTime - context.currentTime) * 1000);
+}
+
 async function enableSoundAlerts() {
   try {
     const context = createAudioContext();
@@ -132,19 +182,7 @@ async function playRequestAlertSound() {
       throw new Error("Tap Enable sound alerts on this page to allow audio.");
     }
 
-    const oscillator = context.createOscillator();
-    const gain = context.createGain();
-    const now = context.currentTime;
-    oscillator.type = "sine";
-    oscillator.frequency.setValueAtTime(880, now);
-    oscillator.frequency.setValueAtTime(660, now + 0.12);
-    gain.gain.setValueAtTime(0.0001, now);
-    gain.gain.exponentialRampToValueAtTime(0.16, now + 0.02);
-    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.28);
-    oscillator.connect(gain);
-    gain.connect(context.destination);
-    oscillator.start(now);
-    oscillator.stop(now + 0.3);
+    playAudioPattern(context, REQUEST_ALERT_PATTERN);
   } catch (error) {
     console.error("Driver request sound could not be played.", error);
   }
