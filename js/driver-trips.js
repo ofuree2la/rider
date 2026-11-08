@@ -39,9 +39,7 @@ let driver = null;
 let isRefreshRunning = false;
 let driverChatRideId = null;
 let driverChatCleanup = null;
-const ACCEPT_ANIMATION_MS = 2500;
 const DECLINE_CONFIRMATION_MS = 5000;
-const acceptAnimations = new Map();
 const declineConfirmations = new Map();
 
 function showStatus(message) {
@@ -318,11 +316,6 @@ function startDeclineConfirmation(button, rideId) {
 }
 
 async function handleDeclineRequest(button, rideId) {
-  const animation = acceptAnimations.get(rideId);
-  if (animation) {
-    animation.cancel();
-  }
-
   if (!button.dataset.confirming) {
     startDeclineConfirmation(button, rideId);
     return;
@@ -339,30 +332,79 @@ async function handleAcceptRequest(button, rideId) {
   resetDeclineConfirmation(rideId);
   button.disabled = true;
   const card = button.closest(".request-card");
-  const availableRequests = await getDriverRideRequests(driver.id);
-  if (!availableRequests.some((request) => request.id === rideId)) {
-    await refreshUnavailableRide(button);
-    return;
-  }
+  startAcceptAnimation(card);
 
-  const completed = await runAcceptAnimation(card, rideId);
-  if (!completed) {
-    return;
-  }
-
+  let ride;
   try {
-    const ride = await acceptRideRequest(rideId, driver.id);
-    showStatus(
-      `${ride.serviceType === "delivery" ? "Delivery" : "Ride"} accepted. The rider’s tracking page will update automatically.`,
-    );
-    await refreshTrips();
+    ride = await acceptRideRequest(rideId, driver.id);
   } catch (error) {
-    if (/already been accepted|closed|no longer available/i.test(error.message)) {
+    if (/already been accepted|closed|no longer available|does not match your vehicle type/i.test(error.message)) {
       await refreshUnavailableRide(button);
       return;
     }
-    resetAcceptingCard(button.closest(".request-card"));
+    if (isNetworkError(error)) {
+      await resolveUncertainAccept(button, rideId, error);
+      return;
+    }
+    resetAcceptingCard(card);
     throw error;
+  }
+
+  try {
+    await refreshTrips();
+  } catch (error) {
+    resetAcceptingCard(card);
+    showError(`Ride accepted, but the Trips page could not refresh: ${error.message}`);
+    return;
+  }
+  showStatus(
+    `${ride.serviceType === "delivery" ? "Delivery" : "Ride"} accepted. The rider’s tracking page will update automatically.`,
+  );
+}
+
+function isNetworkError(error) {
+  return error instanceof TypeError ||
+    /network|fetch|timeout|timed out|connection|offline|load failed|aborted/i.test(error.message);
+}
+
+async function resolveUncertainAccept(button, rideId, originalError) {
+  try {
+    const assignedRides = await getDriverRides(driver.id);
+    const assignedRide = assignedRides.find((ride) => ride.id === rideId);
+    if (assignedRide) {
+      try {
+        await refreshTrips();
+      } catch (refreshError) {
+        resetAcceptingCard(button.closest(".request-card"));
+        showError(`Ride accepted, but the Trips page could not refresh: ${refreshError.message}`);
+        return;
+      }
+      showStatus(
+        `${assignedRide.serviceType === "delivery" ? "Delivery" : "Ride"} accepted. The rider’s tracking page will update automatically.`,
+      );
+      return;
+    }
+
+    const openRequests = await getDriverRideRequests(driver.id);
+    const isStillAvailable = openRequests.some((request) => request.id === rideId);
+    try {
+      await refreshTrips();
+    } catch (refreshError) {
+      console.error("Trips could not refresh after an uncertain accept outcome.", refreshError);
+    }
+    if (!isStillAvailable) {
+      showError("This ride was already taken or is no longer available.");
+    } else {
+      resetAcceptingCard(button.closest(".request-card"));
+      showError("Connection problem, check and try again.");
+    }
+  } catch (checkError) {
+    console.error("Could not verify the outcome of the ride acceptance request.", {
+      acceptError: originalError,
+      checkError,
+    });
+    resetAcceptingCard(button.closest(".request-card"));
+    showError("Connection problem, check and try again.");
   }
 }
 
@@ -382,12 +424,11 @@ function resetAcceptingCard(card) {
   }
 }
 
-function runAcceptAnimation(card, rideId) {
+function startAcceptAnimation(card) {
   const progress = card.querySelector(".request-accept-progress");
   const feedback = card.querySelector(".request-action-feedback");
   const acceptButton = card.querySelector('[data-action="accept"]');
   const declineButton = card.querySelector('[data-action="decline"]');
-  const progressBar = progress.querySelector("span");
 
   card.classList.add("is-accepting");
   progress.hidden = false;
@@ -397,24 +438,6 @@ function runAcceptAnimation(card, rideId) {
   if (declineButton) {
     declineButton.disabled = true;
   }
-
-  return new Promise((resolve) => {
-    const finish = (completed) => {
-      window.clearTimeout(timer);
-      progressBar.removeEventListener("animationend", onAnimationEnd);
-      acceptAnimations.delete(rideId);
-      resolve(completed);
-    };
-    const onAnimationEnd = () => finish(true);
-    const timer = window.setTimeout(() => finish(true), ACCEPT_ANIMATION_MS + 500);
-    progressBar.addEventListener("animationend", onAnimationEnd, { once: true });
-    acceptAnimations.set(rideId, {
-      cancel() {
-        finish(false);
-        resetAcceptingCard(card);
-      },
-    });
-  });
 }
 
 async function refreshUnavailableRide(button) {
