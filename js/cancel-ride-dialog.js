@@ -69,13 +69,13 @@ export function confirmRideCancellation(ride) {
   actions.className = "ride-cancel-dialog-actions";
   const keepButton = document.createElement("button");
   keepButton.type = "button";
-  keepButton.className = "btn btn-secondary";
+  keepButton.className = "btn btn-secondary ride-cancel-keep-button";
   keepButton.textContent = "Keep my ride";
   keepButton.addEventListener("click", () => dialog.close("keep"));
 
   const confirmButton = document.createElement("button");
   confirmButton.type = "button";
-  confirmButton.className = "btn btn-danger";
+  confirmButton.className = "btn btn-danger ride-cancel-confirm-button";
   confirmButton.textContent = "Cancel request";
   confirmButton.addEventListener("click", () => dialog.close("confirm"));
   actions.append(keepButton, confirmButton);
