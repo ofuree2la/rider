@@ -200,6 +200,17 @@
   background: var(--driver-card-bg);
 }
 
+.ride-cancelled-notice {
+  border-color: rgba(22, 130, 75, 0.2);
+  background: #eef7f0;
+  color: var(--color-forest);
+  font-weight: 800;
+}
+
+.ride-cancelled-notice p {
+  margin: 0;
+}
+
 .request-card {
   position: relative;
   overflow: hidden;

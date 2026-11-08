@@ -24,7 +24,8 @@ const dashboardError = document.querySelector("#dashboard-error");
 const logoutButton = document.querySelector("#logout-button");
 const driverChatCard = document.querySelector("#driver-chat-card");
 const driverChatRoot = document.querySelector("#driver-chat");
-const REFRESH_INTERVAL_MS = 45_000;
+const REFRESH_INTERVAL_MS = 12_000;
+const CANCELLATION_NOTICE_MS = 6_000;
 const currencyFormatter = new Intl.NumberFormat("en-NG", {
   style: "currency",
   currency: "NGN",
@@ -40,6 +41,9 @@ let isRefreshRunning = false;
 let driverChatRideId = null;
 let driverChatCleanup = null;
 let tripsRefreshTimer = null;
+let cancellationNoticeTimer = null;
+let activeRideIds = new Set();
+let latestRides = [];
 const DECLINE_CONFIRMATION_MS = 5000;
 const declineConfirmations = new Map();
 
@@ -165,14 +169,49 @@ function clearDriverChat() {
 
 function renderActiveRide(rides) {
   const activeRide = rides.find((ride) => ["accepted", "arriving", "on-trip"].includes(ride.status));
+  const cancelledActiveRide = rides.find(
+    (ride) => ride.status === "cancelled" && activeRideIds.has(ride.id),
+  );
+  activeRideIds = new Set(
+    rides
+      .filter((ride) => ["accepted", "arriving", "on-trip"].includes(ride.status))
+      .map((ride) => ride.id),
+  );
+  latestRides = rides;
   activeCount.textContent = String(
     rides.filter((ride) => ["accepted", "arriving", "on-trip"].includes(ride.status)).length,
   );
 
+  if (activeRide) {
+    if (cancellationNoticeTimer !== null) {
+      window.clearTimeout(cancellationNoticeTimer);
+      cancellationNoticeTimer = null;
+    }
+  }
+
   if (!activeRide) {
+    clearDriverChat();
+    if (cancelledActiveRide) {
+      activeRideCard.className = "active-ride-card ride-cancelled-notice";
+      const notice = document.createElement("p");
+      notice.setAttribute("role", "status");
+      notice.setAttribute("aria-live", "polite");
+      notice.textContent = "Ride cancelled by rider";
+      activeRideCard.replaceChildren(notice);
+      if (cancellationNoticeTimer !== null) {
+        window.clearTimeout(cancellationNoticeTimer);
+      }
+      cancellationNoticeTimer = window.setTimeout(() => {
+        cancellationNoticeTimer = null;
+        renderActiveRide(latestRides);
+      }, CANCELLATION_NOTICE_MS);
+      return;
+    }
+    if (cancellationNoticeTimer !== null) {
+      return;
+    }
     activeRideCard.className = "active-ride-card empty-state-box";
     activeRideCard.innerHTML = "<p>No active ride yet. Accept a ride request to get started.</p>";
-    clearDriverChat();
     return;
   }
 
@@ -497,12 +536,16 @@ function stopTripsRefresh() {
 }
 
 function startTripsRefresh() {
-  if (!driver?.isOnline || tripsRefreshTimer !== null) {
+  if ((!driver?.isOnline && activeRideIds.size === 0) || tripsRefreshTimer !== null) {
     return;
   }
 
   tripsRefreshTimer = window.setInterval(async () => {
-    if (document.visibilityState !== "visible" || isRefreshRunning || !driver.isOnline) {
+    if (
+      document.visibilityState !== "visible" ||
+      isRefreshRunning ||
+      (!driver.isOnline && activeRideIds.size === 0)
+    ) {
       return;
     }
     await refreshTripsSafely();
@@ -512,7 +555,11 @@ function startTripsRefresh() {
 function handleDriverAvailabilityChange(event) {
   driver.isOnline = Boolean(event.detail?.isOnline);
   if (!driver.isOnline) {
-    stopTripsRefresh();
+    if (activeRideIds.size > 0) {
+      startTripsRefresh();
+    } else {
+      stopTripsRefresh();
+    }
     for (const rideId of declineConfirmations.keys()) {
       resetDeclineConfirmation(rideId);
     }
@@ -527,6 +574,10 @@ function handleDriverAvailabilityChange(event) {
 
 function cleanupTripsPage() {
   stopTripsRefresh();
+  if (cancellationNoticeTimer !== null) {
+    window.clearTimeout(cancellationNoticeTimer);
+    cancellationNoticeTimer = null;
+  }
   driverChatCleanup?.();
   for (const rideId of declineConfirmations.keys()) {
     resetDeclineConfirmation(rideId);

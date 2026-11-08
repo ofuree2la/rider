@@ -45,6 +45,8 @@ After deployment, set `PAYMENT_API_BASE_URL` in `js/paystack-config.js` to the V
 
 The rider requests a ride first. After a driver accepts, Paystack checkout is initialized server-side using the ride fare stored in Supabase and that driver's configured subaccount. Paystack's callback is verified server-side and the ride is marked paid only when the reference, NGN currency, and amount match. A payment with an unexpected ride state is not applied automatically and requires support follow-up. Create each driver's subaccount in Paystack and store its subaccount code in that driver's `drivers.subaccount_code` field in Supabase before accepting online rides; drivers without a configured code cannot accept online requests.
 
+**Do not enable online payments until the payment verification flow explicitly handles rides cancelled while checkout is in progress, including late successful payments and the required refund or support outcome.**
+
 Fares are currently placeholders, and time-based surcharges/shared-fare options are off. Test the complete flow with Paystack test credentials and a non-production ride before configuring live payment credentials. Do not use the app for production rides until deployment, live-payment verification, fare configuration, and operational checks are complete.
 
 ## Mobile experience and motion
