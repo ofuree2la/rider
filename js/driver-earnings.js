@@ -8,6 +8,9 @@ const completedTotal = document.querySelector("#completed-total");
 const allTimeEarnings = document.querySelector("#alltime-earnings");
 const earningsError = document.querySelector("#earnings-error");
 const logoutButton = document.querySelector("#logout-button");
+const EARNINGS_REFRESH_INTERVAL_MS = 60_000;
+let earningsRefreshTimer = null;
+let driverIsOnline = false;
 const currencyFormatter = new Intl.NumberFormat("en-NG", {
   style: "currency",
   currency: "NGN",
@@ -71,6 +74,44 @@ async function refreshEarnings(driverId) {
   );
 }
 
+function stopEarningsRefresh() {
+  if (earningsRefreshTimer !== null) {
+    window.clearInterval(earningsRefreshTimer);
+    earningsRefreshTimer = null;
+  }
+}
+
+function startEarningsRefresh(driverId) {
+  if (!driverIsOnline || earningsRefreshTimer !== null) {
+    return;
+  }
+  earningsRefreshTimer = window.setInterval(async () => {
+    if (document.visibilityState !== "visible" || !driverIsOnline) {
+      return;
+    }
+    try {
+      await refreshEarnings(driverId);
+    } catch (error) {
+      showError(`Earnings could not be refreshed: ${error.message}`);
+    }
+  }, EARNINGS_REFRESH_INTERVAL_MS);
+}
+
+function handleDriverAvailabilityChange(event) {
+  driverIsOnline = Boolean(event.detail?.isOnline);
+  if (driverIsOnline) {
+    startEarningsRefresh(driverId);
+  } else {
+    stopEarningsRefresh();
+  }
+}
+
+function handleDriverSessionEnded() {
+  stopEarningsRefresh();
+}
+
+let driverId = null;
+
 async function startEarningsPage() {
   try {
     const user = await getCurrentUser();
@@ -86,6 +127,8 @@ async function startEarningsPage() {
     }
 
     const driver = await getCurrentDriver();
+    driverId = driver.id;
+    driverIsOnline = Boolean(driver.isOnline && driver.status === "approved");
     driverNameHeading.textContent = driver.name;
     logoutButton.addEventListener("click", async () => {
       try {
@@ -97,16 +140,14 @@ async function startEarningsPage() {
     });
 
     await refreshEarnings(driver.id);
-    window.setInterval(async () => {
-      if (document.visibilityState !== "visible") {
-        return;
-      }
-      try {
-        await refreshEarnings(driver.id);
-      } catch (error) {
-        showError(`Earnings could not be refreshed: ${error.message}`);
-      }
-    }, 60_000);
+    document.addEventListener("driver-availability-state-changed", handleDriverAvailabilityChange);
+    document.addEventListener("driver-session-ended", handleDriverSessionEnded);
+    startEarningsRefresh(driver.id);
+    window.addEventListener("pagehide", () => {
+      stopEarningsRefresh();
+      document.removeEventListener("driver-availability-state-changed", handleDriverAvailabilityChange);
+      document.removeEventListener("driver-session-ended", handleDriverSessionEnded);
+    }, { once: true });
   } catch (error) {
     showError(`Earnings could not be loaded: ${error.message}`);
   }

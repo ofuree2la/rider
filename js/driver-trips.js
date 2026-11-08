@@ -39,6 +39,7 @@ let driver = null;
 let isRefreshRunning = false;
 let driverChatRideId = null;
 let driverChatCleanup = null;
+let tripsRefreshTimer = null;
 const DECLINE_CONFIRMATION_MS = 5000;
 const declineConfirmations = new Map();
 
@@ -88,6 +89,11 @@ function getRideTotal(ride) {
 }
 
 async function renderRequests() {
+  if (driver.status === "approved" && !driver.isOnline) {
+    pendingCount.textContent = "0";
+    requestList.innerHTML = '<div class="request-card empty-state-box"><p>You’re offline. Go online from the Dashboard to receive matching requests.</p></div>';
+    return;
+  }
   if (driver.status !== "approved") {
     pendingCount.textContent = "0";
     requestList.innerHTML = `<div class="request-card empty-state-box"><p>${
@@ -263,6 +269,9 @@ async function refreshTrips() {
     getDriverRides(driver.id),
     renderRequests(),
   ]);
+  if (!driver.isOnline) {
+    await renderRequests();
+  }
   renderActiveRide(rides);
   renderScheduledRides(rides);
   renderRideHistory(rides);
@@ -480,6 +489,53 @@ async function refreshTripsSafely() {
   }
 }
 
+function stopTripsRefresh() {
+  if (tripsRefreshTimer !== null) {
+    window.clearInterval(tripsRefreshTimer);
+    tripsRefreshTimer = null;
+  }
+}
+
+function startTripsRefresh() {
+  if (!driver?.isOnline || tripsRefreshTimer !== null) {
+    return;
+  }
+
+  tripsRefreshTimer = window.setInterval(async () => {
+    if (document.visibilityState !== "visible" || isRefreshRunning || !driver.isOnline) {
+      return;
+    }
+    await refreshTripsSafely();
+  }, REFRESH_INTERVAL_MS);
+}
+
+function handleDriverAvailabilityChange(event) {
+  driver.isOnline = Boolean(event.detail?.isOnline);
+  if (!driver.isOnline) {
+    stopTripsRefresh();
+    for (const rideId of declineConfirmations.keys()) {
+      resetDeclineConfirmation(rideId);
+    }
+    pendingCount.textContent = "0";
+    requestList.innerHTML = '<div class="request-card empty-state-box"><p>You’re offline. Go online from the Dashboard to receive matching requests.</p></div>';
+    return;
+  }
+
+  startTripsRefresh();
+  refreshTripsSafely();
+}
+
+function cleanupTripsPage() {
+  stopTripsRefresh();
+  driverChatCleanup?.();
+  for (const rideId of declineConfirmations.keys()) {
+    resetDeclineConfirmation(rideId);
+  }
+  document.removeEventListener("driver-availability-state-changed", handleDriverAvailabilityChange);
+  document.removeEventListener("driver-session-ended", cleanupTripsPage);
+  document.removeEventListener("driver-ride-requests-updated", refreshTripsSafely);
+}
+
 async function startTripsPage() {
   try {
     const user = await getCurrentUser();
@@ -508,19 +564,16 @@ async function startTripsPage() {
     });
     requestList.addEventListener("click", handleRideAction);
     activeRideCard.addEventListener("click", handleRideAction);
+    document.addEventListener("driver-availability-state-changed", handleDriverAvailabilityChange);
+    document.addEventListener("driver-session-ended", cleanupTripsPage);
     await refreshTrips();
     document.addEventListener("driver-ride-requests-updated", refreshTripsSafely);
-    window.setInterval(async () => {
-      if (document.visibilityState !== "visible" || isRefreshRunning) {
-        return;
-      }
-      await refreshTripsSafely();
-    }, REFRESH_INTERVAL_MS);
+    startTripsRefresh();
   } catch (error) {
     showError(`Trips could not be loaded: ${error.message}`);
   }
 }
 
-window.addEventListener("pagehide", () => driverChatCleanup?.());
+window.addEventListener("pagehide", cleanupTripsPage, { once: true });
 
 startTripsPage();
