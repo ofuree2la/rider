@@ -249,6 +249,28 @@
   font-weight: 700;
 }
 
+.request-rider {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  width: fit-content;
+  color: var(--color-slate);
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+}
+
+.request-rider-avatar {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border: 1px solid var(--color-border);
+  border-radius: 50%;
+  background: var(--color-brand-soft);
+  color: var(--color-brand-dark);
+  font-weight: 800;
+}
+
 .request-expired-note {
   padding: 0.65rem 0.85rem;
   border-radius: 10px;

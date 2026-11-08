@@ -303,6 +303,10 @@ async function renderRequests() {
       <div class="request-accept-progress" aria-hidden="true"><span></span></div>
       <p class="request-action-feedback" role="status" aria-live="polite" hidden></p>
       <p class="request-countdown" aria-live="off">Request expires in ${secondsRemaining}s</p>
+      <div class="request-rider" aria-label="Rider profile details are hidden until acceptance">
+        <span class="request-rider-avatar" aria-hidden="true">R</span>
+        <span>Rider</span>
+      </div>
       <div class="request-top">
         <h3>${escapeHtml(ride.pickup?.name ?? "Pickup")} to ${escapeHtml(ride.destination?.name ?? "Destination")}</h3>
         <span class="badge">${ride.serviceType === "delivery" ? "Delivery" : ride.timing === "scheduled" ? "Scheduled" : "Now"}</span>
