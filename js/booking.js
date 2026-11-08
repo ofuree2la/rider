@@ -4,6 +4,7 @@ import {
   getCurrentUser,
   getLocations,
   getRide,
+  getRides,
 } from "./supabase-api.js";
 import { calculateFare, loadFareConfig } from "./pricing.js";
 import { isOnlinePaymentConfigured } from "./payment.js";
@@ -69,10 +70,69 @@ function localDateTimeValue(date) {
   return new Date(date.getTime() - offsetMilliseconds).toISOString().slice(0, 16);
 }
 
-function showError(message) {
+function showError(message, link = null) {
   errorElement.textContent = message;
+  if (link) {
+    errorElement.append(document.createTextNode(" "));
+    const anchor = document.createElement("a");
+    anchor.href = link.href;
+    anchor.textContent = link.label;
+    errorElement.append(anchor);
+  }
   errorElement.hidden = false;
   statusElement.hidden = true;
+}
+
+function getErrorDetails(error) {
+  const messages = [];
+  let currentError = error;
+  for (let depth = 0; currentError && depth < 4; depth += 1) {
+    if (currentError.message) {
+      messages.push(currentError.message);
+    }
+    if (currentError.code) {
+      messages.push(String(currentError.code));
+    }
+    currentError = currentError.cause;
+  }
+  return messages.join(" ");
+}
+
+async function showBookingSubmissionError(error) {
+  const details = getErrorDetails(error);
+  if (/no more than 5 open scheduled rides/i.test(details)) {
+    showError(
+      "You already have 5 open scheduled rides. Manage them before booking another.",
+      { href: "history.html", label: "View ride history" },
+    );
+    return;
+  }
+
+  if (
+    /rides_one_open_immediate_per_rider_idx/i.test(details) ||
+    (/\b23505\b/.test(details) && /open immediate/i.test(details))
+  ) {
+    let openRide = null;
+    try {
+      const rides = await getRides({ userId: currentUser.id, status: "finding" });
+      openRide = rides.find((ride) => ride.timing === "now" && !ride.scheduledAt);
+    } catch (lookupError) {
+      console.error("The existing open request could not be found after a duplicate booking.", lookupError);
+    }
+
+    showError(
+      "You already have an open request.",
+      openRide
+        ? {
+            href: `tracking.html?id=${encodeURIComponent(openRide.id)}`,
+            label: "Track your open request",
+          }
+        : { href: "history.html", label: "View ride history" },
+    );
+    return;
+  }
+
+  showError(error.message);
 }
 
 function showStatus(message) {
@@ -659,7 +719,7 @@ async function findRide(event) {
       watchBookingStatus(ride.id);
     }
   } catch (error) {
-    showError(error.message);
+    await showBookingSubmissionError(error);
   } finally {
     findRideButton.disabled = false;
     findRideButton.textContent = getVehicleType() === "bike" ? "Request delivery" : "Find a ride";

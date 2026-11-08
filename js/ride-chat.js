@@ -45,6 +45,10 @@ export function mountRideChat(root, rideId) {
     error.hidden = false;
   }
 
+  function getErrorDetails(sendError) {
+    return `${sendError?.message ?? ""} ${sendError?.cause?.message ?? ""}`;
+  }
+
   function renderMessages(messages) {
     const shouldScroll =
       log.scrollHeight - log.scrollTop - log.clientHeight < 80 || previousIds.size === 0;
@@ -111,7 +115,11 @@ export function mountRideChat(root, rideId) {
       input.value = "";
       await refreshMessages();
     } catch (sendError) {
-      showError(`Message could not be sent: ${sendError.message}`);
+      if (/message limit reached/i.test(getErrorDetails(sendError))) {
+        showError("You’ve reached the chat limit of 15 messages per minute. Please wait before sending another.");
+      } else {
+        showError(`Message could not be sent: ${sendError.message}`);
+      }
     } finally {
       send.disabled = false;
       input.focus();
