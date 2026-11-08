@@ -4,7 +4,6 @@ import { supabase } from "./supabase-client.js";
 
 const MODULE_GUARD = Symbol.for("rider.driver-notifications");
 const AVAILABILITY_STORAGE_KEY = "rider:driver-availability";
-const SOUND_ALERT_KEY_PREFIX = "rider:driver-sound-alerts:";
 const ALERT_CLAIM_KEY_PREFIX = "rider:driver-request-alert:";
 const isFirstModuleInstance = !window[MODULE_GUARD];
 if (isFirstModuleInstance) {
@@ -14,26 +13,20 @@ if (isFirstModuleInstance) {
 const REFRESH_INTERVAL_MS = 45_000;
 const ACTIVE_REQUEST_REFRESH_INTERVAL_MS = 12_000;
 const REQUEST_LIFETIME_MS = 30_000;
-const REQUEST_ALERT_SOUND = {
-  // Raise/lower these together to shift the chime higher/lower.
-  startFrequencyHz: 600,
-  endFrequencyHz: 1400,
-  // Increase/decrease for a longer/shorter rising slide.
-  glideSeconds: 0.18,
-  // Increase/decrease for a brighter/quieter upper shimmer.
-  shimmerLevel: 0.22,
-  shimmerFrequencyMultiplier: 2,
-  sparkleFrequencyHz: 2800,
-  sparkleLevel: 0.12,
-  sparkleDurationSeconds: 0.055,
-  // Increase/decrease volume for a louder/softer alert.
-  volume: 0.5,
-  attackSeconds: 0.01,
-  totalDurationSeconds: 0.42,
+const REQUEST_ALERT_BELL = {
+  // Raise/lower the bell by changing the base and partial frequencies.
+  partials: [
+    { frequencyHz: 880, level: 0.5, decaySeconds: 0.62 },
+    { frequencyHz: 880 * 2.76, level: 0.16, decaySeconds: 0.38 },
+    { frequencyHz: 880 * 5.4, level: 0.07, decaySeconds: 0.2 },
+  ],
+  // Increase/decrease volume for a louder/softer bell.
+  volume: 1,
+  attackSeconds: 0.004,
   fadeFloor: 0.0001,
-  // Increase repeats or spacing to make the chime longer; reduce for shorter.
+  // Increase repeats or spacing to make the bell ring longer; reduce for shorter.
   repeats: 2,
-  repeatSpacingSeconds: 0.35,
+  repeatSpacingSeconds: 0.38,
   compressor: {
     thresholdDb: -12,
     kneeDb: 10,
@@ -44,15 +37,9 @@ const REQUEST_ALERT_SOUND = {
 };
 const siteHeader = document.querySelector(".site-header");
 const pageTitle = document.title;
-const notificationControls = document.createElement("div");
-const soundAlertButton = document.createElement("button");
 const notificationBanner = document.createElement("aside");
 const notificationMessage = document.createElement("a");
 
-notificationControls.className = "driver-notification-controls";
-soundAlertButton.type = "button";
-soundAlertButton.className = "btn btn-secondary driver-sound-alert-button";
-notificationControls.append(soundAlertButton);
 notificationBanner.className = "driver-request-notification";
 notificationBanner.setAttribute("role", "status");
 notificationBanner.setAttribute("aria-live", "polite");
@@ -65,8 +52,7 @@ if (isFirstModuleInstance && !siteHeader) {
 }
 
 if (isFirstModuleInstance) {
-  siteHeader.insertAdjacentElement("afterend", notificationControls);
-  notificationControls.append(notificationBanner);
+  siteHeader.insertAdjacentElement("afterend", notificationBanner);
 }
 
 let driver = null;
@@ -80,44 +66,23 @@ let previousRequestIds = null;
 let isOnline = false;
 let isReconnecting = false;
 let authStateSubscription = null;
-let soundAlertsEnabled = false;
 let audioContext = null;
 let alertTabId = crypto.randomUUID?.() ?? `${Date.now()}-${Math.random()}`;
-
-function getSoundAlertKey() {
-  return `${SOUND_ALERT_KEY_PREFIX}${driver.id}`;
-}
-
-function updateSoundAlertButton() {
-  if (soundAlertsEnabled && !audioContext && !(window.AudioContext ?? window.webkitAudioContext)) {
-    soundAlertButton.textContent = "Sound alerts unavailable";
-    soundAlertButton.disabled = true;
-  } else if (soundAlertsEnabled && audioContext?.state !== "running") {
-    soundAlertButton.textContent = "Tap to enable sound on this page";
-    soundAlertButton.disabled = false;
-  } else {
-    soundAlertButton.textContent = soundAlertsEnabled
-      ? "Sound alerts enabled"
-      : "Enable sound alerts";
-    soundAlertButton.disabled = soundAlertsEnabled;
-  }
-  soundAlertButton.setAttribute("aria-pressed", String(soundAlertsEnabled));
-}
 
 function createAudioContext() {
   const AudioContextConstructor = window.AudioContext ?? window.webkitAudioContext;
   if (!AudioContextConstructor) {
     return null;
   }
-  if (!audioContext) {
+  if (!audioContext || audioContext.state === "closed") {
     audioContext = new AudioContextConstructor();
   }
   return audioContext;
 }
 
-function playSlide(startTime) {
+function playBell(startTime) {
   const context = audioContext;
-  const sound = REQUEST_ALERT_SOUND;
+  const sound = REQUEST_ALERT_BELL;
   const compressor = context.createDynamicsCompressor();
   compressor.threshold.setValueAtTime(sound.compressor.thresholdDb, context.currentTime);
   compressor.knee.setValueAtTime(sound.compressor.kneeDb, context.currentTime);
@@ -126,31 +91,18 @@ function playSlide(startTime) {
   compressor.release.setValueAtTime(sound.compressor.releaseSeconds, context.currentTime);
   compressor.connect(context.destination);
 
-  const slideLayers = [
-    {
-      frequency: sound.startFrequencyHz,
-      endFrequency: sound.endFrequencyHz,
-      level: sound.volume,
-    },
-    {
-      frequency: sound.startFrequencyHz * sound.shimmerFrequencyMultiplier,
-      endFrequency: sound.endFrequencyHz * sound.shimmerFrequencyMultiplier,
-      level: sound.volume * sound.shimmerLevel,
-    },
-  ];
-
-  for (const layer of slideLayers) {
+  for (const partial of sound.partials) {
     const oscillator = context.createOscillator();
     const gain = context.createGain();
-    const glideEnd = startTime + sound.glideSeconds;
-    const soundEnd = startTime + sound.totalDurationSeconds;
+    const soundEnd = startTime + partial.decaySeconds;
 
     oscillator.type = "sine";
-    oscillator.frequency.setValueAtTime(layer.frequency, startTime);
-    oscillator.frequency.exponentialRampToValueAtTime(layer.endFrequency, glideEnd);
+    oscillator.frequency.setValueAtTime(partial.frequencyHz, startTime);
     gain.gain.setValueAtTime(sound.fadeFloor, startTime);
-    gain.gain.linearRampToValueAtTime(layer.level, startTime + sound.attackSeconds);
-    gain.gain.setValueAtTime(layer.level, glideEnd);
+    gain.gain.linearRampToValueAtTime(
+      sound.volume * partial.level,
+      startTime + sound.attackSeconds,
+    );
     gain.gain.exponentialRampToValueAtTime(sound.fadeFloor, soundEnd);
     oscillator.connect(gain);
     gain.connect(compressor);
@@ -162,68 +114,36 @@ function playSlide(startTime) {
     oscillator.stop(soundEnd);
   }
 
-  const sparkle = context.createOscillator();
-  const sparkleGain = context.createGain();
-  const sparkleStart = startTime + sound.glideSeconds - sound.sparkleDurationSeconds / 2;
-  const sparkleEnd = sparkleStart + sound.sparkleDurationSeconds;
-  sparkle.type = "sine";
-  sparkle.frequency.setValueAtTime(sound.sparkleFrequencyHz, sparkleStart);
-  sparkleGain.gain.setValueAtTime(sound.fadeFloor, sparkleStart);
-  sparkleGain.gain.linearRampToValueAtTime(
-    sound.volume * sound.sparkleLevel,
-    sparkleStart + sound.attackSeconds,
-  );
-  sparkleGain.gain.exponentialRampToValueAtTime(sound.fadeFloor, sparkleEnd);
-  sparkle.connect(sparkleGain);
-  sparkleGain.connect(compressor);
-  sparkle.onended = () => {
-    sparkle.disconnect();
-    sparkleGain.disconnect();
-  };
-  sparkle.start(sparkleStart);
-  sparkle.stop(sparkleEnd);
-
   window.setTimeout(
     () => compressor.disconnect(),
-    Math.max(0, soundEnd - context.currentTime) * 1000,
+    Math.max(
+      0,
+      startTime + Math.max(...sound.partials.map((partial) => partial.decaySeconds)) -
+        context.currentTime,
+    ) * 1000,
   );
 }
 
 function scheduleRequestAlertSound(context) {
-  for (let repeat = 0; repeat < REQUEST_ALERT_SOUND.repeats; repeat += 1) {
-    playSlide(
-      context.currentTime + repeat * REQUEST_ALERT_SOUND.repeatSpacingSeconds,
+  for (let repeat = 0; repeat < REQUEST_ALERT_BELL.repeats; repeat += 1) {
+    playBell(
+      context.currentTime + repeat * REQUEST_ALERT_BELL.repeatSpacingSeconds,
     );
   }
 }
 
-async function enableSoundAlerts() {
-  try {
-    const context = createAudioContext();
-    if (!context) {
-      throw new Error("This browser does not support audio alerts.");
-    }
-    if (context.state === "suspended") {
-      await context.resume();
-    }
-    if (context.state !== "running") {
-      throw new Error("The browser did not allow audio playback. Please try again.");
-    }
-    soundAlertsEnabled = true;
-    try {
-      window.localStorage.setItem(getSoundAlertKey(), "true");
-    } catch (error) {
-      console.error("Sound-alert preference could not be saved.", error);
-    }
-    updateSoundAlertButton();
-  } catch (error) {
-    showNotificationError(`Sound alerts could not be enabled: ${error.message}`);
-    console.error("Driver sound alerts could not be enabled.", error);
+function unlockRequestAlertAudio() {
+  const context = createAudioContext();
+  if (!context || context.state === "running") {
+    return;
   }
+  context.resume().catch((error) => {
+    console.warn("The browser has not unlocked driver alert audio yet.", error);
+  });
 }
 
 async function playRequestAlertSound() {
-  if (!soundAlertsEnabled || !isOnline) {
+  if (!isOnline) {
     return;
   }
   try {
@@ -231,14 +151,8 @@ async function playRequestAlertSound() {
     if (!context) {
       throw new Error("This browser does not support audio alerts.");
     }
-    if (context.state === "suspended") {
-      await context.resume();
-    }
-    if (!isOnline || !soundAlertsEnabled) {
+    if (!isOnline || context.state !== "running") {
       return;
-    }
-    if (context.state !== "running") {
-      throw new Error("Tap Enable sound alerts on this page to allow audio.");
     }
 
     scheduleRequestAlertSound(context);
@@ -303,17 +217,6 @@ async function alertForNewRequest(requestId) {
   } catch (error) {
     console.error("Driver request alert could not be delivered.", error);
   }
-}
-
-function handleSoundPreferenceStorage(event) {
-  if (!driver || event.key !== getSoundAlertKey()) {
-    return;
-  }
-  soundAlertsEnabled = event.newValue === "true";
-  if (soundAlertsEnabled) {
-    createAudioContext();
-  }
-  updateSoundAlertButton();
 }
 
 function renderRequestCount(requests, announce = false) {
@@ -600,16 +503,6 @@ async function startNotifications() {
     }
 
     driver = await getCurrentDriver();
-    try {
-      soundAlertsEnabled = window.localStorage.getItem(getSoundAlertKey()) === "true";
-      if (soundAlertsEnabled) {
-        createAudioContext();
-      }
-    } catch (error) {
-      console.error("Sound-alert preference could not be loaded.", error);
-    }
-    updateSoundAlertButton();
-    soundAlertButton.addEventListener("click", enableSoundAlerts);
     const requestList = document.querySelector("#request-list");
     if (requestList) {
       requestListObserver = new MutationObserver(scheduleNextRefresh);
@@ -617,7 +510,6 @@ async function startNotifications() {
     }
     document.addEventListener("driver-availability-change", handleAvailabilityChange);
     window.addEventListener("storage", handleAvailabilityStorage);
-    window.addEventListener("storage", handleSoundPreferenceStorage);
     document.addEventListener("visibilitychange", refreshRequests);
     const { data } = supabase.auth.onAuthStateChange((event) => {
       if (event === "SIGNED_OUT") {
@@ -647,7 +539,8 @@ function stopNotifications() {
   document.removeEventListener("visibilitychange", refreshRequests);
   document.removeEventListener("driver-availability-change", handleAvailabilityChange);
   window.removeEventListener("storage", handleAvailabilityStorage);
-  window.removeEventListener("storage", handleSoundPreferenceStorage);
+  document.removeEventListener("pointerdown", unlockRequestAlertAudio, true);
+  document.removeEventListener("keydown", unlockRequestAlertAudio, true);
   requestListObserver?.disconnect();
   requestListObserver = null;
   stopRealtimeChannel();
@@ -658,5 +551,7 @@ function stopNotifications() {
 }
 
 if (isFirstModuleInstance) {
+  document.addEventListener("pointerdown", unlockRequestAlertAudio, true);
+  document.addEventListener("keydown", unlockRequestAlertAudio, true);
   startNotifications();
 }
