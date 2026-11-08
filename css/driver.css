@@ -97,6 +97,25 @@
   text-align: center;
 }
 
+.driver-notification-controls {
+  display: grid;
+  justify-items: center;
+  gap: 0.45rem;
+  padding: 0.55rem 1rem;
+  background: #f7faf8;
+}
+
+.driver-sound-alert-button {
+  min-height: 40px;
+  padding: 0.55rem 0.9rem;
+  font-size: 0.82rem;
+}
+
+.driver-sound-alert-button:disabled {
+  cursor: default;
+  opacity: 0.78;
+}
+
 .driver-request-notification[hidden] {
   display: none;
 }
@@ -216,6 +235,22 @@
   overflow: hidden;
   display: grid;
   gap: 0.8rem;
+}
+
+.request-countdown,
+.request-expired-note {
+  margin: 0;
+  color: var(--color-slate);
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+}
+
+.request-expired-note {
+  padding: 0.65rem 0.85rem;
+  border-radius: 10px;
+  background: rgba(22, 130, 75, 0.08);
+  color: var(--color-success);
+  text-align: center;
 }
 
 .request-accept-progress {

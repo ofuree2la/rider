@@ -26,6 +26,8 @@ const driverChatCard = document.querySelector("#driver-chat-card");
 const driverChatRoot = document.querySelector("#driver-chat");
 const REFRESH_INTERVAL_MS = 12_000;
 const CANCELLATION_NOTICE_MS = 6_000;
+const REQUEST_LIFETIME_MS = 30_000;
+const REQUEST_EXPIRY_NOTE_MS = 5_000;
 const currencyFormatter = new Intl.NumberFormat("en-NG", {
   style: "currency",
   currency: "NGN",
@@ -42,6 +44,10 @@ let driverChatRideId = null;
 let driverChatCleanup = null;
 let tripsRefreshTimer = null;
 let cancellationNoticeTimer = null;
+let requestCountdownTimer = null;
+let requestExpiryNoteTimer = null;
+let expiredNoticeUntil = 0;
+let requestTimingState = { firstSeenAt: {}, expiredIds: [] };
 let activeRideIds = new Set();
 let latestRides = [];
 const DECLINE_CONFIRMATION_MS = 5000;
@@ -92,13 +98,140 @@ function getRideTotal(ride) {
   return ride?.fare?.rideTotal ?? ride?.fare?.total ?? 0;
 }
 
+function getRequestTimingStorageKey() {
+  return `rider:driver-request-countdowns:${driver.id}`;
+}
+
+function loadRequestTimingState() {
+  try {
+    const savedState = JSON.parse(window.localStorage.getItem(getRequestTimingStorageKey()) ?? "null");
+    if (savedState && typeof savedState === "object") {
+      requestTimingState = {
+        firstSeenAt: {
+          ...requestTimingState.firstSeenAt,
+          ...(savedState.firstSeenAt && typeof savedState.firstSeenAt === "object"
+            ? savedState.firstSeenAt
+            : {}),
+        },
+        expiredIds: [...new Set([
+          ...requestTimingState.expiredIds,
+          ...(Array.isArray(savedState.expiredIds) ? savedState.expiredIds : []),
+        ])],
+      };
+    }
+  } catch (error) {
+    console.error("Driver request countdown state could not be loaded.", error);
+  }
+}
+
+function saveRequestTimingState() {
+  try {
+    window.localStorage.setItem(getRequestTimingStorageKey(), JSON.stringify(requestTimingState));
+  } catch (error) {
+    console.error("Driver request countdown state could not be saved.", error);
+  }
+}
+
+function stopRequestCountdownTimer() {
+  if (requestCountdownTimer !== null) {
+    window.clearTimeout(requestCountdownTimer);
+    requestCountdownTimer = null;
+  }
+}
+
+function showRequestExpiredNote() {
+  expiredNoticeUntil = Date.now() + REQUEST_EXPIRY_NOTE_MS;
+  if (requestExpiryNoteTimer !== null) {
+    window.clearTimeout(requestExpiryNoteTimer);
+  }
+  requestExpiryNoteTimer = window.setTimeout(() => {
+    requestExpiryNoteTimer = null;
+    expiredNoticeUntil = 0;
+    requestList.querySelector(".request-expired-note")?.remove();
+  }, REQUEST_EXPIRY_NOTE_MS);
+  renderRequestExpiredNote();
+}
+
+function renderRequestExpiredNote() {
+  requestList.querySelector(".request-expired-note")?.remove();
+  if (expiredNoticeUntil <= Date.now()) {
+    return;
+  }
+  const note = document.createElement("p");
+  note.className = "request-expired-note";
+  note.setAttribute("role", "status");
+  note.textContent = "Request expired";
+  requestList.append(note);
+}
+
+function expireRequestCard(card) {
+  const rideId = card.dataset.rideId;
+  if (!rideId || requestTimingState.expiredIds.includes(rideId)) {
+    return false;
+  }
+  requestTimingState.expiredIds.push(rideId);
+  card.remove();
+  showRequestExpiredNote();
+  return true;
+}
+
+function updateRequestCountdowns() {
+  requestCountdownTimer = null;
+  if (!driver?.isOnline) {
+    return;
+  }
+
+  const now = Date.now();
+  let expiredAny = false;
+  let nextExpiryAt = Infinity;
+  for (const card of requestList.querySelectorAll(".request-card[data-ride-id]")) {
+    const deadline = Number(card.dataset.expiresAt);
+    const remaining = deadline - now;
+    if (!Number.isFinite(deadline) || remaining <= 0) {
+      expiredAny = expireRequestCard(card) || expiredAny;
+      continue;
+    }
+    nextExpiryAt = Math.min(nextExpiryAt, deadline);
+    const countdown = card.querySelector(".request-countdown");
+    if (countdown) {
+      countdown.textContent = `Request expires in ${Math.ceil(remaining / 1000)}s`;
+    }
+  }
+
+  if (expiredAny) {
+    requestTimingState.expiredIds = [...new Set(requestTimingState.expiredIds)];
+    saveRequestTimingState();
+    pendingCount.textContent = String(
+      requestList.querySelectorAll(".request-card[data-ride-id]").length,
+    );
+    if (requestList.querySelectorAll(".request-card[data-ride-id]").length === 0) {
+      const emptyState = document.createElement("div");
+      emptyState.className = "request-card empty-state-box";
+      const message = document.createElement("p");
+      message.textContent = `No matching requests right now. Keep your ${driver.vehicleType === "bike" ? "bike" : "vehicle"} online to receive new work.`;
+      emptyState.append(message);
+      requestList.prepend(emptyState);
+    }
+    renderRequestExpiredNote();
+  }
+
+  if (Number.isFinite(nextExpiryAt)) {
+    requestCountdownTimer = window.setTimeout(
+      updateRequestCountdowns,
+      Math.min(1000, Math.max(50, nextExpiryAt - now)),
+    );
+  }
+}
+
 async function renderRequests() {
   if (driver.status === "approved" && !driver.isOnline) {
+    stopRequestCountdownTimer();
     pendingCount.textContent = "0";
     requestList.innerHTML = '<div class="request-card empty-state-box"><p>You’re offline. Go online from the Dashboard to receive matching requests.</p></div>';
     return;
   }
   if (driver.status !== "approved") {
+    stopRequestCountdownTimer();
     pendingCount.textContent = "0";
     requestList.innerHTML = `<div class="request-card empty-state-box"><p>${
       driver.status === "suspended"
@@ -109,6 +242,7 @@ async function renderRequests() {
   }
 
   const requests = await getDriverRideRequests(driver.id);
+  loadRequestTimingState();
   const previousRequestIds = new Set(
     [...requestList.querySelectorAll(".request-card[data-ride-id]")]
       .map((card) => card.dataset.rideId),
@@ -124,16 +258,51 @@ async function renderRequests() {
         : `${removedRequestCount} requests were taken or cancelled and removed from your list.`,
     );
   }
-  pendingCount.textContent = String(requests.length);
-  if (requests.length === 0) {
+  const now = Date.now();
+  const expiredIds = new Set(requestTimingState.expiredIds);
+  const previouslyExpiredIds = new Set(expiredIds);
+  const visibleRequests = [];
+  for (const ride of requests) {
+    const firstSeenAt = Number(requestTimingState.firstSeenAt[ride.id]);
+    if (!Number.isFinite(firstSeenAt)) {
+      requestTimingState.firstSeenAt[ride.id] = now;
+    }
+    if (now - Number(requestTimingState.firstSeenAt[ride.id]) >= REQUEST_LIFETIME_MS) {
+      expiredIds.add(ride.id);
+    } else if (!expiredIds.has(ride.id)) {
+      visibleRequests.push(ride);
+    }
+  }
+  requestTimingState.expiredIds = [...expiredIds];
+  const currentIds = new Set(requests.map((ride) => ride.id));
+  requestTimingState.firstSeenAt = Object.fromEntries(
+    Object.entries(requestTimingState.firstSeenAt)
+      .filter(([rideId]) => currentIds.has(rideId)),
+  );
+  saveRequestTimingState();
+
+  const newlyExpiredIds = requests
+    .filter((ride) => expiredIds.has(ride.id) && !previouslyExpiredIds.has(ride.id))
+    .map((ride) => ride.id);
+  if (newlyExpiredIds.length > 0) {
+    showRequestExpiredNote();
+  }
+  pendingCount.textContent = String(visibleRequests.length);
+  if (visibleRequests.length === 0) {
     requestList.innerHTML = `<div class="request-card empty-state-box"><p>No matching requests right now. Keep your ${driver.vehicleType === "bike" ? "bike" : "vehicle"} online to receive new work.</p></div>`;
+    renderRequestExpiredNote();
+    updateRequestCountdowns();
     return;
   }
 
-  requestList.innerHTML = requests.map((ride) => `
-    <article class="request-card" data-ride-id="${escapeHtml(ride.id)}">
+  requestList.innerHTML = visibleRequests.map((ride) => {
+    const expiresAt = Number(requestTimingState.firstSeenAt[ride.id]) + REQUEST_LIFETIME_MS;
+    const secondsRemaining = Math.max(0, Math.ceil((expiresAt - Date.now()) / 1000));
+    return `
+    <article class="request-card" data-ride-id="${escapeHtml(ride.id)}" data-expires-at="${expiresAt}">
       <div class="request-accept-progress" aria-hidden="true"><span></span></div>
       <p class="request-action-feedback" role="status" aria-live="polite" hidden></p>
+      <p class="request-countdown" aria-live="off">Request expires in ${secondsRemaining}s</p>
       <div class="request-top">
         <h3>${escapeHtml(ride.pickup?.name ?? "Pickup")} to ${escapeHtml(ride.destination?.name ?? "Destination")}</h3>
         <span class="badge">${ride.serviceType === "delivery" ? "Delivery" : ride.timing === "scheduled" ? "Scheduled" : "Now"}</span>
@@ -156,7 +325,10 @@ async function renderRequests() {
         <button type="button" class="btn btn-danger" data-action="decline" data-ride-id="${escapeHtml(ride.id)}">Decline</button>
       </div>
     </article>
-  `).join("");
+  `;
+  }).join("");
+  renderRequestExpiredNote();
+  updateRequestCountdowns();
 }
 
 function clearDriverChat() {
@@ -555,6 +727,7 @@ function startTripsRefresh() {
 function handleDriverAvailabilityChange(event) {
   driver.isOnline = Boolean(event.detail?.isOnline);
   if (!driver.isOnline) {
+    stopRequestCountdownTimer();
     if (activeRideIds.size > 0) {
       startTripsRefresh();
     } else {
@@ -574,6 +747,11 @@ function handleDriverAvailabilityChange(event) {
 
 function cleanupTripsPage() {
   stopTripsRefresh();
+  stopRequestCountdownTimer();
+  if (requestExpiryNoteTimer !== null) {
+    window.clearTimeout(requestExpiryNoteTimer);
+    requestExpiryNoteTimer = null;
+  }
   if (cancellationNoticeTimer !== null) {
     window.clearTimeout(cancellationNoticeTimer);
     cancellationNoticeTimer = null;
