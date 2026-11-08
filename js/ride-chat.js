@@ -1,3 +1,4 @@
+import "./notifications.js";
 import { getCurrentUser, getRideMessages, sendRideMessage } from "./supabase-api.js";
 
 const dateFormatter = new Intl.DateTimeFormat("en-NG", {

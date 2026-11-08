@@ -1,3 +1,4 @@
+import "./notifications.js";
 import {
   createLocation,
   deleteLocation,

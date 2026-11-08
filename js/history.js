@@ -1,3 +1,4 @@
+import "./notifications.js";
 import { cancelRideRequest, getRide, getRides } from "./supabase-api.js";
 import { clearSavedBookingConfirmation, confirmRideCancellation } from "./cancel-ride-dialog.js";
 

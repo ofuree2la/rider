@@ -1,3 +1,4 @@
+import "./notifications.js";
 import { cancelRideRequest, createRide, getRide, getRides, rateRide } from "./supabase-api.js";
 import { initializeRidePayment, isOnlinePaymentConfigured } from "./payment.js";
 import { mountRideChat } from "./ride-chat.js";

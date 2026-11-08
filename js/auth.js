@@ -1,3 +1,4 @@
+import "./notifications.js";
 import { getCurrentUser, login, logout, signup } from "./supabase-api.js";
 
 const form = document.querySelector("[data-auth-form]");

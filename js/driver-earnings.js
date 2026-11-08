@@ -1,3 +1,4 @@
+import "./notifications.js";
 import { getCurrentDriver, getCurrentUser, getDriverRides, logout } from "./supabase-api.js";
 
 const driverNameHeading = document.querySelector("#driver-name-heading");

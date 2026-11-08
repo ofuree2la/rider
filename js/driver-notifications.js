@@ -1,3 +1,4 @@
+import "./notifications.js";
 import { getCurrentDriver, getCurrentUser, getDriverRideRequests } from "./supabase-api.js";
 import { supabase } from "./supabase-client.js";
 
@@ -317,7 +318,7 @@ function handleSoundPreferenceStorage(event) {
   updateSoundAlertButton();
 }
 
-function renderRequestCount(requests) {
+function renderRequestCount(requests, announce = false) {
   let visibleRequests = requests;
   try {
     const savedState = JSON.parse(
@@ -346,12 +347,23 @@ function renderRequestCount(requests) {
     const waitingMessage = requestCount > 0
       ? `Reconnecting… ${requestCount} matching ride ${requestCount === 1 ? "request" : "requests"} found.`
       : "Reconnecting… We’ll keep checking for requests.";
-    notificationMessage.textContent = waitingMessage;
-    notificationBanner.hidden = false;
+    const messageChanged = notificationMessage.textContent !== waitingMessage;
+    if (messageChanged) {
+      notificationMessage.textContent = waitingMessage;
+    }
+    if (messageChanged || announce) {
+      notificationBanner.hidden = false;
+    }
     document.title = requestCount > 0 ? `(${requestCount}) ${pageTitle}` : pageTitle;
   } else if (requestCount > 0) {
-    notificationMessage.textContent = `You have ${requestCount} matching ride ${requestWord}.`;
-    notificationBanner.hidden = false;
+    const waitingMessage = `You have ${requestCount} matching ride ${requestWord}.`;
+    const messageChanged = notificationMessage.textContent !== waitingMessage;
+    if (messageChanged) {
+      notificationMessage.textContent = waitingMessage;
+    }
+    if (messageChanged || announce) {
+      notificationBanner.hidden = false;
+    }
     document.title = `(${requestCount}) ${pageTitle}`;
   } else {
     notificationBanner.hidden = true;
@@ -399,7 +411,7 @@ async function refreshRequests() {
 
     previousRequestIds = requestIds;
     notificationBanner.classList.remove("is-error");
-    renderRequestCount(requests);
+    renderRequestCount(requests, requestsChanged);
 
     for (const requestId of newRequestIds) {
       alertForNewRequest(requestId);
