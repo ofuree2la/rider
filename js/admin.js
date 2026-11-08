@@ -348,7 +348,24 @@ function renderRides(rides) {
       : "Not scheduled";
     const fare = document.createElement("td");
     fare.textContent = formatCash(ride.fare?.rideTotal ?? ride.fare?.total ?? 0);
-    row.append(route, service, rider, status, pickup, fare);
+    const cancelledBy = document.createElement("td");
+    cancelledBy.textContent = ride.status === "cancelled"
+      ? ride.cancelledBy ?? "Not recorded"
+      : "—";
+    const cancellationReason = document.createElement("td");
+    cancellationReason.textContent = ride.status === "cancelled"
+      ? ride.cancellationReason ?? "Not provided"
+      : "—";
+    const cancelledAt = document.createElement("td");
+    if (ride.status === "cancelled" && ride.cancelledAt) {
+      const cancellationDate = new Date(ride.cancelledAt);
+      cancelledAt.textContent = Number.isNaN(cancellationDate.getTime())
+        ? "Time unavailable"
+        : dateFormatter.format(cancellationDate);
+    } else {
+      cancelledAt.textContent = ride.status === "cancelled" ? "Not recorded" : "—";
+    }
+    row.append(route, service, rider, status, pickup, fare, cancelledBy, cancellationReason, cancelledAt);
     rideList.append(row);
   }
   rideEmpty.hidden = filteredRides.length > 0;

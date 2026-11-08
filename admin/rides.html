@@ -13,7 +13,7 @@
     <link rel="stylesheet" href="../css/admin.css" />
     <link rel="stylesheet" href="../css/bottom-nav.css" />
     <link rel="stylesheet" href="../css/mobile.css" />
-    <script type="module" src="../js/admin.js"></script>
+    <script type="module" src="../js/admin.js?v=cancel-step5"></script>
   </head>
   <body class="admin-body has-bottom-nav">
     <header class="site-header"><div class="container nav-shell admin-nav-shell"><a href="dashboard.html" class="brand" aria-label="Rider Admin overview"><span class="brand-mark">R</span><span class="brand-text">Rider Admin</span></a><button type="button" class="btn btn-ghost" id="admin-logout">Logout</button></div></header>
@@ -27,7 +27,7 @@
           <div class="admin-field"><label for="ride-status-filter">Status</label><select id="ride-status-filter" name="status"><option value="">All statuses</option><option value="finding">Finding driver</option><option value="accepted">Accepted</option><option value="arriving">Arriving</option><option value="on-trip">On trip</option><option value="completed">Completed</option><option value="cancelled">Cancelled</option></select></div>
           <div class="admin-field"><label for="ride-date-filter">Booking or pickup date</label><input id="ride-date-filter" name="date" type="date" /></div>
         </form>
-        <div class="admin-table-wrap"><table class="admin-rides-table"><thead><tr><th>Route</th><th>Service</th><th>Rider</th><th>Status</th><th>Pickup time</th><th>Fare</th></tr></thead><tbody id="ride-list"></tbody></table><p id="ride-empty" class="admin-empty" hidden>No bookings match these filters.</p></div>
+        <div class="admin-table-wrap"><table class="admin-rides-table"><thead><tr><th>Route</th><th>Service</th><th>Rider</th><th>Status</th><th>Pickup time</th><th>Fare</th><th>Cancelled by</th><th>Cancellation reason</th><th>Cancelled at</th></tr></thead><tbody id="ride-list"></tbody></table><p id="ride-empty" class="admin-empty" hidden>No bookings match these filters.</p></div>
       </section>
     </main>
     <nav class="bottom-nav admin-bottom-nav" aria-label="Admin dashboard navigation">
