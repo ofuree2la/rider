@@ -130,6 +130,10 @@
   background: #8e2c2c;
 }
 
+.driver-request-notification.is-reconnecting {
+  background: #805100;
+}
+
 .status-message {
   background: rgba(22, 130, 75, 0.08);
   color: var(--color-success);

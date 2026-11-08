@@ -51,6 +51,7 @@ let isRefreshRunning = false;
 let refreshRequested = false;
 let previousRequestIds = null;
 let isOnline = false;
+let isReconnecting = false;
 let authStateSubscription = null;
 let soundAlertsEnabled = false;
 let audioContext = null;
@@ -243,7 +244,14 @@ function renderRequestCount(requests) {
   const requestCount = visibleRequests.length;
   const requestWord = requestCount === 1 ? "request" : "requests";
 
-  if (requestCount > 0) {
+  if (isReconnecting) {
+    const waitingMessage = requestCount > 0
+      ? `Reconnecting… ${requestCount} matching ride ${requestCount === 1 ? "request" : "requests"} found.`
+      : "Reconnecting… We’ll keep checking for requests.";
+    notificationMessage.textContent = waitingMessage;
+    notificationBanner.hidden = false;
+    document.title = requestCount > 0 ? `(${requestCount}) ${pageTitle}` : pageTitle;
+  } else if (requestCount > 0) {
     notificationMessage.textContent = `You have ${requestCount} matching ride ${requestWord}.`;
     notificationBanner.hidden = false;
     document.title = `(${requestCount}) ${pageTitle}`;
@@ -358,7 +366,11 @@ function handleRealtimeStatus(status, error) {
     return;
   }
   if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
-    showNotificationError("Live ride alerts are unavailable. We’ll keep checking for requests.");
+    isReconnecting = true;
+    notificationBanner.classList.remove("is-error");
+    notificationBanner.classList.add("is-reconnecting");
+    notificationMessage.textContent = "Reconnecting… We’ll keep checking for requests.";
+    notificationBanner.hidden = false;
     if (error) {
       console.error("Driver ride notification channel error.", error);
     }
@@ -366,6 +378,8 @@ function handleRealtimeStatus(status, error) {
   }
 
   if (status === "SUBSCRIBED") {
+    isReconnecting = false;
+    notificationBanner.classList.remove("is-reconnecting");
     refreshRequests();
   }
 }
@@ -427,6 +441,8 @@ function setOnlineState(nextOnlineState, forceNotify = false) {
   if (!isOnline) {
     stopRefreshTimer();
     stopRealtimeChannel();
+    isReconnecting = false;
+    notificationBanner.classList.remove("is-reconnecting");
     previousRequestIds = null;
     renderRequestCount([]);
     return;
@@ -517,6 +533,8 @@ async function startNotifications() {
 
 function stopNotifications() {
   isOnline = false;
+  isReconnecting = false;
+  notificationBanner.classList.remove("is-reconnecting");
   stopRefreshTimer();
   document.removeEventListener("visibilitychange", refreshRequests);
   document.removeEventListener("driver-availability-change", handleAvailabilityChange);
