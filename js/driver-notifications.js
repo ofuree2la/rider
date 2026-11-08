@@ -2,6 +2,7 @@ import { getCurrentDriver, getCurrentUser, getDriverRideRequests } from "./supab
 import { supabase } from "./supabase-client.js";
 
 const REFRESH_INTERVAL_MS = 45_000;
+const ACTIVE_REQUEST_REFRESH_INTERVAL_MS = 12_000;
 const siteHeader = document.querySelector(".site-header");
 const pageTitle = document.title;
 const notificationBanner = document.createElement("aside");
@@ -25,7 +26,10 @@ siteHeader.insertAdjacentElement("afterend", notificationBanner);
 let driver = null;
 let channel = null;
 let refreshTimer = null;
+let refreshIntervalMs = 0;
+let requestListObserver = null;
 let isRefreshRunning = false;
+let refreshRequested = false;
 let previousRequestIds = null;
 
 function renderRequestCount(requests) {
@@ -54,7 +58,11 @@ function showNotificationError(message) {
 }
 
 async function refreshRequests() {
-  if (isRefreshRunning || document.visibilityState !== "visible") {
+  if (isRefreshRunning) {
+    refreshRequested = true;
+    return;
+  }
+  if (document.visibilityState !== "visible") {
     return;
   }
 
@@ -72,14 +80,52 @@ async function refreshRequests() {
     renderRequestCount(requests);
 
     if (requestsChanged) {
-      document.dispatchEvent(new CustomEvent("driver-ride-requests-updated"));
+      document.dispatchEvent(new CustomEvent("driver-ride-requests-updated", {
+        detail: { requestIds },
+      }));
     }
   } catch (error) {
     showNotificationError(`Ride requests could not be checked: ${error.message}`);
     console.error("Driver ride notifications could not be refreshed.", error);
   } finally {
     isRefreshRunning = false;
+    if (refreshRequested) {
+      refreshRequested = false;
+      refreshRequests();
+    } else {
+      scheduleNextRefresh();
+    }
   }
+}
+
+function getRefreshInterval() {
+  const requestList = document.querySelector("#request-list");
+  const hasVisibleRequestCard = requestList &&
+    [...requestList.querySelectorAll(".request-card[data-ride-id]")]
+      .some((card) => card.isConnected && !card.hidden && card.getClientRects().length > 0);
+  return hasVisibleRequestCard
+    ? ACTIVE_REQUEST_REFRESH_INTERVAL_MS
+    : REFRESH_INTERVAL_MS;
+}
+
+function scheduleNextRefresh() {
+  const nextInterval = getRefreshInterval();
+  if (refreshTimer !== null && refreshIntervalMs === nextInterval) {
+    return;
+  }
+  if (refreshTimer !== null) {
+    window.clearTimeout(refreshTimer);
+  }
+  refreshIntervalMs = nextInterval;
+  refreshTimer = window.setTimeout(() => {
+    refreshTimer = null;
+    refreshIntervalMs = 0;
+    refreshRequests();
+  }, nextInterval);
+}
+
+function handleRideChange() {
+  refreshRequests();
 }
 
 function handleRealtimeStatus(status, error) {
@@ -115,11 +161,25 @@ async function startNotifications() {
           table: "rides",
           filter: "status=eq.finding",
         },
-        () => refreshRequests(),
+        handleRideChange,
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "rides",
+        },
+        handleRideChange,
       )
       .subscribe(handleRealtimeStatus);
 
-    refreshTimer = window.setInterval(refreshRequests, REFRESH_INTERVAL_MS);
+    const requestList = document.querySelector("#request-list");
+    if (requestList) {
+      requestListObserver = new MutationObserver(scheduleNextRefresh);
+      requestListObserver.observe(requestList, { childList: true, subtree: true });
+    }
+    await refreshRequests();
     document.addEventListener("visibilitychange", refreshRequests);
     window.addEventListener("pagehide", stopNotifications, { once: true });
   } catch (error) {
@@ -130,9 +190,13 @@ async function startNotifications() {
 
 function stopNotifications() {
   if (refreshTimer !== null) {
-    window.clearInterval(refreshTimer);
+    window.clearTimeout(refreshTimer);
+    refreshTimer = null;
   }
+  refreshIntervalMs = 0;
   document.removeEventListener("visibilitychange", refreshRequests);
+  requestListObserver?.disconnect();
+  requestListObserver = null;
   if (channel) {
     supabase.removeChannel(channel);
   }

@@ -99,6 +99,21 @@ async function renderRequests() {
   }
 
   const requests = await getDriverRideRequests(driver.id);
+  const previousRequestIds = new Set(
+    [...requestList.querySelectorAll(".request-card[data-ride-id]")]
+      .map((card) => card.dataset.rideId),
+  );
+  const currentRequestIds = new Set(requests.map((request) => request.id));
+  const removedRequestCount = [...previousRequestIds]
+    .filter((requestId) => !currentRequestIds.has(requestId))
+    .length;
+  if (removedRequestCount > 0) {
+    showStatus(
+      removedRequestCount === 1
+        ? "A request was taken or cancelled and removed from your list."
+        : `${removedRequestCount} requests were taken or cancelled and removed from your list.`,
+    );
+  }
   pendingCount.textContent = String(requests.length);
   if (requests.length === 0) {
     requestList.innerHTML = `<div class="request-card empty-state-box"><p>No matching requests right now. Keep your ${driver.vehicleType === "bike" ? "bike" : "vehicle"} online to receive new work.</p></div>`;
