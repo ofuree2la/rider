@@ -47,8 +47,7 @@ const pageTitle = document.title;
 const notificationControls = document.createElement("div");
 const soundAlertButton = document.createElement("button");
 const notificationBanner = document.createElement("aside");
-const notificationMessage = document.createElement("span");
-const notificationLink = document.createElement("a");
+const notificationMessage = document.createElement("a");
 
 notificationControls.className = "driver-notification-controls";
 soundAlertButton.type = "button";
@@ -58,9 +57,8 @@ notificationBanner.className = "driver-request-notification";
 notificationBanner.setAttribute("role", "status");
 notificationBanner.setAttribute("aria-live", "polite");
 notificationBanner.hidden = true;
-notificationLink.href = "trips.html";
-notificationLink.textContent = "View Trips";
-notificationBanner.append(notificationMessage, notificationLink);
+notificationMessage.href = "trips.html";
+notificationBanner.append(notificationMessage);
 
 if (isFirstModuleInstance && !siteHeader) {
   throw new Error("The driver page is missing its site header.");
