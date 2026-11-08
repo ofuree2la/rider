@@ -10,9 +10,10 @@
     <link rel="stylesheet" href="css/base.css" />
     <link rel="stylesheet" href="css/components.css" />
     <link rel="stylesheet" href="css/booking.css?v=vehicles" />
+    <link rel="stylesheet" href="css/cancellation.css" />
     <link rel="stylesheet" href="css/bottom-nav.css" />
     <link rel="stylesheet" href="css/mobile.css" />
-    <script type="module" src="js/booking.js?v=ride-realtime"></script>
+    <script type="module" src="js/booking.js?v=cancel-step3"></script>
     <script src="js/bottom-nav.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/animejs@3.2.2/lib/anime.min.js" defer></script>
     <script src="js/motion.js" defer></script>
@@ -168,6 +169,8 @@
           <h2 id="match-title">Your keke is matched</h2>
           <p id="match-details"></p>
           <a id="match-tracking-link" class="btn btn-primary" href="tracking.html">Track your ride</a>
+          <button id="match-cancel-button" class="btn btn-danger" type="button" hidden>Cancel request</button>
+          <a id="match-book-again-link" class="btn btn-secondary" href="book.html" hidden>Book another ride</a>
         </section>
       </section>
 

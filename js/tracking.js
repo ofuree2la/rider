@@ -1,7 +1,8 @@
-import { getRide, rateRide } from "./supabase-api.js";
+import { cancelRideRequest, getRide, rateRide } from "./supabase-api.js";
 import { initializeRidePayment, isOnlinePaymentConfigured } from "./payment.js";
 import { mountRideChat } from "./ride-chat.js";
 import { supabase } from "./supabase-client.js";
+import { clearSavedBookingConfirmation, confirmRideCancellation } from "./cancel-ride-dialog.js";
 
 const rideId = new URLSearchParams(window.location.search).get("id");
 const paymentResult = new URLSearchParams(window.location.search).get("payment");
@@ -33,6 +34,8 @@ const shareButton = document.querySelector("#share-trip");
 const paymentCard = document.querySelector("#ride-payment-card");
 const paymentMessage = document.querySelector("#ride-payment-message");
 const paymentButton = document.querySelector("#ride-payment-button");
+const cancelRideButton = document.querySelector("#cancel-ride-button");
+const cancelRideNotice = document.querySelector("#ride-cancel-notice");
 const statusSteps = [...document.querySelectorAll("[data-status-step]")];
 
 const RIDE_STAGES = [
@@ -56,6 +59,7 @@ let ride = null;
 let refreshTimer = null;
 let rideChannel = null;
 let isRefreshRunning = false;
+let isRideCancellationInProgress = false;
 let chatRideId = null;
 let chatCleanup = null;
 const REFRESH_INTERVAL_MS = 45_000;
@@ -163,7 +167,7 @@ function renderRating() {
 
 function renderPayment() {
   const isOnline = ride.paymentMethod === "online";
-  paymentCard.hidden = !isOnline;
+  paymentCard.hidden = !isOnline || ride.status === "cancelled";
   if (!isOnline) return;
 
   paymentButton.hidden = true;
@@ -198,6 +202,10 @@ function renderPayment() {
 
 function renderRide() {
   trackingContent.hidden = false;
+  cancelRideButton.hidden = !["finding", "accepted", "arriving"].includes(ride.status);
+  cancelRideButton.disabled = isRideCancellationInProgress;
+  cancelRideButton.textContent = isRideCancellationInProgress ? "Cancelling..." : "Cancel request";
+  cancelRideNotice.hidden = ride.status !== "on-trip";
   rideStatusLabel.textContent = getStatusLabel(ride.status);
   rideStatusBadge.textContent = ride.status.replace("-", " ");
   rideStatusBadge.dataset.status = ride.status;
@@ -283,6 +291,10 @@ async function refreshRideStatus() {
       window.clearInterval(refreshTimer);
       refreshTimer = null;
     }
+    if (ride.status === "cancelled") {
+      clearSavedBookingConfirmation(ride.id);
+      cleanupRideTracking();
+    }
   } catch (error) {
     showError(`Ride status could not be refreshed: ${error.message}`);
   } finally {
@@ -310,10 +322,44 @@ function cleanupRideTracking() {
     refreshTimer = null;
   }
   document.removeEventListener("visibilitychange", handleTrackingVisibility);
+  window.removeEventListener("pagehide", cleanupRideTracking);
   chatCleanup?.();
   if (rideChannel) {
     supabase.removeChannel(rideChannel);
     rideChannel = null;
+  }
+}
+
+async function handleRideCancellation() {
+  if (!ride || !["finding", "accepted", "arriving"].includes(ride.status)) {
+    return;
+  }
+  const confirmation = await confirmRideCancellation(ride);
+  if (!confirmation?.confirmed) {
+    return;
+  }
+
+  isRideCancellationInProgress = true;
+  cancelRideButton.disabled = true;
+  cancelRideButton.textContent = "Cancelling...";
+  try {
+    const cancelledRide = await cancelRideRequest(ride.id, confirmation.reason);
+    if (cancelledRide.status !== "cancelled") {
+      throw new Error("The ride was not cancelled. Refresh and check its current status.");
+    }
+    ride = { ...cancelledRide, driver: ride.driver };
+    clearSavedBookingConfirmation(ride.id);
+    cleanupRideTracking();
+    renderRide();
+    showStatus("Your request has been cancelled. You can book another ride whenever you’re ready.");
+  } catch (error) {
+    showError(error.message);
+  } finally {
+    isRideCancellationInProgress = false;
+    if (ride && ["finding", "accepted", "arriving"].includes(ride.status)) {
+      cancelRideButton.disabled = false;
+      cancelRideButton.textContent = "Cancel request";
+    }
   }
 }
 
@@ -409,6 +455,7 @@ async function startTrackingPage() {
   ratingForm.addEventListener("submit", submitRating);
   shareButton.addEventListener("click", shareTrip);
   paymentButton.addEventListener("click", payForRide);
+  cancelRideButton.addEventListener("click", handleRideCancellation);
   if (paymentResult === "confirmed") {
     paymentMessage.textContent = "Payment confirmation received. Refreshing ride status…";
   } else if (paymentResult === "failed") {

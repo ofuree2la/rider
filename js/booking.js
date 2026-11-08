@@ -1,7 +1,14 @@
-import { createRide, getCurrentUser, getLocations, getRide } from "./supabase-api.js";
+import {
+  cancelRideRequest,
+  createRide,
+  getCurrentUser,
+  getLocations,
+  getRide,
+} from "./supabase-api.js";
 import { calculateFare, loadFareConfig } from "./pricing.js";
 import { isOnlinePaymentConfigured } from "./payment.js";
 import { supabase } from "./supabase-client.js";
+import { clearSavedBookingConfirmation, confirmRideCancellation } from "./cancel-ride-dialog.js";
 
 const form = document.querySelector("#booking-form");
 const pickupInput = document.querySelector("#pickup");
@@ -27,6 +34,8 @@ const matchCard = document.querySelector("#match-card");
 const matchTitle = document.querySelector("#match-title");
 const matchDetails = document.querySelector("#match-details");
 const matchTrackingLink = document.querySelector("#match-tracking-link");
+const matchCancelButton = document.querySelector("#match-cancel-button");
+const matchBookAgainLink = document.querySelector("#match-book-again-link");
 const mapRouteLabel = document.querySelector("#map-route-label");
 const paymentMethodSelect = document.querySelector("#payment-method");
 const onlinePaymentOption = paymentMethodSelect.querySelector('option[value="online"]');
@@ -51,6 +60,8 @@ let selectedDestination = null;
 let bookingStatusChannel = null;
 let bookingStatusTimer = null;
 let isBookingStatusRefreshRunning = false;
+let isBookingCancellationInProgress = false;
+let currentBookingRide = null;
 const activeSuggestionIndexes = new WeakMap();
 
 function localDateTimeValue(date) {
@@ -78,12 +89,19 @@ function clearMessages() {
 }
 
 function showSubmittedRide(ride, restored = false) {
+  currentBookingRide = ride;
   const isDelivery = ride.serviceType === "delivery";
   const serviceName = isDelivery ? "Delivery" : "Ride";
-  if (["accepted", "arriving", "on-trip"].includes(ride.status)) {
+  if (ride.status === "on-trip") {
+    matchTitle.textContent = `${serviceName} in progress`;
+    matchDetails.textContent = "The trip has started, so this ride can no longer be cancelled. Open tracking for current updates.";
+  } else if (["accepted", "arriving"].includes(ride.status)) {
     matchTitle.textContent = `${serviceName} accepted`;
     matchDetails.textContent = "A driver has accepted your request. Open tracking to see their details and follow trip updates.";
-  } else if (ride.status === "completed" || ride.status === "cancelled") {
+  } else if (ride.status === "cancelled") {
+    matchTitle.textContent = `${serviceName} request cancelled`;
+    matchDetails.textContent = `Your ${serviceName.toLowerCase()} request has been cancelled. You can book another one whenever you’re ready.`;
+  } else if (ride.status === "completed") {
     matchTitle.textContent = `${serviceName} ${ride.status}`;
     matchDetails.textContent = `This ${serviceName.toLowerCase()} is ${ride.status}. Open tracking to review its details.`;
   } else {
@@ -95,7 +113,44 @@ function showSubmittedRide(ride, restored = false) {
         : `Your ${isDelivery ? "delivery" : "ride"} request is saved for ${ride.pickup.name} to ${ride.destination.name}. A matching driver can accept it from the Rider Driver dashboard.`;
   }
   matchTrackingLink.href = `tracking.html?id=${encodeURIComponent(ride.id)}`;
+  matchCancelButton.hidden = !["finding", "accepted", "arriving"].includes(ride.status);
+  matchCancelButton.disabled = isBookingCancellationInProgress;
+  matchCancelButton.textContent = isBookingCancellationInProgress ? "Cancelling..." : "Cancel request";
+  matchBookAgainLink.hidden = ride.status !== "cancelled";
   matchCard.hidden = false;
+}
+
+async function handleBookingCancellation() {
+  if (!currentBookingRide || !["finding", "accepted", "arriving"].includes(currentBookingRide.status)) {
+    return;
+  }
+  const confirmation = await confirmRideCancellation(currentBookingRide);
+  if (!confirmation?.confirmed) {
+    return;
+  }
+
+  const rideId = currentBookingRide.id;
+  isBookingCancellationInProgress = true;
+  matchCancelButton.disabled = true;
+  matchCancelButton.textContent = "Cancelling...";
+  try {
+    const cancelledRide = await cancelRideRequest(rideId, confirmation.reason);
+    if (cancelledRide.status !== "cancelled") {
+      throw new Error("The ride was not cancelled. Refresh and check its current status.");
+    }
+    stopBookingStatusUpdates();
+    clearSavedBookingConfirmation(rideId);
+    showSubmittedRide(cancelledRide, true);
+    showStatus("Your request has been cancelled. You can book another ride whenever you’re ready.");
+  } catch (error) {
+    showError(error.message);
+  } finally {
+    isBookingCancellationInProgress = false;
+    if (currentBookingRide && ["finding", "accepted", "arriving"].includes(currentBookingRide.status)) {
+      matchCancelButton.disabled = false;
+      matchCancelButton.textContent = "Cancel request";
+    }
+  }
 }
 
 function stopBookingStatusUpdates() {
@@ -120,6 +175,10 @@ async function refreshBookingStatus(rideId) {
       throw new Error("This ride is no longer available to your account.");
     }
     showSubmittedRide(latestRide, true);
+    if (latestRide.status === "cancelled") {
+      clearSavedBookingConfirmation(rideId);
+      stopBookingStatusUpdates();
+    }
   } catch (error) {
     showError(`Your ride status could not be refreshed: ${error.message}`);
   } finally {
@@ -175,7 +234,11 @@ async function restoreLastBooking() {
       return;
     }
     showSubmittedRide(previousRide, true);
-    watchBookingStatus(previousRideId);
+    if (previousRide.status === "cancelled") {
+      clearSavedBookingConfirmation(previousRideId);
+    } else if (previousRide.status !== "completed") {
+      watchBookingStatus(previousRideId);
+    }
   } catch (error) {
     try {
       window.sessionStorage.removeItem(LAST_BOOKED_RIDE_KEY);
@@ -592,7 +655,9 @@ async function findRide(event) {
             ? "Your request is sent. Once a driver accepts, complete payment from the tracking page before the trip starts."
             : "Your request has been sent to matching approved drivers. Track this page for acceptance and progress.",
     );
-    watchBookingStatus(ride.id);
+    if (!["completed", "cancelled"].includes(ride.status)) {
+      watchBookingStatus(ride.id);
+    }
   } catch (error) {
     showError(error.message);
   } finally {
@@ -647,6 +712,7 @@ async function startBookingPage() {
   window.addEventListener("pagehide", stopBookingStatusUpdates, { once: true });
   updateVehicleFields();
   await updatePaymentFields();
+  matchCancelButton.addEventListener("click", handleBookingCancellation);
   form.addEventListener("submit", findRide);
 }
 

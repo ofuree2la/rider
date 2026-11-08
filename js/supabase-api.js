@@ -65,6 +65,8 @@ function mapRide(row, driver = null) {
     paymentReference: row.payment_reference,
     rating: row.rating,
     declinedBy: row.declined_by ?? [],
+    cancelledBy: row.cancelled_by ?? null,
+    cancellationReason: row.cancellation_reason ?? null,
     createdAt: row.created_at,
     matchedAt: row.matched_at,
     arrivedAt: row.arrived_at,
@@ -650,12 +652,68 @@ export async function updateDriverRideStatus(rideId, driverId, nextStatus) {
   return mapRide(data, user);
 }
 
-export async function cancelScheduledRide(rideId) {
-  const { data, error } = await supabase.rpc("cancel_scheduled_ride", {
-    target_ride_id: rideId,
-  });
-  throwOnError(error);
-  return mapRide(data);
+function isNetworkFailure(error) {
+  const seen = new Set();
+  let current = error;
+  while (current && !seen.has(current)) {
+    seen.add(current);
+    if (
+      current instanceof TypeError ||
+      ["AbortError", "FetchError", "FunctionsFetchError"].includes(current.name) ||
+      /network|fetch|connection|timed?\s*out|offline/i.test(current.message ?? "")
+    ) {
+      return true;
+    }
+    current = current.cause;
+  }
+  return false;
+}
+
+export async function cancelRideRequest(rideId, reason = null) {
+  await requireUser("rider");
+  const allowedReasons = [
+    "found another ride",
+    "plans changed",
+    "driver too far",
+    "booked by mistake",
+    "other",
+  ];
+  if (reason !== null && !allowedReasons.includes(reason)) {
+    throw new TypeError("Choose a valid cancellation reason.");
+  }
+
+  try {
+    const { data, error } = await supabase.rpc("cancel_ride_request", {
+      target_ride_id: rideId,
+      cancellation_reason: reason,
+    });
+    throwOnError(error);
+    return mapRide(data);
+  } catch (error) {
+    if (!isNetworkFailure(error)) {
+      throw error;
+    }
+
+    try {
+      const { data, error: refreshError } = await supabase
+        .from("rides")
+        .select("*")
+        .eq("id", rideId)
+        .maybeSingle();
+      throwOnError(refreshError);
+      if (data?.status === "cancelled") {
+        return mapRide(data);
+      }
+    } catch (refreshError) {
+      throw new Error("Connection problem, check and try again.", { cause: refreshError });
+    }
+
+    throw new Error("Connection problem, check and try again.", { cause: error });
+  }
+}
+
+export async function cancelScheduledRide(rideId, reason = null) {
+  return cancelRideRequest(rideId, reason);
 }
 
 export async function rateRide(rideId, rating, comment = "") {

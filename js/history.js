@@ -1,4 +1,5 @@
-import { cancelScheduledRide, getRides } from "./supabase-api.js";
+import { cancelRideRequest, getRide, getRides } from "./supabase-api.js";
+import { clearSavedBookingConfirmation, confirmRideCancellation } from "./cancel-ride-dialog.js";
 
 const upcomingList = document.querySelector("#upcoming-rides");
 const pastList = document.querySelector("#past-rides");
@@ -79,7 +80,8 @@ function makeRideCard(ride, canCancel) {
       : `${ride.vehicleType === "minivan" ? "Mini bus" : "Keke"} · ${ride.passengers} passenger${ride.passengers === 1 ? "" : "s"}`;
   const pickupTime =
     ride.timing === "scheduled" ? formatDate(ride.scheduledAt) : "Requested now";
-  details.textContent = `${bookingType} · ${pickupTime} · ${currencyFormatter.format(getTotalFare(ride))}`;
+  const cancellationNote = ride.status === "on-trip" ? " · Trip started; cancellation unavailable" : "";
+  details.textContent = `${bookingType} · ${pickupTime} · ${currencyFormatter.format(getTotalFare(ride))}${cancellationNote}`;
 
   const actions = document.createElement("div");
   actions.className = "ride-history-actions";
@@ -98,7 +100,7 @@ function makeRideCard(ride, canCancel) {
     cancelButton.type = "button";
     cancelButton.className = "btn btn-ghost cancel-ride-button";
     cancelButton.dataset.rideId = ride.id;
-    cancelButton.textContent = "Cancel scheduled booking";
+    cancelButton.textContent = "Cancel request";
     actions.append(cancelButton);
   }
 
@@ -112,7 +114,6 @@ async function renderRides() {
   );
   const upcoming = [];
   const past = [];
-  const now = new Date();
 
   rides.forEach((ride) => {
     if (ride.status === "completed" || ride.status === "cancelled") {
@@ -125,10 +126,7 @@ async function renderRides() {
   upcomingList.replaceChildren();
   pastList.replaceChildren();
   upcoming.forEach((ride) => {
-    const canCancel =
-      ride.timing === "scheduled" &&
-      new Date(ride.scheduledAt) > now &&
-      !["completed", "cancelled", "on-trip"].includes(ride.status);
+    const canCancel = ["finding", "accepted", "arriving"].includes(ride.status);
     upcomingList.append(makeRideCard(ride, canCancel));
   });
   past.forEach((ride) => pastList.append(makeRideCard(ride, false)));
@@ -144,18 +142,45 @@ async function handleCancel(event) {
   if (!button) {
     return;
   }
-
-  if (!window.confirm("Cancel this scheduled ride?")) {
+  const rideId = button.dataset.rideId;
+  let ride;
+  try {
+    ride = await getRide(rideId);
+  } catch (error) {
+    showError(`Ride details could not be refreshed: ${error.message}`);
     return;
   }
+  if (!ride) {
+    showError("This ride could not be found. Refresh the page and check its current status.");
+    return;
+  }
+  if (!["finding", "accepted", "arriving"].includes(ride.status)) {
+    showError("This ride can no longer be cancelled. Its status has changed.");
+    try {
+      await renderRides();
+    } catch (error) {
+      showError(`Ride history could not be refreshed: ${error.message}`);
+    }
+    return;
+  }
+  const confirmation = await confirmRideCancellation(ride);
+  if (!confirmation?.confirmed) return;
 
+  button.disabled = true;
+  button.textContent = "Cancelling...";
   try {
-    await cancelScheduledRide(button.dataset.rideId);
+    const cancelledRide = await cancelRideRequest(rideId, confirmation.reason);
+    if (cancelledRide.status !== "cancelled") {
+      throw new Error("The ride was not cancelled. Refresh and check its current status.");
+    }
+    clearSavedBookingConfirmation(rideId);
     clearMessages();
-    showStatus("Your scheduled booking has been cancelled.");
-    renderRides();
+    showStatus("Your ride has been cancelled.");
+    await renderRides();
   } catch (error) {
     showError(error.message);
+    button.disabled = false;
+    button.textContent = "Cancel request";
   }
 }
 
