@@ -14,7 +14,7 @@ const dashboardError = document.querySelector("#dashboard-error");
 const pendingCount = document.querySelector("#pending-count");
 const activeCount = document.querySelector("#active-count");
 const logoutButton = document.querySelector("#logout-button");
-const DASHBOARD_REFRESH_INTERVAL_MS = 15_000;
+const DASHBOARD_REFRESH_INTERVAL_MS = 45_000;
 
 let driver = null;
 let isRefreshRunning = false;

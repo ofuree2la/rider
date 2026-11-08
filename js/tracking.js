@@ -1,6 +1,7 @@
 import { getRide, rateRide } from "./supabase-api.js";
 import { initializeRidePayment, isOnlinePaymentConfigured } from "./payment.js";
 import { mountRideChat } from "./ride-chat.js";
+import { supabase } from "./supabase-client.js";
 
 const rideId = new URLSearchParams(window.location.search).get("id");
 const paymentResult = new URLSearchParams(window.location.search).get("payment");
@@ -53,8 +54,11 @@ const currencyFormatter = new Intl.NumberFormat("en-NG", {
 
 let ride = null;
 let refreshTimer = null;
+let rideChannel = null;
+let isRefreshRunning = false;
 let chatRideId = null;
 let chatCleanup = null;
+const REFRESH_INTERVAL_MS = 45_000;
 
 function showError(message) {
   trackingError.textContent = message;
@@ -261,24 +265,62 @@ function renderRide() {
   }
 }
 
-function scheduleRideRefresh() {
-  window.clearTimeout(refreshTimer);
-  if (["completed", "cancelled"].includes(ride.status)) {
+async function refreshRideStatus() {
+  if (isRefreshRunning || document.visibilityState !== "visible") {
     return;
   }
-  refreshTimer = window.setTimeout(async () => {
-    try {
-      const latestRide = await getRide(ride.id);
-      if (latestRide) {
-        ride = latestRide;
-        renderRide();
-      }
-      scheduleRideRefresh();
-    } catch (error) {
-      showError(`Ride status could not be refreshed: ${error.message}`);
-      refreshTimer = window.setTimeout(scheduleRideRefresh, 10000);
+
+  isRefreshRunning = true;
+  try {
+    const latestRide = await getRide(ride.id);
+    if (!latestRide) {
+      throw new Error("This ride is no longer available to your account.");
     }
-  }, 5000);
+    ride = latestRide;
+    hideMessages();
+    renderRide();
+    if (["completed", "cancelled"].includes(ride.status) && refreshTimer !== null) {
+      window.clearInterval(refreshTimer);
+      refreshTimer = null;
+    }
+  } catch (error) {
+    showError(`Ride status could not be refreshed: ${error.message}`);
+  } finally {
+    isRefreshRunning = false;
+  }
+}
+
+function handleRideRealtimeStatus(status, error) {
+  if (status === "SUBSCRIBED") {
+    refreshRideStatus();
+    return;
+  }
+
+  if (["CHANNEL_ERROR", "TIMED_OUT", "CLOSED"].includes(status)) {
+    showStatus("Live ride updates are unavailable. We’ll keep checking for updates.");
+    if (error) {
+      console.error("Ride tracking Realtime channel error.", error);
+    }
+  }
+}
+
+function cleanupRideTracking() {
+  if (refreshTimer !== null) {
+    window.clearInterval(refreshTimer);
+    refreshTimer = null;
+  }
+  document.removeEventListener("visibilitychange", handleTrackingVisibility);
+  chatCleanup?.();
+  if (rideChannel) {
+    supabase.removeChannel(rideChannel);
+    rideChannel = null;
+  }
+}
+
+function handleTrackingVisibility() {
+  if (document.visibilityState === "visible") {
+    refreshRideStatus();
+  }
 }
 
 async function shareTrip() {
@@ -348,7 +390,22 @@ async function startTrackingPage() {
   }
 
   renderRide();
-  scheduleRideRefresh();
+  rideChannel = supabase
+    .channel(`rider-ride-status:${ride.id}`)
+    .on(
+      "postgres_changes",
+      {
+        event: "UPDATE",
+        schema: "public",
+        table: "rides",
+        filter: `id=eq.${ride.id}`,
+      },
+      refreshRideStatus,
+    )
+    .subscribe(handleRideRealtimeStatus);
+  refreshTimer = window.setInterval(refreshRideStatus, REFRESH_INTERVAL_MS);
+  document.addEventListener("visibilitychange", handleTrackingVisibility);
+  window.addEventListener("pagehide", cleanupRideTracking, { once: true });
   ratingForm.addEventListener("submit", submitRating);
   shareButton.addEventListener("click", shareTrip);
   paymentButton.addEventListener("click", payForRide);

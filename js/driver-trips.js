@@ -24,7 +24,7 @@ const dashboardError = document.querySelector("#dashboard-error");
 const logoutButton = document.querySelector("#logout-button");
 const driverChatCard = document.querySelector("#driver-chat-card");
 const driverChatRoot = document.querySelector("#driver-chat");
-const REFRESH_INTERVAL_MS = 15_000;
+const REFRESH_INTERVAL_MS = 45_000;
 const currencyFormatter = new Intl.NumberFormat("en-NG", {
   style: "currency",
   currency: "NGN",
@@ -39,6 +39,10 @@ let driver = null;
 let isRefreshRunning = false;
 let driverChatRideId = null;
 let driverChatCleanup = null;
+const ACCEPT_ANIMATION_MS = 2500;
+const DECLINE_CONFIRMATION_MS = 5000;
+const acceptAnimations = new Map();
+const declineConfirmations = new Map();
 
 function showStatus(message) {
   dashboardStatus.textContent = message;
@@ -104,7 +108,9 @@ async function renderRequests() {
   }
 
   requestList.innerHTML = requests.map((ride) => `
-    <article class="request-card">
+    <article class="request-card" data-ride-id="${escapeHtml(ride.id)}">
+      <div class="request-accept-progress" aria-hidden="true"><span></span></div>
+      <p class="request-action-feedback" role="status" aria-live="polite" hidden></p>
       <div class="request-top">
         <h3>${escapeHtml(ride.pickup?.name ?? "Pickup")} to ${escapeHtml(ride.destination?.name ?? "Destination")}</h3>
         <span class="badge">${ride.serviceType === "delivery" ? "Delivery" : ride.timing === "scheduled" ? "Scheduled" : "Now"}</span>
@@ -254,19 +260,15 @@ async function handleRideAction(event) {
   if (!button) {
     return;
   }
-  button.disabled = true;
   const { action, rideId } = button.dataset;
 
   try {
     if (action === "accept") {
-      const ride = await acceptRideRequest(rideId, driver.id);
-      showStatus(
-        `${ride.serviceType === "delivery" ? "Delivery" : "Ride"} accepted. The rider can now track your progress.`,
-      );
+      await handleAcceptRequest(button, rideId);
     } else if (action === "decline") {
-      await declineRideRequest(rideId, driver.id);
-      showStatus("Ride request declined.");
+      await handleDeclineRequest(button, rideId);
     } else if (action === "advance-status") {
+      button.disabled = true;
       const ride = (await getDriverRides(driver.id)).find((candidate) => candidate.id === rideId);
       if (!ride) {
         throw new Error("This ride no longer exists.");
@@ -282,11 +284,161 @@ async function handleRideAction(event) {
       }
       await updateDriverRideStatus(rideId, driver.id, nextStatus);
       showStatus(`Ride status updated to ${nextStatus.replace("-", " ")}.`);
+      await refreshTrips();
     }
-    await refreshTrips();
   } catch (error) {
     showError(error.message);
     button.disabled = false;
+  }
+}
+
+function resetDeclineConfirmation(rideId) {
+  const confirmation = declineConfirmations.get(rideId);
+  if (!confirmation) {
+    return;
+  }
+  window.clearTimeout(confirmation.timer);
+  confirmation.button.textContent = "Decline";
+  delete confirmation.button.dataset.confirming;
+  confirmation.button.closest(".request-card")?.querySelector(".request-action-feedback")?.setAttribute("hidden", "");
+  declineConfirmations.delete(rideId);
+}
+
+function startDeclineConfirmation(button, rideId) {
+  resetDeclineConfirmation(rideId);
+  button.dataset.confirming = "true";
+  button.textContent = "Tap again to decline";
+  const feedback = button.closest(".request-card")?.querySelector(".request-action-feedback");
+  if (feedback) {
+    feedback.textContent = "Decline this ride? Tap again within 5 seconds to confirm.";
+    feedback.hidden = false;
+  }
+  const timer = window.setTimeout(() => resetDeclineConfirmation(rideId), DECLINE_CONFIRMATION_MS);
+  declineConfirmations.set(rideId, { button, timer });
+}
+
+async function handleDeclineRequest(button, rideId) {
+  const animation = acceptAnimations.get(rideId);
+  if (animation) {
+    animation.cancel();
+  }
+
+  if (!button.dataset.confirming) {
+    startDeclineConfirmation(button, rideId);
+    return;
+  }
+
+  resetDeclineConfirmation(rideId);
+  button.disabled = true;
+  await declineRideRequest(rideId, driver.id);
+  showStatus("Ride request declined.");
+  await refreshTrips();
+}
+
+async function handleAcceptRequest(button, rideId) {
+  resetDeclineConfirmation(rideId);
+  button.disabled = true;
+  const card = button.closest(".request-card");
+  const availableRequests = await getDriverRideRequests(driver.id);
+  if (!availableRequests.some((request) => request.id === rideId)) {
+    await refreshUnavailableRide(button);
+    return;
+  }
+
+  const completed = await runAcceptAnimation(card, rideId);
+  if (!completed) {
+    return;
+  }
+
+  try {
+    const ride = await acceptRideRequest(rideId, driver.id);
+    showStatus(
+      `${ride.serviceType === "delivery" ? "Delivery" : "Ride"} accepted. The rider’s tracking page will update automatically.`,
+    );
+    await refreshTrips();
+  } catch (error) {
+    if (/already been accepted|closed|no longer available/i.test(error.message)) {
+      await refreshUnavailableRide(button);
+      return;
+    }
+    resetAcceptingCard(button.closest(".request-card"));
+    throw error;
+  }
+}
+
+function resetAcceptingCard(card) {
+  if (!card) {
+    return;
+  }
+  card.classList.remove("is-accepting");
+  card.querySelector(".request-accept-progress").hidden = true;
+  card.querySelector(".request-action-feedback").hidden = true;
+  const acceptButton = card.querySelector('[data-action="accept"]');
+  const declineButton = card.querySelector('[data-action="decline"]');
+  acceptButton.disabled = false;
+  acceptButton.textContent = "Accept";
+  if (declineButton) {
+    declineButton.disabled = false;
+  }
+}
+
+function runAcceptAnimation(card, rideId) {
+  const progress = card.querySelector(".request-accept-progress");
+  const feedback = card.querySelector(".request-action-feedback");
+  const acceptButton = card.querySelector('[data-action="accept"]');
+  const declineButton = card.querySelector('[data-action="decline"]');
+  const progressBar = progress.querySelector("span");
+
+  card.classList.add("is-accepting");
+  progress.hidden = false;
+  feedback.textContent = "Accepting request…";
+  feedback.hidden = false;
+  acceptButton.textContent = "Accepting…";
+  if (declineButton) {
+    declineButton.disabled = true;
+  }
+
+  return new Promise((resolve) => {
+    const finish = (completed) => {
+      window.clearTimeout(timer);
+      progressBar.removeEventListener("animationend", onAnimationEnd);
+      acceptAnimations.delete(rideId);
+      resolve(completed);
+    };
+    const onAnimationEnd = () => finish(true);
+    const timer = window.setTimeout(() => finish(true), ACCEPT_ANIMATION_MS + 500);
+    progressBar.addEventListener("animationend", onAnimationEnd, { once: true });
+    acceptAnimations.set(rideId, {
+      cancel() {
+        finish(false);
+        resetAcceptingCard(card);
+      },
+    });
+  });
+}
+
+async function refreshUnavailableRide(button) {
+  try {
+    await refreshTrips();
+    showError("This ride was already taken or is no longer available. The request list has been refreshed.");
+  } catch (error) {
+    showError(`This ride was already taken or is no longer available. The request list could not be refreshed: ${error.message}`);
+    resetAcceptingCard(button.closest(".request-card"));
+    button.disabled = false;
+  }
+}
+
+async function refreshTripsSafely() {
+  if (isRefreshRunning) {
+    return;
+  }
+  isRefreshRunning = true;
+  try {
+    await refreshTrips();
+  } catch (error) {
+    showError(`Trips could not be refreshed: ${error.message}`);
+  } finally {
+    isRefreshRunning = false;
   }
 }
 
@@ -319,18 +471,12 @@ async function startTripsPage() {
     requestList.addEventListener("click", handleRideAction);
     activeRideCard.addEventListener("click", handleRideAction);
     await refreshTrips();
+    document.addEventListener("driver-ride-requests-updated", refreshTripsSafely);
     window.setInterval(async () => {
       if (document.visibilityState !== "visible" || isRefreshRunning) {
         return;
       }
-      isRefreshRunning = true;
-      try {
-        await refreshTrips();
-      } catch (error) {
-        showError(`Trips could not be refreshed: ${error.message}`);
-      } finally {
-        isRefreshRunning = false;
-      }
+      await refreshTripsSafely();
     }, REFRESH_INTERVAL_MS);
   } catch (error) {
     showError(`Trips could not be loaded: ${error.message}`);

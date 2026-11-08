@@ -1,6 +1,7 @@
-import { createRide, getCurrentUser, getLocations } from "./supabase-api.js";
+import { createRide, getCurrentUser, getLocations, getRide } from "./supabase-api.js";
 import { calculateFare, loadFareConfig } from "./pricing.js";
 import { isOnlinePaymentConfigured } from "./payment.js";
+import { supabase } from "./supabase-client.js";
 
 const form = document.querySelector("#booking-form");
 const pickupInput = document.querySelector("#pickup");
@@ -31,6 +32,8 @@ const paymentMethodSelect = document.querySelector("#payment-method");
 const onlinePaymentOption = paymentMethodSelect.querySelector('option[value="online"]');
 const emailField = document.querySelector("#email-field");
 const emailInput = document.querySelector("#customer-email");
+const LAST_BOOKED_RIDE_KEY = "rider:last-booked-ride";
+const RIDE_STATUS_REFRESH_INTERVAL_MS = 45_000;
 
 const currencyFormatter = new Intl.NumberFormat("en-NG", {
   style: "currency",
@@ -45,6 +48,9 @@ let locations = [];
 let currentUser = null;
 let selectedPickup = null;
 let selectedDestination = null;
+let bookingStatusChannel = null;
+let bookingStatusTimer = null;
+let isBookingStatusRefreshRunning = false;
 const activeSuggestionIndexes = new WeakMap();
 
 function localDateTimeValue(date) {
@@ -69,6 +75,120 @@ function clearMessages() {
   errorElement.hidden = true;
   statusElement.textContent = "";
   statusElement.hidden = true;
+}
+
+function showSubmittedRide(ride, restored = false) {
+  const isDelivery = ride.serviceType === "delivery";
+  const serviceName = isDelivery ? "Delivery" : "Ride";
+  if (["accepted", "arriving", "on-trip"].includes(ride.status)) {
+    matchTitle.textContent = `${serviceName} accepted`;
+    matchDetails.textContent = "A driver has accepted your request. Open tracking to see their details and follow trip updates.";
+  } else if (ride.status === "completed" || ride.status === "cancelled") {
+    matchTitle.textContent = `${serviceName} ${ride.status}`;
+    matchDetails.textContent = `This ${serviceName.toLowerCase()} is ${ride.status}. Open tracking to review its details.`;
+  } else {
+    matchTitle.textContent = restored ? `${serviceName} request saved` : `${serviceName} request submitted`;
+    matchDetails.textContent = restored
+      ? `Your request is ${ride.status.replace("-", " ")}. Open tracking for current updates.`
+      : ride.paymentMethod === "online"
+        ? "Your request is sent to approved drivers. When a driver accepts, open tracking to pay securely before the trip starts."
+        : `Your ${isDelivery ? "delivery" : "ride"} request is saved for ${ride.pickup.name} to ${ride.destination.name}. A matching driver can accept it from the Rider Driver dashboard.`;
+  }
+  matchTrackingLink.href = `tracking.html?id=${encodeURIComponent(ride.id)}`;
+  matchCard.hidden = false;
+}
+
+function stopBookingStatusUpdates() {
+  if (bookingStatusTimer !== null) {
+    window.clearInterval(bookingStatusTimer);
+    bookingStatusTimer = null;
+  }
+  if (bookingStatusChannel) {
+    supabase.removeChannel(bookingStatusChannel);
+    bookingStatusChannel = null;
+  }
+}
+
+async function refreshBookingStatus(rideId) {
+  if (isBookingStatusRefreshRunning || document.visibilityState !== "visible") {
+    return;
+  }
+  isBookingStatusRefreshRunning = true;
+  try {
+    const latestRide = await getRide(rideId);
+    if (!latestRide) {
+      throw new Error("This ride is no longer available to your account.");
+    }
+    showSubmittedRide(latestRide, true);
+  } catch (error) {
+    showError(`Your ride status could not be refreshed: ${error.message}`);
+  } finally {
+    isBookingStatusRefreshRunning = false;
+  }
+}
+
+function watchBookingStatus(rideId) {
+  stopBookingStatusUpdates();
+  bookingStatusChannel = supabase
+    .channel(`booking-ride-status:${rideId}`)
+    .on(
+      "postgres_changes",
+      {
+        event: "UPDATE",
+        schema: "public",
+        table: "rides",
+        filter: `id=eq.${rideId}`,
+      },
+      () => refreshBookingStatus(rideId),
+    )
+    .subscribe((status, error) => {
+      if (status === "SUBSCRIBED") {
+        refreshBookingStatus(rideId);
+      } else if (["CHANNEL_ERROR", "TIMED_OUT", "CLOSED"].includes(status)) {
+        showStatus("Live ride updates are unavailable. We’ll keep checking for updates.");
+        if (error) {
+          console.error("Booking ride status Realtime channel error.", error);
+        }
+      }
+    });
+  bookingStatusTimer = window.setInterval(
+    () => refreshBookingStatus(rideId),
+    RIDE_STATUS_REFRESH_INTERVAL_MS,
+  );
+}
+
+async function restoreLastBooking() {
+  let previousRideId;
+  try {
+    previousRideId = window.sessionStorage.getItem(LAST_BOOKED_RIDE_KEY);
+  } catch (error) {
+    showStatus(`This browser cannot restore your previous booking after refresh: ${error.message}`);
+    return;
+  }
+  if (!previousRideId) {
+    return;
+  }
+  try {
+    const previousRide = await getRide(previousRideId);
+    if (!previousRide) {
+      window.sessionStorage.removeItem(LAST_BOOKED_RIDE_KEY);
+      return;
+    }
+    showSubmittedRide(previousRide, true);
+    watchBookingStatus(previousRideId);
+  } catch (error) {
+    try {
+      window.sessionStorage.removeItem(LAST_BOOKED_RIDE_KEY);
+    } catch (storageError) {
+      console.error("A stale booking reference could not be cleared.", storageError);
+    }
+    showStatus(`Your previous ride could not be restored. Open Ride history to find it. ${error.message}`);
+  }
+}
+
+function resetBookingCardForNewRequest() {
+  stopBookingStatusUpdates();
+  matchCard.hidden = true;
 }
 
 function getFareTime() {
@@ -406,7 +526,7 @@ function wait(milliseconds) {
 async function findRide(event) {
   event.preventDefault();
   clearMessages();
-  matchCard.hidden = true;
+  resetBookingCardForNewRequest();
 
   let route;
   let fare;
@@ -457,18 +577,22 @@ async function findRide(event) {
       throw new Error("Online payments are not configured yet. Please choose cash.");
     }
     const ride = await createRide(rideInput);
-    matchTitle.textContent = isDelivery ? "Delivery request submitted" : "Ride request submitted";
-    matchDetails.textContent =
-      rideInput.paymentMethod === "online"
-        ? `Your request is sent to approved drivers. When a driver accepts, open tracking to pay securely before the trip starts.`
-        : `Your ${isDelivery ? "delivery" : "ride"} request is saved for ${ride.pickup.name} to ${ride.destination.name}. A matching driver can accept it from the Rider Driver dashboard.`;
-    matchTrackingLink.href = `tracking.html?id=${encodeURIComponent(ride.id)}`;
-    matchCard.hidden = false;
+    let bookingSavedForRefresh = true;
+    try {
+      window.sessionStorage.setItem(LAST_BOOKED_RIDE_KEY, ride.id);
+    } catch (error) {
+      bookingSavedForRefresh = false;
+      console.error("The submitted booking could not be saved for page refresh.", error);
+    }
+    showSubmittedRide(ride);
     showStatus(
-      rideInput.paymentMethod === "online"
-        ? "Your request is sent. Once a driver accepts, complete payment from the tracking page before the trip starts."
-        : "Your request has been sent to matching approved drivers. Track this page for acceptance and progress.",
+      !bookingSavedForRefresh
+          ? "Your request was submitted, but this browser could not save it for display after a refresh. Use Track your ride or Ride history to reopen it."
+          : rideInput.paymentMethod === "online"
+            ? "Your request is sent. Once a driver accepts, complete payment from the tracking page before the trip starts."
+            : "Your request has been sent to matching approved drivers. Track this page for acceptance and progress.",
     );
+    watchBookingStatus(ride.id);
   } catch (error) {
     showError(error.message);
   } finally {
@@ -494,6 +618,7 @@ async function startBookingPage() {
     return;
   }
   emailInput.value = currentUser.email;
+  await restoreLastBooking();
   await loadFareConfig();
   await populateLocations();
   updateFareEstimate();
@@ -511,6 +636,15 @@ async function startBookingPage() {
     input.addEventListener("change", updateTimingFields);
   });
   paymentMethodSelect.addEventListener("change", updatePaymentFields);
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") {
+      const currentRideId = new URL(matchTrackingLink.href).searchParams.get("id");
+      if (currentRideId && !matchCard.hidden) {
+        refreshBookingStatus(currentRideId);
+      }
+    }
+  });
+  window.addEventListener("pagehide", stopBookingStatusUpdates, { once: true });
   updateVehicleFields();
   await updatePaymentFields();
   form.addEventListener("submit", findRide);

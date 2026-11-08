@@ -82,6 +82,35 @@
   font-weight: 700;
 }
 
+.driver-request-notification {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: var(--color-brand);
+  color: var(--color-white);
+  font-weight: 800;
+  text-align: center;
+}
+
+.driver-request-notification[hidden] {
+  display: none;
+}
+
+.driver-request-notification a {
+  flex: 0 0 auto;
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+
+.driver-request-notification.is-error {
+  background: #8e2c2c;
+}
+
 .status-message {
   background: rgba(22, 130, 75, 0.08);
   color: var(--color-success);
@@ -90,6 +119,14 @@
 .error-message {
   background: rgba(160, 52, 52, 0.08);
   color: #8e2c2c;
+}
+
+@media (max-width: 520px) {
+  .driver-request-notification {
+    flex-wrap: wrap;
+    gap: 0.25rem 0.75rem;
+    font-size: var(--font-size-sm);
+  }
 }
 
 .stats-grid {
@@ -164,8 +201,56 @@
 }
 
 .request-card {
+  position: relative;
+  overflow: hidden;
   display: grid;
   gap: 0.8rem;
+}
+
+.request-accept-progress {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 5px;
+  overflow: hidden;
+  background: rgba(22, 130, 75, 0.12);
+}
+
+.request-accept-progress[hidden] {
+  display: none;
+}
+
+.request-accept-progress span {
+  display: block;
+  width: 0;
+  height: 100%;
+  background: var(--color-brand);
+}
+
+.request-card.is-accepting .request-accept-progress span {
+  animation: request-accept-fill 2.5s linear forwards;
+}
+
+.request-action-feedback {
+  margin: 0;
+  color: var(--color-brand-dark);
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+}
+
+.request-card.is-accepting .request-action-feedback {
+  padding-top: 0.3rem;
+}
+
+@keyframes request-accept-fill {
+  to {
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .request-card.is-accepting .request-accept-progress span {
+    animation-duration: 0.01ms;
+  }
 }
 
 .request-top,

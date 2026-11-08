@@ -22,11 +22,12 @@ The initial schema and RLS policies are in `supabase/migrations/20261104230300_r
 3. Run `supabase/migrations/20261106140000_enforce_cash_only_ride_payments.sql` in the SQL Editor.
 4. To enable the secure Paystack flow, also run `supabase/migrations/20261107000000_secure_online_ride_payments.sql`.
 5. Run `supabase/migrations/20261108000000_vehicles_deliveries_photos_chat.sql` after the preceding migrations. It adds vehicle-specific fares, package deliveries, profile photos, and ride chat with database access policies.
-6. Set the Supabase Auth Site URL to the deployed Rider URL and allow the Rider login URLs as redirects.
-7. Create the first Admin user through the Rider sign-up page as a rider account, then confirm the email.
-8. In the SQL Editor, promote that account by running:
+6. Run `supabase/migrations/20261108010000_enable_ride_realtime.sql` to add ride requests to the `supabase_realtime` publication. It is safe to rerun and does not change RLS policies.
+7. Set the Supabase Auth Site URL to the deployed Rider URL and allow the Rider login URLs as redirects.
+8. Create the first Admin user through the Rider sign-up page as a rider account, then confirm the email.
+9. In the SQL Editor, promote that account by running:
    `update public.profiles set role = 'admin' where id = (select id from auth.users where email = lower('YOUR_ADMIN_EMAIL'));`
-9. Verify the profile role is `admin`, then sign in at `admin/login.html`.
+10. Verify the profile role is `admin`, then sign in at `admin/login.html`.
 
 Rider and driver authentication, profiles, bookings, tracking, history, driver workflows, Admin management, locations, and fare matrix settings use Supabase. Online rides may be accepted by a driver while payment is pending, but the driver cannot start the trip until Paystack confirms payment.
 
