@@ -49,6 +49,7 @@ const dateFormatter = new Intl.DateTimeFormat("en-NG", {
 });
 let driverStatusFilter = "pending";
 let pricingConfig = null;
+let adminRides = [];
 
 function showStatus(message) {
   adminStatus.textContent = message;
@@ -568,7 +569,7 @@ async function refreshDashboard() {
 
   if (document.querySelector("#metric-rides")) {
     requests.push(
-      Promise.all([getDrivers(), getRides(), getRegisteredUsers()]).then(
+      Promise.all([getDrivers(), getRides({ includeDriver: false }), getRegisteredUsers()]).then(
         ([drivers, rides, users]) => renderMetrics(drivers, rides, users),
       ),
     );
@@ -599,7 +600,12 @@ async function refreshDashboard() {
     );
   }
   if (rideList) {
-    requests.push(getRides().then(renderRides));
+    requests.push(
+      getRides({ includeDriver: false }).then((rides) => {
+        adminRides = rides;
+        renderRides(rides);
+      }),
+    );
   }
 
   await Promise.all(requests);
@@ -747,12 +753,8 @@ async function startAdminDashboard() {
         renderFareMatrix(pricingConfig, event.target.value);
       }
     });
-    document.querySelector("#ride-filters")?.addEventListener("input", async () => {
-      try {
-        renderRides(await getRides());
-      } catch (error) {
-        showError(error.message);
-      }
+    document.querySelector("#ride-filters")?.addEventListener("input", () => {
+      renderRides(adminRides);
     });
   } catch (error) {
     showError(`The admin dashboard could not be loaded: ${error.message}`);

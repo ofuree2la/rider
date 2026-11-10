@@ -38,14 +38,16 @@ const REQUEST_ALERT_BELL = {
 const siteHeader = document.querySelector(".site-header");
 const pageTitle = document.title;
 const notificationBanner = document.createElement("aside");
-const notificationMessage = document.createElement("a");
+const notificationMessage = document.createElement("span");
+const notificationLink = document.createElement("a");
 
 notificationBanner.className = "driver-request-notification";
 notificationBanner.setAttribute("role", "status");
 notificationBanner.setAttribute("aria-live", "polite");
 notificationBanner.hidden = true;
-notificationMessage.href = "trips.html";
-notificationBanner.append(notificationMessage);
+notificationLink.href = "trips.html";
+notificationLink.textContent = "View Trips";
+notificationBanner.append(notificationMessage, notificationLink);
 
 if (isFirstModuleInstance && !siteHeader) {
   throw new Error("The driver page is missing its site header.");
@@ -368,7 +370,17 @@ function scheduleNextRefresh() {
   }, nextInterval);
 }
 
-function handleRideChange() {
+function handleRideChange(payload) {
+  const updatedRide = payload?.new;
+  if (updatedRide?.id && updatedRide.status) {
+    document.dispatchEvent(new CustomEvent("driver-ride-updated", {
+      detail: {
+        rideId: updatedRide.id,
+        status: updatedRide.status,
+        driverId: updatedRide.driver_id,
+      },
+    }));
+  }
   refreshRequests();
 }
 
@@ -502,7 +514,7 @@ async function startNotifications() {
       return;
     }
 
-    driver = await getCurrentDriver();
+    driver = user;
     const requestList = document.querySelector("#request-list");
     if (requestList) {
       requestListObserver = new MutationObserver(scheduleNextRefresh);

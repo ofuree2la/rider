@@ -2,7 +2,6 @@ import "./notifications.js";
 import {
   acceptRideRequest,
   declineRideRequest,
-  getCurrentDriver,
   getCurrentUser,
   getDriverRideRequests,
   getDriverRides,
@@ -26,7 +25,7 @@ const logoutButton = document.querySelector("#logout-button");
 const driverChatCard = document.querySelector("#driver-chat-card");
 const driverChatRoot = document.querySelector("#driver-chat");
 const REFRESH_INTERVAL_MS = 12_000;
-const CANCELLATION_NOTICE_MS = 6_000;
+const CARD_FADE_DURATION_MS = 280;
 const REQUEST_LIFETIME_MS = 30_000;
 const REQUEST_EXPIRY_NOTE_MS = 5_000;
 const currencyFormatter = new Intl.NumberFormat("en-NG", {
@@ -44,7 +43,7 @@ let isRefreshRunning = false;
 let driverChatRideId = null;
 let driverChatCleanup = null;
 let tripsRefreshTimer = null;
-let cancellationNoticeTimer = null;
+let activeRideFadeTimer = null;
 let requestCountdownTimer = null;
 let requestExpiryNoteTimer = null;
 let expiredNoticeUntil = 0;
@@ -93,6 +92,74 @@ function formatRideTime(value) {
   return Number.isNaN(parsedDate.getTime())
     ? "Pickup time unavailable"
     : dateFormatter.format(parsedDate);
+}
+
+function fadeOutCard(card, onComplete = () => {}, removeAfterFade = true) {
+  if (!card?.isConnected || card.classList.contains("ride-fading-out")) {
+    return;
+  }
+
+  card.inert = true;
+  card.setAttribute("aria-hidden", "true");
+  card.querySelectorAll("button").forEach((button) => {
+    button.disabled = true;
+  });
+  card.querySelectorAll("a").forEach((link) => {
+    link.removeAttribute("href");
+    link.setAttribute("aria-disabled", "true");
+  });
+  card.style.maxHeight = `${card.scrollHeight}px`;
+  card.classList.add("ride-fading-out");
+  window.requestAnimationFrame(() => {
+    card.style.maxHeight = "0px";
+  });
+  return window.setTimeout(() => {
+    if (removeAfterFade) {
+      card.remove();
+    }
+    onComplete();
+  }, CARD_FADE_DURATION_MS);
+}
+
+function fadeOutActiveRide() {
+  if (activeRideFadeTimer !== null) {
+    return;
+  }
+  clearDriverChat();
+  activeRideFadeTimer = fadeOutCard(activeRideCard, () => {
+    activeRideFadeTimer = null;
+    activeRideCard.hidden = true;
+    activeRideCard.classList.remove("ride-fading-out");
+    activeRideCard.style.maxHeight = "";
+    activeRideCard.inert = false;
+    activeRideCard.removeAttribute("aria-hidden");
+  }, false);
+}
+
+function handleDriverRideUpdate(event) {
+  const { rideId, status, driverId } = event.detail ?? {};
+  if (!rideId || !status) {
+    return;
+  }
+
+  const requestCard = [...requestList.querySelectorAll(".request-card[data-ride-id]")]
+    .find((card) => card.dataset.rideId === rideId);
+  if (requestCard && status !== "finding") {
+    fadeOutCard(requestCard);
+  }
+
+  if (driverId === driver?.id && activeRideIds.has(rideId) && status === "cancelled") {
+    activeRideIds.delete(rideId);
+    latestRides = latestRides.map((ride) =>
+      ride.id === rideId ? { ...ride, status: "cancelled", riderPhone: "" } : ride,
+    );
+    activeCount.textContent = String(activeRideIds.size);
+    fadeOutActiveRide();
+  }
+
+  if (driverId === driver?.id && ["cancelled", "completed"].includes(status)) {
+    refreshTripsSafely();
+  }
 }
 
 function getRideTotal(ride) {
@@ -252,6 +319,9 @@ async function renderRequests() {
   const removedRequestCount = [...previousRequestIds]
     .filter((requestId) => !currentRequestIds.has(requestId))
     .length;
+  const exitingRequestCards = [...requestList.querySelectorAll(".request-card[data-ride-id]")]
+    .filter((card) => !currentRequestIds.has(card.dataset.rideId));
+  exitingRequestCards.forEach((card) => fadeOutCard(card));
   if (removedRequestCount > 0) {
     showStatus(
       removedRequestCount === 1
@@ -291,6 +361,7 @@ async function renderRequests() {
   pendingCount.textContent = String(visibleRequests.length);
   if (visibleRequests.length === 0) {
     requestList.innerHTML = `<div class="request-card empty-state-box"><p>No matching requests right now. Keep your ${driver.vehicleType === "bike" ? "bike" : "vehicle"} online to receive new work.</p></div>`;
+    exitingRequestCards.forEach((card) => requestList.append(card));
     renderRequestExpiredNote();
     updateRequestCountdowns();
     return;
@@ -332,6 +403,7 @@ async function renderRequests() {
     </article>
   `;
   }).join("");
+  exitingRequestCards.forEach((card) => requestList.append(card));
   renderRequestExpiredNote();
   updateRequestCountdowns();
 }
@@ -359,34 +431,15 @@ function renderActiveRide(rides) {
     rides.filter((ride) => ["accepted", "arriving", "on-trip"].includes(ride.status)).length,
   );
 
-  if (activeRide) {
-    if (cancellationNoticeTimer !== null) {
-      window.clearTimeout(cancellationNoticeTimer);
-      cancellationNoticeTimer = null;
-    }
-  }
-
   if (!activeRide) {
-    clearDriverChat();
     if (cancelledActiveRide) {
-      activeRideCard.className = "active-ride-card ride-cancelled-notice";
-      const notice = document.createElement("p");
-      notice.setAttribute("role", "status");
-      notice.setAttribute("aria-live", "polite");
-      notice.textContent = "Ride cancelled by rider";
-      activeRideCard.replaceChildren(notice);
-      if (cancellationNoticeTimer !== null) {
-        window.clearTimeout(cancellationNoticeTimer);
-      }
-      cancellationNoticeTimer = window.setTimeout(() => {
-        cancellationNoticeTimer = null;
-        renderActiveRide(latestRides);
-      }, CANCELLATION_NOTICE_MS);
+      fadeOutActiveRide();
       return;
     }
-    if (cancellationNoticeTimer !== null) {
+    if (activeRideCard.classList.contains("ride-fading-out") || activeRideCard.hidden) {
       return;
     }
+    clearDriverChat();
     activeRideCard.className = "active-ride-card empty-state-box";
     activeRideCard.innerHTML = "<p>No active ride yet. Accept a ride request to get started.</p>";
     return;
@@ -408,6 +461,15 @@ function renderActiveRide(rides) {
     ? `<a class="btn btn-secondary" href="tel:${escapeHtml(riderPhone)}">Call rider</a>`
     : "";
 
+  if (activeRideFadeTimer !== null) {
+    window.clearTimeout(activeRideFadeTimer);
+    activeRideFadeTimer = null;
+  }
+  activeRideCard.hidden = false;
+  activeRideCard.inert = false;
+  activeRideCard.removeAttribute("aria-hidden");
+  activeRideCard.classList.remove("ride-fading-out");
+  activeRideCard.style.maxHeight = "";
   activeRideCard.className = "active-ride-card";
   activeRideCard.innerHTML = `
     <div class="trip-top">
@@ -487,12 +549,9 @@ function renderRideHistory(rides) {
 async function refreshTrips() {
   hideMessages();
   const [rides] = await Promise.all([
-    getDriverRides(driver.id),
+    getDriverRides(driver.id, { includeDriver: false }),
     renderRequests(),
   ]);
-  if (!driver.isOnline) {
-    await renderRequests();
-  }
   renderActiveRide(rides);
   renderScheduledRides(rides);
   renderRideHistory(rides);
@@ -500,7 +559,8 @@ async function refreshTrips() {
 
 async function handleRideAction(event) {
   const button = event.target.closest("button[data-action]");
-  if (!button) {
+  const card = button?.closest(".request-card, .active-ride-card");
+  if (!button || button.disabled || card?.classList.contains("ride-fading-out")) {
     return;
   }
   const { action, rideId } = button.dataset;
@@ -512,7 +572,7 @@ async function handleRideAction(event) {
       await handleDeclineRequest(button, rideId);
     } else if (action === "advance-status") {
       button.disabled = true;
-      const ride = (await getDriverRides(driver.id)).find((candidate) => candidate.id === rideId);
+      const ride = latestRides.find((candidate) => candidate.id === rideId);
       if (!ride) {
         throw new Error("This ride no longer exists.");
       }
@@ -614,7 +674,10 @@ function isNetworkError(error) {
 
 async function resolveUncertainAccept(button, rideId, originalError) {
   try {
-    const assignedRides = await getDriverRides(driver.id);
+    const assignedRides = await getDriverRides(driver.id, {
+      includeDriver: false,
+      includeRiderPhone: false,
+    });
     const assignedRide = assignedRides.find((ride) => ride.id === rideId);
     if (assignedRide) {
       try {
@@ -758,13 +821,13 @@ function handleDriverAvailabilityChange(event) {
 function cleanupTripsPage() {
   stopTripsRefresh();
   stopRequestCountdownTimer();
+  if (activeRideFadeTimer !== null) {
+    window.clearTimeout(activeRideFadeTimer);
+    activeRideFadeTimer = null;
+  }
   if (requestExpiryNoteTimer !== null) {
     window.clearTimeout(requestExpiryNoteTimer);
     requestExpiryNoteTimer = null;
-  }
-  if (cancellationNoticeTimer !== null) {
-    window.clearTimeout(cancellationNoticeTimer);
-    cancellationNoticeTimer = null;
   }
   driverChatCleanup?.();
   for (const rideId of declineConfirmations.keys()) {
@@ -773,6 +836,7 @@ function cleanupTripsPage() {
   document.removeEventListener("driver-availability-state-changed", handleDriverAvailabilityChange);
   document.removeEventListener("driver-session-ended", cleanupTripsPage);
   document.removeEventListener("driver-ride-requests-updated", refreshTripsSafely);
+  document.removeEventListener("driver-ride-updated", handleDriverRideUpdate);
 }
 
 async function startTripsPage() {
@@ -789,7 +853,7 @@ async function startTripsPage() {
       return;
     }
 
-    driver = await getCurrentDriver();
+    driver = user;
     driverNameHeading.textContent = driver.name;
     requestHeading.textContent = driver.vehicleType === "bike" ? "Delivery requests" : "Ride requests";
     activeHeading.textContent = driver.vehicleType === "bike" ? "Active delivery" : "Active ride";
@@ -805,6 +869,7 @@ async function startTripsPage() {
     activeRideCard.addEventListener("click", handleRideAction);
     document.addEventListener("driver-availability-state-changed", handleDriverAvailabilityChange);
     document.addEventListener("driver-session-ended", cleanupTripsPage);
+    document.addEventListener("driver-ride-updated", handleDriverRideUpdate);
     await refreshTrips();
     document.addEventListener("driver-ride-requests-updated", refreshTripsSafely);
     startTripsRefresh();

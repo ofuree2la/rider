@@ -1,6 +1,10 @@
 import { supabase } from "./supabase-client.js";
 
 const ZONES = ["standard", "campus", "premium-hostel"];
+const PROFILE_PHOTO_URL_TTL_MS = 55 * 60 * 1000;
+const profilePhotoUrls = new Map();
+const activeRiderPhones = new Map();
+let currentUserRequest = null;
 
 function throwOnError(error) {
   if (error) {
@@ -91,6 +95,15 @@ async function mapRideWithDriver(row) {
 }
 
 export async function getCurrentUser() {
+  if (!currentUserRequest) {
+    currentUserRequest = loadCurrentUser().finally(() => {
+      currentUserRequest = null;
+    });
+  }
+  return currentUserRequest;
+}
+
+async function loadCurrentUser() {
   const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
   throwOnError(sessionError);
   if (!sessionData.session) {
@@ -108,16 +121,19 @@ export async function getCurrentUser() {
     .single();
   throwOnError(error);
 
-  const avatarUrl = await getProfilePhotoUrl(profile.avatar_path);
+  const avatarUrlRequest = getProfilePhotoUrl(profile.avatar_path);
   if (profile.role !== "driver") {
-    return { ...mapProfile(profile, authUser), avatarUrl };
+    return { ...mapProfile(profile, authUser), avatarUrl: await avatarUrlRequest };
   }
 
-  const { data: driver, error: driverError } = await supabase
-    .from("drivers")
-    .select("profile_id, plate_number, vehicle_type, bank_name, bank_account_number, rating, status, is_online, subaccount_code")
-    .eq("profile_id", authUser.id)
-    .single();
+  const [avatarUrl, { data: driver, error: driverError }] = await Promise.all([
+    avatarUrlRequest,
+    supabase
+      .from("drivers")
+      .select("profile_id, plate_number, vehicle_type, bank_name, bank_account_number, rating, status, is_online, subaccount_code")
+      .eq("profile_id", authUser.id)
+      .single(),
+  ]);
   throwOnError(driverError);
   return { ...mapProfile(profile, authUser, driver), avatarUrl };
 }
@@ -126,11 +142,50 @@ async function getProfilePhotoUrl(path) {
   if (!path) {
     return null;
   }
+  const urls = await getProfilePhotoUrls([path]);
+  return urls.get(path) ?? null;
+}
+
+async function getProfilePhotoUrls(paths) {
+  const uniquePaths = [...new Set(paths.filter(Boolean))];
+  const result = new Map();
+  const missingPaths = [];
+  const now = Date.now();
+
+  for (const path of uniquePaths) {
+    const cached = profilePhotoUrls.get(path);
+    if (cached && cached.expiresAt > now) {
+      result.set(path, cached.url);
+    } else {
+      missingPaths.push(path);
+    }
+  }
+  if (missingPaths.length === 0) {
+    return result;
+  }
+
   const { data, error } = await supabase.storage
     .from("profile-photos")
-    .createSignedUrl(path, 60 * 60);
+    .createSignedUrls(missingPaths, 60 * 60);
   throwOnError(error);
-  return data.signedUrl;
+  for (const photo of data ?? []) {
+    if (photo.error) {
+      throw new Error(photo.error.message || "A profile photo URL could not be created.");
+    }
+    if (!photo.path || !photo.signedUrl) {
+      throw new Error("A profile photo URL could not be created.");
+    }
+    result.set(photo.path, photo.signedUrl);
+    profilePhotoUrls.set(photo.path, {
+      url: photo.signedUrl,
+      expiresAt: now + PROFILE_PHOTO_URL_TTL_MS,
+    });
+  }
+
+  if (missingPaths.some((path) => !result.has(path))) {
+    throw new Error("One or more profile photo URLs could not be created.");
+  }
+  return result;
 }
 
 export async function uploadProfilePhoto(file) {
@@ -338,24 +393,25 @@ export async function getDrivers() {
     .select("profile_id, plate_number, vehicle_type, bank_name, bank_account_number, rating, status, is_online, subaccount_code, created_at, profiles!drivers_profile_id_fkey(full_name, phone, avatar_path)")
     .order("created_at", { ascending: false });
   throwOnError(error);
-  return Promise.all(
-    (data ?? []).map(async (driver) => ({
-      id: driver.profile_id,
-      name: driver.profiles?.full_name ?? "Driver",
-      phone: driver.profiles?.phone ?? "",
-      avatarUrl: await getProfilePhotoUrl(driver.profiles?.avatar_path),
-      plateNumber: driver.plate_number,
-      vehicleType: driver.vehicle_type,
-      bankName: driver.bank_name ?? "",
-      bankAccountNumber: driver.bank_account_number ?? "",
-      rating: Number(driver.rating),
-      status: driver.status,
-      verified: driver.status === "approved",
-      isOnline: driver.is_online,
-      subaccountCode: driver.subaccount_code,
-      registeredAt: driver.created_at,
-    })),
+  const photoUrls = await getProfilePhotoUrls(
+    (data ?? []).map((driver) => driver.profiles?.avatar_path),
   );
+  return (data ?? []).map((driver) => ({
+    id: driver.profile_id,
+    name: driver.profiles?.full_name ?? "Driver",
+    phone: driver.profiles?.phone ?? "",
+    avatarUrl: photoUrls.get(driver.profiles?.avatar_path) ?? null,
+    plateNumber: driver.plate_number,
+    vehicleType: driver.vehicle_type,
+    bankName: driver.bank_name ?? "",
+    bankAccountNumber: driver.bank_account_number ?? "",
+    rating: Number(driver.rating),
+    status: driver.status,
+    verified: driver.status === "approved",
+    isOnline: driver.is_online,
+    subaccountCode: driver.subaccount_code,
+    registeredAt: driver.created_at,
+  }));
 }
 
 export async function getRegisteredUsers() {
@@ -365,16 +421,17 @@ export async function getRegisteredUsers() {
     .select("id, full_name, phone, role, avatar_path, created_at")
     .order("created_at", { ascending: false });
   throwOnError(error);
-  return Promise.all(
-    (data ?? []).map(async (profile) => ({
-      id: profile.id,
-      name: profile.full_name,
-      phone: profile.phone ?? "",
-      role: profile.role,
-      avatarUrl: await getProfilePhotoUrl(profile.avatar_path),
-      registeredAt: profile.created_at,
-    })),
+  const photoUrls = await getProfilePhotoUrls(
+    (data ?? []).map((profile) => profile.avatar_path),
   );
+  return (data ?? []).map((profile) => ({
+    id: profile.id,
+    name: profile.full_name,
+    phone: profile.phone ?? "",
+    role: profile.role,
+    avatarUrl: photoUrls.get(profile.avatar_path) ?? null,
+    registeredAt: profile.created_at,
+  }));
 }
 
 export async function getAdminAccountDetails(profileId) {
@@ -553,7 +610,7 @@ export async function updateLocation(locationId, input) {
 
 export async function deleteLocation(locationId) {
   await requireUser("admin");
-  const rides = await getRides();
+  const rides = await getRides({ includeDriver: false });
   if (rides.some((ride) => ride.pickup?.id === locationId || ride.destination?.id === locationId)) {
     throw new Error("This location is saved on a ride and cannot be deleted.");
   }
@@ -627,7 +684,9 @@ export async function getRides(filters = {}) {
   }
   const { data, error } = await query;
   throwOnError(error);
-  return Promise.all((data ?? []).map(mapRideWithDriver));
+  return filters.includeDriver === false
+    ? (data ?? []).map(mapRide)
+    : Promise.all((data ?? []).map(mapRideWithDriver));
 }
 
 export async function getDriverRideRequests(driverId) {
@@ -651,7 +710,10 @@ export async function getDriverRideRequests(driverId) {
     .map(mapRide);
 }
 
-export async function getDriverRides(driverId) {
+export async function getDriverRides(
+  driverId,
+  { includeDriver = true, includeRiderPhone = true } = {},
+) {
   const user = await requireUser("driver");
   if (user.id !== driverId) {
     throw new Error("You can only view your own assigned rides.");
@@ -662,27 +724,48 @@ export async function getDriverRides(driverId) {
     .eq("driver_id", driverId)
     .order("created_at", { ascending: false });
   throwOnError(error);
-  return Promise.all(
-    (data ?? []).map(async (row) => {
-      const ride = await mapRideWithDriver(row);
-      if (!["accepted", "arriving", "on-trip"].includes(ride.status)) {
-        return ride;
-      }
+  const rides = includeDriver
+    ? await Promise.all((data ?? []).map(mapRideWithDriver))
+    : (data ?? []).map(mapRide);
+  const activeRides = rides.filter((ride) => ["accepted", "arriving", "on-trip"].includes(ride.status));
+  const activeRideIds = new Set(activeRides.map((ride) => ride.id));
+  for (const rideId of activeRiderPhones.keys()) {
+    if (!activeRideIds.has(rideId)) {
+      activeRiderPhones.delete(rideId);
+    }
+  }
+  const activeRide = activeRides[0];
+  if (!includeRiderPhone || !activeRide) {
+    return rides;
+  }
 
-      const { data: riderPhone, error: contactError } = await supabase.rpc(
-        "get_assigned_ride_rider_phone",
-        { target_ride_id: ride.id },
-      );
-      throwOnError(contactError);
-      return { ...ride, riderPhone: riderPhone ?? "" };
-    }),
+  if (activeRiderPhones.has(activeRide.id)) {
+    return rides.map((ride) =>
+      ride.id === activeRide.id
+        ? { ...ride, riderPhone: activeRiderPhones.get(activeRide.id) }
+        : ride,
+    );
+  }
+
+  const { data: riderPhone, error: contactError } = await supabase.rpc(
+    "get_assigned_ride_rider_phone",
+    { target_ride_id: activeRide.id },
+  );
+  throwOnError(contactError);
+  activeRiderPhones.set(activeRide.id, riderPhone ?? "");
+  return rides.map((ride) =>
+    ride.id === activeRide.id ? { ...ride, riderPhone: riderPhone ?? "" } : ride,
   );
 }
 
-export async function getRide(rideId) {
+export async function getRide(rideId, { includeDriver = true } = {}) {
   const { data, error } = await supabase.from("rides").select("*").eq("id", rideId).maybeSingle();
   throwOnError(error);
-  return data ? mapRideWithDriver(data) : null;
+  return data
+    ? includeDriver
+      ? mapRideWithDriver(data)
+      : mapRide(data)
+    : null;
 }
 
 export async function createRide(input) {
@@ -868,7 +951,7 @@ export async function rateRide(rideId, rating, comment = "") {
 }
 
 export async function updateRide(rideId, updates) {
-  const ride = await getRide(rideId);
+  const ride = await getRide(rideId, { includeDriver: false });
   if (!ride) {
     throw new Error("This ride could not be found.");
   }

@@ -110,7 +110,7 @@ function makeRideCard(ride, canCancel) {
 }
 
 async function renderRides() {
-  const rides = (await getRides()).sort(
+  const rides = (await getRides({ includeDriver: false })).sort(
     (first, second) => new Date(first.scheduledAt) - new Date(second.scheduledAt),
   );
   const upcoming = [];
@@ -146,7 +146,7 @@ async function handleCancel(event) {
   const rideId = button.dataset.rideId;
   let ride;
   try {
-    ride = await getRide(rideId);
+    ride = await getRide(rideId, { includeDriver: false });
   } catch (error) {
     showError(`Ride details could not be refreshed: ${error.message}`);
     return;

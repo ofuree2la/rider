@@ -6,6 +6,12 @@ Rider is a mobile-first campus ride and delivery web app for Veritas University,
 
 Serve the repository over HTTP (ES modules do not work reliably from `file://`) and open `index.html`. The booking screen is available from **Book a Ride**. Configure Supabase Auth Site URL and redirect URLs for the local or deployed origin.
 
+## Site address
+
+Internal links, assets, imports, and splash redirects use paths relative to the current page, so they work from both GitHub Pages at `/rider/` and a custom-domain root. No site-root path needs to be changed for the switch.
+
+The canonical site URL used by the Vercel payment callback is configured in the Vercel `RIDER_APP_URL` environment variable. It is currently `https://ofuree2la.github.io/rider/`; after the custom domain is connected, change that one value to `https://getrider.ng/`. The Vercel API CORS allowlist accepts both the current GitHub Pages origin and `getrider.ng` (including `www`) during transition. Supabase Auth Site URL and redirect allowlist are separate dashboard settings and must also be updated by hand when the domain is ready.
+
 ## Prototype status
 
 The Supabase publishable browser key is configured in `js/supabase-config.js`. It is safe for browser use only with the database Row Level Security (RLS) policies enabled. Never put a Supabase `service_role` key or database password in website files.
@@ -38,10 +44,10 @@ The payment API runs as Vercel functions in `api/`. Deploy this repository to Ve
 - `SUPABASE_URL`: the Supabase project URL.
 - `SUPABASE_SERVICE_ROLE_KEY`: the Supabase service-role key. Keep it only in Vercel secrets; never add it to frontend code or Git.
 - `PAYSTACK_SECRET_KEY`: the Paystack secret key. Start with Paystack test credentials and use the matching Paystack public/merchant environment before accepting live payments.
-- `RIDER_APP_URL`: the Rider app URL, including its path, for example `https://ofuree2la.github.io/rider`.
+- `RIDER_APP_URL`: the Rider app URL, including its path (`https://ofuree2la.github.io/rider/` until the custom domain is connected).
 - `PAYMENT_CALLBACK_URL`: the deployed Vercel URL ending in `/api/verify-payment`.
 
-After deployment, set `PAYMENT_API_BASE_URL` in `js/paystack-config.js` to the Vercel project origin (for example `https://your-project.vercel.app`, with no path or trailing slash). Run the secure online-payment migration above in Supabase before enabling the payment option. Online checkout remains disabled while that URL is blank.
+Online payments are disabled while `PAYMENT_API_BASE_URL` in `js/paystack-config.js` is blank. Do not populate it or enable payment until the payment flow is explicitly approved and tested.
 
 The rider requests a ride first. After a driver accepts, Paystack checkout is initialized server-side using the ride fare stored in Supabase and that driver's configured subaccount. Paystack's callback is verified server-side and the ride is marked paid only when the reference, NGN currency, and amount match. A payment with an unexpected ride state is not applied automatically and requires support follow-up. Create each driver's subaccount in Paystack and store its subaccount code in that driver's `drivers.subaccount_code` field in Supabase before accepting online rides; drivers without a configured code cannot accept online requests.
 

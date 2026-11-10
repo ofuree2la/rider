@@ -1,6 +1,5 @@
 import "./notifications.js";
 import {
-  getCurrentDriver,
   getCurrentUser,
   getDriverRideRequests,
   getDriverRides,
@@ -47,7 +46,7 @@ function redirectToLogin(user) {
 async function refreshOverview() {
   const [requests, rides] = await Promise.all([
     getDriverRideRequests(driver.id),
-    getDriverRides(driver.id),
+    getDriverRides(driver.id, { includeDriver: false, includeRiderPhone: false }),
   ]);
   pendingCount.textContent = String(driver.isOnline ? requests.length : 0);
   activeCount.textContent = String(
@@ -147,7 +146,7 @@ async function startDashboard() {
       return;
     }
 
-    driver = await getCurrentDriver();
+    driver = user;
     driverNameHeading.textContent = driver.name;
     driverOnlineToggle.checked = driver.status === "approved" && Boolean(driver.isOnline);
     driverOnlineToggle.disabled = driver.status !== "approved";
