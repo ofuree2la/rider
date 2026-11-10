@@ -11,6 +11,7 @@ const paymentResult = new URLSearchParams(window.location.search).get("payment")
 const trackingError = document.querySelector("#tracking-error");
 const trackingStatus = document.querySelector("#tracking-status");
 const trackingContent = document.querySelector("#tracking-content");
+const routeCard = document.querySelector(".route-card");
 const rideStatusLabel = document.querySelector("#ride-status-label");
 const rideStatusBadge = document.querySelector("#ride-status-badge");
 const progressTrack = document.querySelector(".progress-track");
@@ -217,6 +218,7 @@ function renderPayment() {
 
 function renderRide() {
   trackingContent.hidden = false;
+  routeCard.hidden = ride.status === "cancelled";
   noRidePrompt.render(ride);
   cancelRideButton.hidden = !["finding", "accepted", "arriving"].includes(ride.status);
   cancelRideButton.disabled = isRideCancellationInProgress;
