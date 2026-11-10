@@ -662,7 +662,21 @@ export async function getDriverRides(driverId) {
     .eq("driver_id", driverId)
     .order("created_at", { ascending: false });
   throwOnError(error);
-  return Promise.all((data ?? []).map(mapRideWithDriver));
+  return Promise.all(
+    (data ?? []).map(async (row) => {
+      const ride = await mapRideWithDriver(row);
+      if (!["accepted", "arriving", "on-trip"].includes(ride.status)) {
+        return ride;
+      }
+
+      const { data: riderPhone, error: contactError } = await supabase.rpc(
+        "get_assigned_ride_rider_phone",
+        { target_ride_id: ride.id },
+      );
+      throwOnError(contactError);
+      return { ...ride, riderPhone: riderPhone ?? "" };
+    }),
+  );
 }
 
 export async function getRide(rideId) {

@@ -403,6 +403,10 @@ function renderActiveRide(rides) {
     activeRide.paymentMethod === "online" &&
     activeRide.paymentStatus !== "paid" &&
     actionInfo.nextStatus === "on-trip";
+  const riderPhone = String(activeRide.riderPhone ?? "").replace(/[^\d+]/g, "");
+  const callRiderAction = riderPhone.replace(/\D/g, "").length >= 10
+    ? `<a class="btn btn-secondary" href="tel:${escapeHtml(riderPhone)}">Call rider</a>`
+    : "";
 
   activeRideCard.className = "active-ride-card";
   activeRideCard.innerHTML = `
@@ -424,6 +428,7 @@ function renderActiveRide(rides) {
       <span>${activeRide.timing === "scheduled" ? formatRideTime(activeRide.scheduledAt) : "Requested now"}</span>
     </div>
     <div class="trip-actions">
+      ${callRiderAction}
       <button type="button" class="btn btn-primary" data-action="advance-status" data-ride-id="${escapeHtml(activeRide.id)}" ${waitingForPayment ? "disabled" : ""}>${waitingForPayment ? "Waiting for rider payment" : actionInfo.label}</button>
     </div>
   `;
