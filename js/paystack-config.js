@@ -1,5 +1,5 @@
 // Payment API origin. Secret keys remain server-side in Vercel environment variables.
-export const PAYMENT_API_BASE_URL = "https://rider-beta-three.vercel.app";
+export const PAYMENT_API_BASE_URL = "";
 
 export function isOnlinePaymentConfigured() {
   try {
