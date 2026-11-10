@@ -1,4 +1,5 @@
 import { supabase } from "./supabase-client.js";
+import { notifyDriversOfNewRide } from "./push-client.js";
 
 const ZONES = ["standard", "campus", "premium-hostel"];
 const PROFILE_PHOTO_URL_TTL_MS = 55 * 60 * 1000;
@@ -784,7 +785,9 @@ export async function createRide(input) {
     recipient_contact: input.recipientPhone ?? null,
   });
   throwOnError(error);
-  return mapRide(data);
+  const ride = mapRide(data);
+  void notifyDriversOfNewRide(ride.id);
+  return ride;
 }
 
 export async function getRideMessages(rideId) {

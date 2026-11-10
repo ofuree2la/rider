@@ -1,4 +1,5 @@
 import "./notifications.js";
+import { initializeDriverPushNotifications } from "./push-client.js";
 import {
   getCurrentUser,
   getDriverRideRequests,
@@ -150,6 +151,7 @@ async function startDashboard() {
     driverNameHeading.textContent = driver.name;
     driverOnlineToggle.checked = driver.status === "approved" && Boolean(driver.isOnline);
     driverOnlineToggle.disabled = driver.status !== "approved";
+    void initializeDriverPushNotifications(driver);
 
     if (driver.status !== "approved") {
       showStatus(

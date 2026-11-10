@@ -53,6 +53,14 @@
       <p id="dashboard-status" class="dashboard-message status-message" role="status" aria-live="polite" hidden></p>
       <p id="dashboard-error" class="dashboard-message error-message" role="alert" aria-live="assertive" hidden></p>
 
+      <section class="driver-push-panel" aria-labelledby="driver-push-heading">
+        <div>
+          <h2 id="driver-push-heading">Ride request notifications</h2>
+          <p id="driver-push-status" role="status" aria-live="polite">Checking push alert settings…</p>
+        </div>
+        <button type="button" class="btn btn-primary" id="driver-push-toggle">Enable push alerts</button>
+      </section>
+
       <section class="stats-grid driver-overview-stats" aria-label="Driver overview">
         <a class="stat-card driver-stat-link" href="trips.html">
           <span>Pending requests</span>

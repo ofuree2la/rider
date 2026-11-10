@@ -55,6 +55,23 @@ The rider requests a ride first. After a driver accepts, Paystack checkout is in
 
 Fares are currently placeholders, and time-based surcharges/shared-fare options are off. Test the complete flow with Paystack test credentials and a non-production ride before configuring live payment credentials. Do not use the app for production rides until deployment, live-payment verification, fare configuration, and operational checks are complete.
 
+### Driver push alerts
+
+The driver dashboard supports opt-in Web Push for new matching ride and delivery requests. Existing in-app alerts remain available if Web Push is unsupported or not configured. Push alerts are sent only to approved, online drivers whose vehicle matches the request; an online-payment request is sent only to drivers with a configured Paystack subaccount. Enabling notifications does not enable or change payments.
+
+To configure Web Push:
+1. Deploy the repository to Vercel and set `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and `RIDER_APP_URL` as described above. Push endpoints do not require or read any Paystack credentials.
+2. Generate a VAPID key pair locally after installing dependencies with `npm install`: run `npx web-push generate-vapid-keys`. Keep the private key secret; do not commit it.
+3. Add these Vercel environment variables:
+   - `PUSH_VAPID_PUBLIC_KEY`: the generated public key.
+   - `PUSH_VAPID_PRIVATE_KEY`: the generated private key.
+   - `PUSH_VAPID_SUBJECT`: a contact URI such as `mailto:your-contact@example.com`.
+4. Set `PUSH_API_BASE_URL` in `js/push-config.js` to the origin of this app's Vercel deployment (for example, `https://your-project.vercel.app`, with no path). This is a public URL, not a secret. The VAPID public key is served by the authenticated subscription endpoint.
+5. Apply `supabase/migrations/20261110182000_driver_push_subscriptions.sql` to the Supabase project. This migration has not been run as part of the code change.
+6. Deploy the static site and Vercel API, then test on HTTPS with an approved driver account: click **Enable push alerts**, grant browser permission, and leave the site or browser closed. Submit a matching request from a separate rider account while the driver is online, then verify the notification opens Driver Trips. Use **Disable push alerts** to revoke that device's subscription.
+
+Push notification delivery depends on the browser and operating system. On iOS/iPadOS, Web Push requires a supported Safari version and the site added to the Home Screen. The `PUSH_API_BASE_URL` value is intentionally blank until the real Vercel deployment origin is known; the opt-in remains disabled until configured. Do not add a CNAME or change the custom domain as part of this setup.
+
 ## Mobile experience and motion
 
 - Pages share `css/mobile.css` for touch-sized controls, mobile spacing, safe-area support, and reduced-motion preferences.
