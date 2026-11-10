@@ -28,6 +28,64 @@
   margin-bottom: 1.5rem;
 }
 
+.profile-completion {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0 0 1.5rem;
+  padding: 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: #f8faf8;
+}
+
+.profile-completion-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.profile-completion-heading h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.profile-completion-heading span,
+.profile-completion-steps strong {
+  color: var(--color-slate);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.profile-completion progress {
+  width: 100%;
+  height: 0.65rem;
+  accent-color: var(--color-brand);
+}
+
+.profile-completion-steps {
+  display: grid;
+  gap: 0.45rem;
+  margin: 0;
+  padding-left: 1.35rem;
+}
+
+.profile-completion-steps li {
+  padding-left: 0.15rem;
+  color: var(--color-ink);
+  font-size: 0.82rem;
+}
+
+.profile-completion-steps li[data-complete="true"] strong {
+  color: var(--color-success);
+}
+
+.profile-completion-steps strong {
+  display: block;
+  margin-top: 0.1rem;
+}
+
 .profile-nav {
   display: flex;
 }

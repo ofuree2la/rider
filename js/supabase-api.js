@@ -21,6 +21,8 @@ function mapProfile(profile, authUser, driver = null) {
       ? {
           plateNumber: driver.plate_number,
           vehicleType: driver.vehicle_type,
+          bankName: driver.bank_name ?? "",
+          bankAccountNumber: driver.bank_account_number ?? "",
           rating: Number(driver.rating),
           status: driver.status,
           verified: driver.status === "approved",
@@ -113,7 +115,7 @@ export async function getCurrentUser() {
 
   const { data: driver, error: driverError } = await supabase
     .from("drivers")
-    .select("profile_id, plate_number, vehicle_type, rating, status, is_online, subaccount_code")
+    .select("profile_id, plate_number, vehicle_type, bank_name, bank_account_number, rating, status, is_online, subaccount_code")
     .eq("profile_id", authUser.id)
     .single();
   throwOnError(driverError);
@@ -283,8 +285,19 @@ export async function updateCurrentUserProfile(input) {
   }
   const plateNumber =
     user.role === "driver" ? String(input.plateNumber ?? "").trim().toUpperCase() : "";
+  const bankName = user.role === "driver" ? String(input.bankName ?? "").trim() : "";
+  const bankAccountNumber =
+    user.role === "driver" ? String(input.bankAccountNumber ?? "").trim() : "";
   if (user.role === "driver" && !plateNumber) {
     throw new Error("Enter your vehicle registration or plate number.");
+  }
+  if (
+    user.role === "driver" &&
+    ((bankName && !/^\d{10}$/.test(bankAccountNumber)) ||
+      (!bankName && bankAccountNumber) ||
+      bankName.length > 120)
+  ) {
+    throw new Error("Enter a bank name and a valid 10-digit account number, or leave both bank fields blank.");
   }
 
   if (requestedEmail && requestedEmail !== user.email.toLowerCase()) {
@@ -301,7 +314,11 @@ export async function updateCurrentUserProfile(input) {
   if (user.role === "driver") {
     const { error: driverError } = await supabase
       .from("drivers")
-      .update({ plate_number: plateNumber })
+      .update({
+        plate_number: plateNumber,
+        bank_name: bankName,
+        bank_account_number: bankAccountNumber,
+      })
       .eq("profile_id", user.id);
     throwOnError(driverError);
   }
@@ -318,7 +335,7 @@ export async function getDrivers() {
   await requireUser("admin");
   const { data, error } = await supabase
     .from("drivers")
-    .select("profile_id, plate_number, vehicle_type, rating, status, is_online, subaccount_code, profiles!drivers_profile_id_fkey(full_name, phone, avatar_path)")
+    .select("profile_id, plate_number, vehicle_type, bank_name, bank_account_number, rating, status, is_online, subaccount_code, created_at, profiles!drivers_profile_id_fkey(full_name, phone, avatar_path)")
     .order("created_at", { ascending: false });
   throwOnError(error);
   return Promise.all(
@@ -329,11 +346,14 @@ export async function getDrivers() {
       avatarUrl: await getProfilePhotoUrl(driver.profiles?.avatar_path),
       plateNumber: driver.plate_number,
       vehicleType: driver.vehicle_type,
+      bankName: driver.bank_name ?? "",
+      bankAccountNumber: driver.bank_account_number ?? "",
       rating: Number(driver.rating),
       status: driver.status,
       verified: driver.status === "approved",
       isOnline: driver.is_online,
       subaccountCode: driver.subaccount_code,
+      registeredAt: driver.created_at,
     })),
   );
 }
@@ -342,16 +362,114 @@ export async function getRegisteredUsers() {
   await requireUser("admin");
   const { data, error } = await supabase
     .from("profiles")
-    .select("id, full_name, phone, role, created_at")
+    .select("id, full_name, phone, role, avatar_path, created_at")
     .order("created_at", { ascending: false });
   throwOnError(error);
-  return (data ?? []).map((profile) => ({
-    id: profile.id,
-    name: profile.full_name,
-    phone: profile.phone ?? "",
-    role: profile.role,
-    registeredAt: profile.created_at,
-  }));
+  return Promise.all(
+    (data ?? []).map(async (profile) => ({
+      id: profile.id,
+      name: profile.full_name,
+      phone: profile.phone ?? "",
+      role: profile.role,
+      avatarUrl: await getProfilePhotoUrl(profile.avatar_path),
+      registeredAt: profile.created_at,
+    })),
+  );
+}
+
+export async function getAdminAccountDetails(profileId) {
+  await requireUser("admin");
+  const { data: details, error: detailsError } = await supabase.rpc("admin_get_account_details", {
+    target_profile_id: profileId,
+  });
+  throwOnError(detailsError);
+  return {
+    ...details,
+    avatarUrl: await getProfilePhotoUrl(details.avatarPath),
+  };
+}
+
+export async function updateAccountAsAdmin(profileId, updates, photoFile = null) {
+  await requireUser("admin");
+  const name = String(updates?.name ?? "").trim();
+  const phone = String(updates?.phone ?? "").trim();
+  const plateNumber = updates?.plateNumber == null ? null : String(updates.plateNumber).trim().toUpperCase();
+  const bankName = updates?.bankName == null ? null : String(updates.bankName).trim();
+  const bankAccountNumber =
+    updates?.bankAccountNumber == null ? null : String(updates.bankAccountNumber).trim();
+
+  if (!name || name.length > 120) {
+    throw new Error("Enter a name between 1 and 120 characters.");
+  }
+  if (phone.replace(/\D/g, "").length < 10) {
+    throw new Error("Enter a valid phone number, including your country code if needed.");
+  }
+  if (
+    (bankName !== null || bankAccountNumber !== null) &&
+    ((bankName && !/^\d{10}$/.test(bankAccountNumber ?? "")) ||
+      (!bankName && bankAccountNumber) ||
+      (bankName ?? "").length > 120)
+  ) {
+    throw new Error("Enter a bank name and a valid 10-digit account number, or leave both bank fields blank.");
+  }
+
+  const { data: current, error: currentError } = await supabase
+    .from("profiles")
+    .select("avatar_path")
+    .eq("id", profileId)
+    .single();
+  throwOnError(currentError);
+
+  let newPhotoPath = null;
+  if (photoFile) {
+    const extensions = new Map([
+      ["image/jpeg", "jpg"],
+      ["image/png", "png"],
+      ["image/webp", "webp"],
+    ]);
+    const extension = extensions.get(photoFile.type);
+    if (!extension || photoFile.size === 0 || photoFile.size > 5 * 1024 * 1024) {
+      throw new TypeError("Choose a JPG, PNG, or WebP profile photo up to 5 MB.");
+    }
+    newPhotoPath = `${profileId}/${crypto.randomUUID()}.${extension}`;
+    const { error: uploadError } = await supabase.storage
+      .from("profile-photos")
+      .upload(newPhotoPath, photoFile, { contentType: photoFile.type, upsert: false });
+    throwOnError(uploadError);
+  }
+
+  const { error } = await supabase.rpc("admin_update_account_details", {
+    target_profile_id: profileId,
+    updated_name: name,
+    updated_phone: phone,
+    updated_plate_number: plateNumber,
+    updated_bank_name: bankName,
+    updated_bank_account_number: bankAccountNumber,
+    updated_avatar_path: newPhotoPath,
+  });
+  if (error) {
+    if (newPhotoPath) {
+      const { error: cleanupError } = await supabase.storage
+        .from("profile-photos")
+        .remove([newPhotoPath]);
+      if (cleanupError) {
+        throw new Error(
+          `The account details could not be saved (${error.message}); the temporary photo could not be removed (${cleanupError.message}).`,
+        );
+      }
+    }
+    throwOnError(error);
+  }
+
+  if (newPhotoPath && current.avatar_path) {
+    const { error: removeError } = await supabase.storage
+      .from("profile-photos")
+      .remove([current.avatar_path]);
+    if (removeError) {
+      return "Account details were saved, but the previous profile photo could not be removed.";
+    }
+  }
+  return "";
 }
 
 export async function setDriverStatus(driverId, status) {

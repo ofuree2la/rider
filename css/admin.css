@@ -132,6 +132,85 @@ body.admin-body .admin-bottom-nav {
   object-fit: cover;
 }
 
+.admin-account-dialog {
+  width: min(680px, calc(100% - 1.5rem));
+  max-height: min(90vh, 900px);
+  overflow: auto;
+  padding: clamp(1rem, 3vw, 1.5rem);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-white);
+  color: var(--color-ink);
+}
+
+.admin-account-dialog::backdrop {
+  background: rgba(18, 30, 22, 0.58);
+}
+
+.admin-account-dialog-heading,
+.admin-account-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.admin-account-dialog-heading h2,
+.admin-account-summary h3,
+.admin-account-summary p {
+  margin: 0;
+}
+
+.admin-account-summary {
+  justify-content: flex-start;
+  margin-block: 1rem;
+  overflow-wrap: anywhere;
+}
+
+.admin-account-summary p {
+  margin-top: 0.2rem;
+  color: var(--color-slate);
+}
+
+.admin-account-avatar {
+  flex: 0 0 auto;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.admin-account-metrics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+  margin: 0 0 1.25rem;
+}
+
+.admin-account-detail-row {
+  min-width: 0;
+  padding: 0.7rem;
+  border-radius: var(--radius-sm);
+  background: var(--color-muted);
+}
+
+.admin-account-detail-row dt {
+  color: var(--color-slate);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.admin-account-detail-row dd {
+  margin: 0.2rem 0 0;
+  overflow-wrap: anywhere;
+  font-weight: 800;
+}
+
+.admin-account-form {
+  padding-top: 1rem;
+  border-top: 1px solid var(--color-border);
+}
+
 .admin-record {
   display: flex;
   align-items: center;
@@ -140,6 +219,17 @@ body.admin-body .admin-bottom-nav {
   padding: 1rem;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
+}
+
+.admin-account-open {
+  cursor: pointer;
+}
+
+.admin-account-open:hover,
+.admin-account-open:focus-visible {
+  border-color: var(--color-brand);
+  outline: 2px solid var(--color-brand-soft);
+  outline-offset: 2px;
 }
 
 .admin-record-main {
@@ -408,6 +498,10 @@ body.admin-body .admin-bottom-nav {
 
   .admin-record-actions {
     justify-content: flex-start;
+  }
+
+  .admin-account-metrics {
+    grid-template-columns: 1fr;
   }
 
   .admin-location-create,
