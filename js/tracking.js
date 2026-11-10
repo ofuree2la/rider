@@ -1,5 +1,5 @@
 import "./notifications.js";
-import { cancelRideRequest, createRide, getRide, getRides, rateRide } from "./supabase-api.js";
+import { cancelRideRequest, createRide, getCurrentUser, getRide, getRides, rateRide } from "./supabase-api.js";
 import { initializeRidePayment, isOnlinePaymentConfigured } from "./payment.js";
 import { mountRideChat } from "./ride-chat.js";
 import { supabase } from "./supabase-client.js";
@@ -63,6 +63,7 @@ const currencyFormatter = new Intl.NumberFormat("en-NG", {
 });
 
 let ride = null;
+let riderName = "";
 let refreshTimer = null;
 let rideChannel = null;
 let isRefreshRunning = false;
@@ -279,6 +280,8 @@ function renderRide() {
 
   if (ride.status === "cancelled") {
     showStatus(`This ${ride.serviceType === "delivery" ? "delivery" : "booking"} was cancelled.`);
+  } else if (ride.status === "accepted" && riderName) {
+    showStatus(`Ride requested by ${riderName}`);
   } else if (ride.timing === "scheduled" && new Date(ride.scheduledAt) > new Date()) {
     showStatus(`Your scheduled ${ride.serviceType === "delivery" ? "delivery" : "ride"} is confirmed. Updates will continue around pickup time.`);
   } else if (!["completed", "cancelled"].includes(ride.status)) {
@@ -610,6 +613,11 @@ async function startTrackingPage() {
   if (!ride) {
     throw new Error("This ride was not found. It may have been cleared from this browser.");
   }
+  const rider = await getCurrentUser();
+  if (!rider) {
+    throw new Error("Please sign in to view your ride tracking details.");
+  }
+  riderName = rider.name?.trim() ?? "";
 
   renderRide();
   startRideRealtimeUpdates();
