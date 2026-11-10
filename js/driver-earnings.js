@@ -60,7 +60,10 @@ function summarizeEarnings(rides) {
 
 async function refreshEarnings(driverId) {
   earningsError.hidden = true;
-  const rides = await getDriverRides(driverId);
+  const rides = await getDriverRides(driverId, {
+    includeDriver: false,
+    includeRiderPhone: false,
+  });
   const { completedToday, completedRides, completedThisWeek } = summarizeEarnings(rides);
   todayCount.textContent = String(completedToday.length);
   todayEarnings.textContent = formatCash(

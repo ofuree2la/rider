@@ -300,7 +300,7 @@ async function refreshRideStatus() {
 
   isRefreshRunning = true;
   try {
-    const latestRide = await getRide(ride.id);
+    const latestRide = await getRide(ride.id, { includeDriver: true });
     if (!latestRide) {
       throw new Error("This ride is no longer available to your account.");
     }
@@ -407,6 +407,7 @@ async function findReplacementRide(previousRide, input) {
   const rides = await getRides({
     userId: ride.userId,
     createdAfter: previousRide.createdAt,
+    includeDriver: false,
   });
   const previousCreatedAt = new Date(previousRide.createdAt).getTime();
   return rides
@@ -510,7 +511,7 @@ async function handleTryAgain(previousRide) {
   } catch (cancelError) {
     let latestRide;
     try {
-      latestRide = await getRide(previousRide.id);
+      latestRide = await getRide(previousRide.id, { includeDriver: true });
     } catch (refreshError) {
       showError("Connection problem. Check the ride status before trying again.");
       console.error("The old request status could not be confirmed after retry cancellation.", {
@@ -595,7 +596,7 @@ async function payForRide() {
   try {
     const result = await initializeRidePayment(ride.id);
     if (result.paid) {
-      ride = await getRide(ride.id);
+      ride = await getRide(ride.id, { includeDriver: true });
       renderRide();
       return;
     }
@@ -611,11 +612,14 @@ async function startTrackingPage() {
     throw new Error("Open ride tracking from a booking or ride history entry.");
   }
 
-  ride = await getRide(rideId);
+  const [loadedRide, rider] = await Promise.all([
+    getRide(rideId, { includeDriver: true }),
+    getCurrentUser(),
+  ]);
+  ride = loadedRide;
   if (!ride) {
     throw new Error("This ride was not found. It may have been cleared from this browser.");
   }
-  const rider = await getCurrentUser();
   if (!rider) {
     throw new Error("Please sign in to view your ride tracking details.");
   }

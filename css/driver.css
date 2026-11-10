@@ -204,6 +204,30 @@
   background: var(--driver-card-bg);
 }
 
+.ride-fading-out {
+  overflow: hidden;
+  max-height: 0;
+  padding: 0;
+  border-width: 0;
+  gap: 0;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-8px);
+  transition:
+    max-height 0.28s ease,
+    opacity 0.22s ease,
+    padding 0.28s ease,
+    border-width 0.28s ease,
+    gap 0.28s ease,
+    transform 0.22s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ride-fading-out {
+    transition-duration: 1ms;
+  }
+}
+
 .ride-cancelled-notice {
   border-color: rgba(22, 130, 75, 0.2);
   background: #eef7f0;

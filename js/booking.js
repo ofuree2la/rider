@@ -102,7 +102,11 @@ function getRideInputForRetry(ride) {
 }
 
 async function findOpenImmediateRide() {
-  const rides = await getRides({ userId: currentUser.id, status: "finding" });
+  const rides = await getRides({
+    userId: currentUser.id,
+    status: "finding",
+    includeDriver: false,
+  });
   return rides
     .filter((ride) => ride.timing === "now" && !ride.scheduledAt)
     .sort((first, second) => new Date(second.createdAt) - new Date(first.createdAt))[0] ?? null;
@@ -168,6 +172,7 @@ async function findReplacementRide(previousRide, input) {
   const rides = await getRides({
     userId: currentUser.id,
     createdAfter: previousRide.createdAt,
+    includeDriver: false,
   });
   const previousCreatedAt = new Date(previousRide.createdAt).getTime();
   return rides
@@ -195,7 +200,7 @@ async function handleTryAgain(previousRide) {
   } catch (cancelError) {
     let latestRide;
     try {
-      latestRide = await getRide(previousRide.id);
+      latestRide = await getRide(previousRide.id, { includeDriver: false });
     } catch (refreshError) {
       showError("Connection problem. Check the ride status before trying again.");
       console.error("The old request status could not be confirmed after retry cancellation.", {
@@ -279,7 +284,11 @@ async function showBookingSubmissionError(error) {
   ) {
     let openRide = null;
     try {
-      const rides = await getRides({ userId: currentUser.id, status: "finding" });
+      const rides = await getRides({
+        userId: currentUser.id,
+        status: "finding",
+        includeDriver: false,
+      });
       openRide = rides.find((ride) => ride.timing === "now" && !ride.scheduledAt);
       if (openRide) {
         saveBookingRideId(openRide.id);
@@ -403,7 +412,7 @@ async function refreshBookingStatus(rideId) {
   }
   isBookingStatusRefreshRunning = true;
   try {
-    const latestRide = await getRide(rideId);
+    const latestRide = await getRide(rideId, { includeDriver: false });
     if (!latestRide) {
       throw new Error("This ride is no longer available to your account.");
     }
@@ -461,7 +470,7 @@ async function restoreLastBooking() {
     return;
   }
   try {
-    const previousRide = await getRide(previousRideId);
+    const previousRide = await getRide(previousRideId, { includeDriver: false });
     if (!previousRide) {
       window.sessionStorage.removeItem(LAST_BOOKED_RIDE_KEY);
       return;
@@ -923,15 +932,16 @@ async function startBookingPage() {
     return;
   }
   emailInput.value = currentUser.email;
-  await restoreLastBooking();
-  try {
-    await restoreOpenImmediateRide();
-  } catch (error) {
-    showError("Your existing open request could not be checked. Open Ride history to find or cancel it.");
-    console.error("An open immediate ride could not be restored on the booking page.", error);
-  }
-  await loadFareConfig();
-  await populateLocations();
+  const restoreBooking = async () => {
+    await restoreLastBooking();
+    try {
+      await restoreOpenImmediateRide();
+    } catch (error) {
+      showError("Your existing open request could not be checked. Open Ride history to find or cancel it.");
+      console.error("An open immediate ride could not be restored on the booking page.", error);
+    }
+  };
+  await Promise.all([restoreBooking(), loadFareConfig(), populateLocations()]);
   updateFareEstimate();
 
   enableLocationAutocomplete(pickupInput, pickupSuggestions, (location) => {
