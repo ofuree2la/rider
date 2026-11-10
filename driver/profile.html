@@ -16,7 +16,7 @@
     <link rel="stylesheet" href="../css/bottom-nav.css" />
     <link rel="stylesheet" href="../css/mobile.css" />
     <script type="module" src="../js/driver-notifications.js?v=bell-alerts-20261108"></script>
-    <script type="module" src="../js/profile.js?v=bell-alerts-20261108"></script>
+    <script type="module" src="../js/profile.js?v=account-details"></script>
     <script src="https://cdn.jsdelivr.net/npm/animejs@3.2.2/lib/anime.min.js" defer></script>
     <script src="../js/motion.js" defer></script>
   </head>
@@ -41,7 +41,21 @@
       <section class="profile-card-shell" aria-labelledby="profile-title">
         <span class="eyebrow accent">Rider Driver account</span>
         <h1 id="profile-title">Driver profile</h1>
-        <p>Keep your contact, vehicle, and profile photo up to date.</p>
+        <p>Complete these account steps to finish your driver profile and payout details.</p>
+
+        <section class="profile-completion" aria-labelledby="profile-completion-title">
+          <div class="profile-completion-heading">
+            <h2 id="profile-completion-title">Account steps</h2>
+            <span id="profile-completion-count">0 of 4 complete</span>
+          </div>
+          <progress id="profile-completion-progress" max="100" value="0" aria-label="Account completion"></progress>
+          <ol class="profile-completion-steps">
+            <li data-profile-step="details"><span>Step 1 · Add your name and phone number</span><strong>Incomplete</strong></li>
+            <li data-profile-step="photo"><span>Step 2 · Add a profile photo</span><strong>Incomplete</strong></li>
+            <li data-profile-step="vehicle"><span>Step 3 · Add your vehicle registration</span><strong>Incomplete</strong></li>
+            <li data-profile-step="bank"><span>Step 4 · Add your bank name and account number</span><strong>Incomplete</strong></li>
+          </ol>
+        </section>
 
         <p id="profile-message" class="auth-message" role="status" aria-live="polite" hidden></p>
 
@@ -77,7 +91,16 @@
             <label for="profile-plate">Vehicle registration / plate number</label>
             <input id="profile-plate" name="plateNumber" type="text" autocomplete="off" required />
           </div>
-          <button class="btn btn-primary btn-large" type="submit">Save profile</button>
+          <div class="field">
+            <label for="profile-bank-name">Bank name</label>
+            <input id="profile-bank-name" name="bankName" type="text" maxlength="120" autocomplete="organization" />
+          </div>
+          <div class="field">
+            <label for="profile-bank-account">Bank account number</label>
+            <input id="profile-bank-account" name="bankAccountNumber" type="text" inputmode="numeric" pattern="[0-9]{10}" maxlength="10" autocomplete="off" aria-describedby="profile-bank-privacy" />
+            <small id="profile-bank-privacy">10 digits. Visible only to you and Rider admins.</small>
+          </div>
+          <button class="btn btn-primary btn-large" type="submit">Save account steps</button>
         </form>
       </section>
     </main>

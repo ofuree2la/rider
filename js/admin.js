@@ -3,6 +3,7 @@ import {
   createLocation,
   deleteLocation,
   getCurrentUser,
+  getAdminAccountDetails,
   getDrivers,
   getLocations,
   getPricingConfig,
@@ -10,9 +11,10 @@ import {
   getRides,
   logout,
   setDriverStatus,
+  updateAccountAsAdmin,
   updateLocation,
   updatePricingConfig,
-} from "./supabase-api.js";
+} from "./supabase-api.js?v=account-details";
 import { FARE_CONFIG } from "./pricing.js?v=admin";
 
 const adminStatus = document.querySelector("#admin-status");
@@ -120,6 +122,20 @@ function renderRegisteredUsers(users) {
   for (const user of users) {
     const card = document.createElement("article");
     card.className = "admin-record";
+    if (user.role === "rider" || user.role === "driver") {
+      card.dataset.accountId = user.id;
+      card.classList.add("admin-account-open");
+      card.tabIndex = 0;
+      card.setAttribute("role", "button");
+      card.setAttribute("aria-label", `View ${user.role} details for ${user.name}`);
+    }
+    if (user.avatarUrl) {
+      const avatar = document.createElement("img");
+      avatar.className = "admin-driver-avatar";
+      avatar.src = user.avatarUrl;
+      avatar.alt = `${user.name}'s profile`;
+      card.append(avatar);
+    }
     const main = document.createElement("div");
     main.className = "admin-record-main";
 
@@ -183,6 +199,9 @@ function renderDrivers(drivers) {
   for (const driver of visibleDrivers) {
     const card = document.createElement("article");
     card.className = "admin-record";
+    card.dataset.accountId = driver.id;
+    card.classList.add("admin-account-open");
+    card.setAttribute("aria-label", `Driver account: ${driver.name}`);
     if (driver.avatarUrl) {
       const avatar = document.createElement("img");
       avatar.className = "admin-driver-avatar";
@@ -204,6 +223,7 @@ function renderDrivers(drivers) {
 
     const actions = document.createElement("div");
     actions.className = "admin-record-actions";
+    actions.append(makeButton("View details", "account-details", driver.id));
     if (driver.status !== "approved") {
       actions.append(makeButton("Approve", "driver-status", driver.id, "approved", "btn btn-primary"));
     }
@@ -212,6 +232,177 @@ function renderDrivers(drivers) {
     }
     card.append(main, actions);
     driverList.append(card);
+  }
+}
+
+function makeDetailField(labelText, name, value, options = {}) {
+  const field = document.createElement("div");
+  field.className = "admin-field";
+  const label = document.createElement("label");
+  label.textContent = labelText;
+  const input = document.createElement("input");
+  input.name = name;
+  input.value = value ?? "";
+  input.type = options.type ?? "text";
+  input.required = Boolean(options.required);
+  if (options.maxLength) input.maxLength = options.maxLength;
+  if (options.pattern) input.pattern = options.pattern;
+  if (options.inputMode) input.inputMode = options.inputMode;
+  label.htmlFor = `account-detail-${name}`;
+  input.id = label.htmlFor;
+  field.append(label, input);
+  return field;
+}
+
+function makeDetailRow(label, value) {
+  const row = document.createElement("div");
+  row.className = "admin-account-detail-row";
+  const term = document.createElement("dt");
+  term.textContent = label;
+  const description = document.createElement("dd");
+  description.textContent = value || "Not provided";
+  row.append(term, description);
+  return row;
+}
+
+async function openAccountDetails(profileId) {
+  try {
+    const account = await getAdminAccountDetails(profileId);
+    const dialog = document.createElement("dialog");
+    dialog.className = "admin-account-dialog";
+    dialog.setAttribute("aria-labelledby", "account-detail-title");
+
+    const heading = document.createElement("div");
+    heading.className = "admin-account-dialog-heading";
+    const title = document.createElement("h2");
+    title.id = "account-detail-title";
+    title.textContent = `${account.role === "driver" ? "Driver" : "Rider"} details`;
+    const closeButton = makeButton("Close", "", "");
+    closeButton.addEventListener("click", () => dialog.close());
+    heading.append(title, closeButton);
+    dialog.append(heading);
+
+    const summary = document.createElement("div");
+    summary.className = "admin-account-summary";
+    if (account.avatarUrl) {
+      const avatar = document.createElement("img");
+      avatar.className = "admin-account-avatar";
+      avatar.src = account.avatarUrl;
+      avatar.alt = `${account.name}'s profile`;
+      summary.append(avatar);
+    }
+    const identity = document.createElement("div");
+    const name = document.createElement("h3");
+    name.textContent = account.name || "Unnamed account";
+    const email = document.createElement("p");
+    email.textContent = account.email || "Email unavailable";
+    identity.append(name, email);
+    summary.append(identity);
+    dialog.append(summary);
+
+    const metrics = document.createElement("dl");
+    metrics.className = "admin-account-metrics";
+    metrics.append(
+      makeDetailRow("Total rides", String(account.totalRides ?? 0)),
+      makeDetailRow("Completed rides", String(account.completedRides ?? 0)),
+      makeDetailRow(
+        "Average rating",
+        account.role === "driver" && account.averageRating !== null
+          ? `${Number(account.averageRating).toFixed(1)} / 5`
+          : "Not rated",
+      ),
+    );
+    if (account.role === "driver") {
+      metrics.append(
+        makeDetailRow("Rated rides", String(account.ratedRides ?? 0)),
+        makeDetailRow("Completed ride revenue", formatCash(account.driverRevenue)),
+        makeDetailRow("Vehicle", account.vehicleType),
+        makeDetailRow("Driver status", account.driverStatus),
+        makeDetailRow("Availability", account.isOnline ? "Online" : "Offline"),
+        makeDetailRow("Registered", account.registeredAt ? dateFormatter.format(new Date(account.registeredAt)) : ""),
+      );
+    } else {
+      metrics.append(
+        makeDetailRow("Registered", account.registeredAt ? dateFormatter.format(new Date(account.registeredAt)) : ""),
+      );
+    }
+    dialog.append(metrics);
+
+    const form = document.createElement("form");
+    form.className = "admin-form admin-account-form";
+    form.append(
+      makeDetailField("Full name", "name", account.name, { required: true, maxLength: 120 }),
+      makeDetailField("Phone number", "phone", account.phone, { required: true }),
+    );
+    if (account.role === "driver") {
+      form.append(
+        makeDetailField("Vehicle registration / plate number", "plateNumber", account.plateNumber, {
+          required: true,
+          maxLength: 30,
+        }),
+        makeDetailField("Bank name", "bankName", account.bankName, { maxLength: 120 }),
+        makeDetailField("Bank account number", "bankAccountNumber", account.bankAccountNumber, {
+          maxLength: 10,
+          pattern: "[0-9]{10}",
+          inputMode: "numeric",
+        }),
+      );
+    }
+    const photoField = document.createElement("div");
+    photoField.className = "admin-field";
+    const photoLabel = document.createElement("label");
+    photoLabel.htmlFor = "account-detail-photo";
+    photoLabel.textContent = "Profile photo";
+    const photoInput = document.createElement("input");
+    photoInput.id = photoLabel.htmlFor;
+    photoInput.name = "photo";
+    photoInput.type = "file";
+    photoInput.accept = "image/jpeg,image/png,image/webp";
+    photoField.append(photoLabel, photoInput);
+    form.append(photoField);
+    const saveButton = document.createElement("button");
+    saveButton.className = "btn btn-primary";
+    saveButton.type = "submit";
+    saveButton.textContent = "Save account details";
+    form.append(saveButton);
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      saveButton.disabled = true;
+      try {
+        const values = new FormData(form);
+        const warning = await updateAccountAsAdmin(
+          account.id,
+          {
+            name: values.get("name"),
+            phone: values.get("phone"),
+            ...(account.role === "driver"
+              ? {
+                  plateNumber: values.get("plateNumber"),
+                  bankName: values.get("bankName"),
+                  bankAccountNumber: values.get("bankAccountNumber"),
+                }
+              : {}),
+          },
+          photoInput.files[0] ?? null,
+        );
+        dialog.close();
+        showStatus(warning || "Account details updated.");
+        await refreshDashboard();
+      } catch (error) {
+        showError(error.message);
+      } finally {
+        saveButton.disabled = false;
+      }
+    });
+    dialog.append(form);
+    dialog.addEventListener("click", (event) => {
+      if (event.target === dialog) dialog.close();
+    });
+    dialog.addEventListener("close", () => dialog.remove(), { once: true });
+    document.body.append(dialog);
+    dialog.showModal();
+  } catch (error) {
+    showError(`Account details could not be loaded: ${error.message}`);
   }
 }
 
@@ -415,8 +606,17 @@ async function refreshDashboard() {
 }
 
 async function handleDriverAction(event) {
+  const detailButton = event.target.closest("button[data-action='account-details']");
+  if (detailButton) {
+    openAccountDetails(detailButton.dataset.id);
+    return;
+  }
   const button = event.target.closest("button[data-action='driver-status']");
   if (!button) {
+    const card = event.target.closest(".admin-account-open");
+    if (card && driverList.contains(card)) {
+      openAccountDetails(card.dataset.accountId);
+    }
     return;
   }
   try {
@@ -521,6 +721,17 @@ async function startAdminDashboard() {
     await refreshDashboard();
     document.querySelector("#admin-logout").addEventListener("click", handleLogout);
     driverList?.addEventListener("click", handleDriverAction);
+    registeredUserList?.addEventListener("click", (event) => {
+      const card = event.target.closest(".admin-account-open");
+      if (card) openAccountDetails(card.dataset.accountId);
+    });
+    registeredUserList?.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" && event.key !== " ") return;
+      const card = event.target.closest(".admin-account-open");
+      if (!card) return;
+      event.preventDefault();
+      openAccountDetails(card.dataset.accountId);
+    });
     document.querySelector(".driver-status-filters")?.addEventListener("click", (event) => {
       const button = event.target.closest("[data-driver-status-filter]");
       if (!button) return;

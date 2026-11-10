@@ -14,7 +14,7 @@
     <link rel="stylesheet" href="css/profile.css" />
     <link rel="stylesheet" href="css/bottom-nav.css" />
     <link rel="stylesheet" href="css/mobile.css" />
-    <script type="module" src="js/profile.js"></script>
+    <script type="module" src="js/profile.js?v=account-details"></script>
     <script src="js/bottom-nav.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/animejs@3.2.2/lib/anime.min.js" defer></script>
     <script src="js/motion.js" defer></script>
@@ -39,7 +39,19 @@
       <section class="profile-card-shell" aria-labelledby="profile-title">
         <span class="eyebrow accent">Rider account</span>
         <h1 id="profile-title">Your profile</h1>
-        <p>Update the contact details used for your rides and payment receipts.</p>
+        <p>Complete these account steps so your contact details and profile are ready for campus rides.</p>
+
+        <section class="profile-completion" aria-labelledby="profile-completion-title">
+          <div class="profile-completion-heading">
+            <h2 id="profile-completion-title">Account steps</h2>
+            <span id="profile-completion-count">0 of 2 complete</span>
+          </div>
+          <progress id="profile-completion-progress" max="100" value="0" aria-label="Account completion"></progress>
+          <ol class="profile-completion-steps">
+            <li data-profile-step="details"><span>Step 1 · Add your name and phone number</span><strong>Incomplete</strong></li>
+            <li data-profile-step="photo"><span>Step 2 · Add a profile photo</span><strong>Incomplete</strong></li>
+          </ol>
+        </section>
 
         <p id="profile-message" class="auth-message" role="status" aria-live="polite" hidden></p>
 
@@ -67,7 +79,7 @@
             <label for="profile-phone">Phone number</label>
             <input id="profile-phone" name="phone" type="tel" autocomplete="tel" required />
           </div>
-          <button class="btn btn-primary btn-large" type="submit">Save profile</button>
+          <button class="btn btn-primary btn-large" type="submit">Save account steps</button>
         </form>
       </section>
     </main>
