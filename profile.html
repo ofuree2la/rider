@@ -8,13 +8,15 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="css/base.css" />
+    <link rel="stylesheet" href="css/base.css?v=shared-loading-photo-step2" />
     <link rel="stylesheet" href="css/components.css" />
     <link rel="stylesheet" href="css/auth.css" />
     <link rel="stylesheet" href="css/profile.css" />
+    <link rel="stylesheet" href="css/loading.css" />
+    <link rel="stylesheet" href="css/photo-picker.css?v=photo-picker-step2" />
     <link rel="stylesheet" href="css/bottom-nav.css" />
     <link rel="stylesheet" href="css/mobile.css" />
-    <script type="module" src="js/profile.js?v=account-details"></script>
+    <script type="module" src="js/profile.js?v=photo-picker-step2"></script>
     <script src="js/bottom-nav.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/animejs@3.2.2/lib/anime.min.js" defer></script>
     <script src="js/motion.js" defer></script>
@@ -37,6 +39,16 @@
 
     <main class="container profile-shell">
       <section class="profile-card-shell" aria-labelledby="profile-title">
+        <div class="rider-loading-state" role="status" aria-live="polite" aria-atomic="true">
+          <span class="rider-loading-state__spinner" aria-hidden="true"></span>
+          <p class="rider-loading-state__message">Loading your profile…</p>
+          <div class="rider-loading-state__skeletons" aria-hidden="true">
+            <span class="rider-loading-state__skeleton"></span>
+            <span class="rider-loading-state__skeleton"></span>
+            <span class="rider-loading-state__skeleton"></span>
+          </div>
+        </div>
+        <div id="profile-content" class="profile-content" hidden>
         <span class="eyebrow accent">Rider account</span>
         <h1 id="profile-title">Your profile</h1>
         <p>Complete these account steps so your contact details and profile are ready for campus rides.</p>
@@ -81,6 +93,7 @@
           </div>
           <button class="btn btn-primary btn-large" type="submit">Save account steps</button>
         </form>
+        </div>
       </section>
     </main>
   </body>

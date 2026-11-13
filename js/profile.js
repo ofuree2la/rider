@@ -6,9 +6,16 @@ import {
   updateCurrentUserProfile,
   uploadProfilePhoto,
 } from "./supabase-api.js?v=account-details";
+import { attachPhotoPicker } from "./photo-picker.js";
+import { createLoadingState } from "./loading.js";
 
 const expectedRole = document.body.dataset.accountRole;
 const form = document.querySelector("#profile-form");
+const profileShell = document.querySelector(".profile-card-shell");
+const profileContent = document.querySelector("#profile-content");
+const profileLoading = createLoadingState(profileShell, profileContent, {
+  label: "Loading your profile…",
+});
 const message = document.querySelector("#profile-message");
 const nameInput = document.querySelector("#profile-name");
 const emailInput = document.querySelector("#profile-email");
@@ -25,6 +32,9 @@ const completionProgress = document.querySelector("#profile-completion-progress"
 const completionSteps = [...document.querySelectorAll("[data-profile-step]")];
 const logoutButton = document.querySelector("#logout-button");
 const isDriverPage = window.location.pathname.includes("/driver/");
+const photoPicker = profilePhotoInput
+  ? attachPhotoPicker(profilePhotoInput, { shape: "profile" })
+  : null;
 let previewUrl = null;
 let hasSavedProfilePhoto = false;
 
@@ -126,13 +136,15 @@ async function handleSubmit(event) {
 
   try {
     let updatedUser = await updateCurrentUserProfile(updates);
-    const photo = profilePhotoInput.files[0];
+    const photo = photoPicker?.getFile();
     if (photo) {
+      photoPicker.setStatus("Uploading your photo…", "uploading");
       const result = await uploadProfilePhoto(photo);
       updatedUser = result.user;
       hasSavedProfilePhoto = Boolean(updatedUser.avatarUrl);
       showProfilePhoto(updatedUser.avatarUrl, updatedUser.name);
-      profilePhotoInput.value = "";
+      photoPicker.clear();
+      photoPicker.setStatus("Profile photo uploaded.", "success");
       if (previewUrl) {
         URL.revokeObjectURL(previewUrl);
         previewUrl = null;
@@ -150,12 +162,15 @@ async function handleSubmit(event) {
     updateCompletionSteps();
     showMessage("Your profile has been updated. If you changed your email, confirm it from the message we sent.");
   } catch (error) {
+    if (photoPicker?.getFile()) {
+      photoPicker.setStatus(error.message || "The photo could not be uploaded.", "error");
+    }
     showMessage(error.message || "Your profile could not be updated.", true);
   }
 }
 
-function previewProfilePhoto() {
-  const file = profilePhotoInput.files[0];
+function previewProfilePhoto(event) {
+  const file = event.detail?.file;
   if (!file) {
     return;
   }
@@ -179,14 +194,32 @@ if (!form || !message || !nameInput || !emailInput || !phoneInput || !logoutButt
   throw new Error("The profile page is missing required form elements.");
 }
 
-try {
+async function startProfile() {
+  profileLoading.showLoading();
+  showMessage("");
   if (await loadProfile()) {
     form.addEventListener("submit", handleSubmit);
     logoutButton.addEventListener("click", handleLogout);
-    profilePhotoInput?.addEventListener("change", previewProfilePhoto);
+    profilePhotoInput?.addEventListener("photo-picker:ready", previewProfilePhoto);
     form.addEventListener("input", updateCompletionSteps);
     form.addEventListener("change", updateCompletionSteps);
+    profileLoading.showLoaded();
   }
-} catch (error) {
-  showMessage(`Your profile could not be loaded: ${error.message}`, true);
 }
+
+async function retryProfileLoad() {
+  try {
+    await startProfile();
+  } catch (error) {
+    profileLoading.showError(error, retryProfileLoad);
+  }
+}
+
+await retryProfileLoad();
+
+window.addEventListener("pagehide", () => {
+  if (previewUrl) {
+    URL.revokeObjectURL(previewUrl);
+    previewUrl = null;
+  }
+}, { once: true });

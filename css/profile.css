@@ -24,7 +24,7 @@
   font-size: clamp(2rem, 5vw, 2.75rem);
 }
 
-.profile-card-shell > p:not(.auth-message) {
+.profile-content > p:not(.auth-message) {
   margin-bottom: 1.5rem;
 }
 

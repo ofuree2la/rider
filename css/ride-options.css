@@ -162,14 +162,9 @@ button.ride-option-row {
   color: var(--color-brand-dark);
 }
 
-.keke-illustration svg {
+.keke-illustration .rider-vehicle-icon {
   width: 50px;
   height: 38px;
-  fill: #cce5d2;
-  stroke: var(--color-brand-dark);
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  stroke-width: 2;
 }
 
 .ride-option-symbol {

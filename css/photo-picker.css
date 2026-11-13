@@ -1,0 +1,204 @@
+.photo-picker-status {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 24px;
+  margin: var(--space-2) 0 0;
+  color: var(--color-slate);
+  font-size: var(--font-size-xs);
+  line-height: 1.4;
+}
+
+.photo-picker-status[hidden] {
+  display: none;
+}
+
+.photo-picker-status[data-state="error"] {
+  color: #8d2929;
+}
+
+.photo-picker-status[data-state="success"] {
+  color: var(--color-success);
+}
+
+.photo-picker-status__spinner {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 14px;
+  border: 2px solid var(--color-brand-soft);
+  border-top-color: var(--color-brand);
+  border-radius: var(--radius-pill);
+  animation: photo-picker-spin 750ms linear infinite;
+}
+
+.photo-editor {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  overflow: auto;
+  border: 0;
+  background: var(--color-white);
+  color: var(--color-ink);
+}
+
+.photo-editor::backdrop {
+  background: rgba(15, 25, 18, 0.6);
+}
+
+.photo-editor__layout {
+  display: grid;
+  align-content: start;
+  gap: var(--space-4);
+  width: min(100%, 560px);
+  min-height: 100%;
+  margin: 0 auto;
+  padding: max(var(--space-4), env(safe-area-inset-top, 0px)) var(--space-4)
+    max(var(--space-4), env(safe-area-inset-bottom, 0px));
+}
+
+.photo-editor__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.photo-editor__header h2 {
+  margin: 0;
+  font-size: var(--font-size-xl);
+  line-height: var(--line-height-heading);
+}
+
+.photo-editor__cancel,
+.photo-editor__use {
+  min-width: 44px;
+  min-height: 48px;
+  padding: var(--space-2) var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  background: var(--color-white);
+  color: var(--color-forest);
+  font: inherit;
+  font-weight: var(--font-weight-bold);
+  cursor: pointer;
+}
+
+.photo-editor__use {
+  border-color: var(--color-brand);
+  background: var(--color-brand);
+  color: var(--color-white);
+}
+
+.photo-editor__cancel:focus-visible,
+.photo-editor__use:focus-visible,
+.photo-editor__zoom:focus-visible {
+  outline: 3px solid var(--color-brand);
+  outline-offset: 3px;
+}
+
+.photo-editor__instructions {
+  margin: 0;
+  color: var(--color-slate);
+  font-size: var(--font-size-sm);
+}
+
+.photo-editor__canvas-wrap {
+  position: relative;
+  display: grid;
+  width: min(100%, 420px);
+  aspect-ratio: 1;
+  margin: 0 auto;
+  overflow: hidden;
+  place-items: center;
+  border-radius: var(--radius-lg);
+  background: #e7ece8;
+  touch-action: none;
+}
+
+.photo-editor[data-shape="vehicle"] .photo-editor__canvas-wrap {
+  aspect-ratio: 4 / 3;
+}
+
+.photo-editor__canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.photo-editor__guide {
+  position: absolute;
+  inset: 8%;
+  border: 2px solid rgba(255, 255, 255, 0.92);
+  border-radius: var(--radius-md);
+  box-shadow: 0 0 0 999px rgba(10, 20, 12, 0.14);
+  pointer-events: none;
+}
+
+.photo-editor[data-shape="profile"] .photo-editor__guide {
+  border-radius: var(--radius-pill);
+}
+
+.photo-editor__zoom-control {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.photo-editor__zoom-control label {
+  color: var(--color-ink);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+}
+
+.photo-editor__zoom {
+  width: 100%;
+  min-height: 44px;
+  accent-color: var(--color-brand);
+}
+
+.photo-editor__actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+  margin-top: auto;
+}
+
+.photo-editor__error {
+  margin: 0;
+  color: #8d2929;
+  font-size: var(--font-size-sm);
+}
+
+.photo-editor__error:empty {
+  display: none;
+}
+
+.profile-photo-frame img,
+.admin-account-avatar,
+.admin-driver-avatar {
+  object-fit: cover;
+  object-position: center;
+}
+
+@media (max-width: 380px) {
+  .photo-editor__layout {
+    gap: var(--space-3);
+    padding-inline: var(--space-3);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .photo-picker-status__spinner {
+    animation: none;
+  }
+}
+
+@keyframes photo-picker-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

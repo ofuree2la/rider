@@ -12,11 +12,12 @@
     <link rel="stylesheet" href="css/booking.css?v=vehicles" />
     <link rel="stylesheet" href="css/planner.css?v=ride-options-step5" />
     <link rel="stylesheet" href="css/ride-options.css?v=ride-options-step5" />
+    <link rel="stylesheet" href="css/vehicle-icons.css?v=shared-icons-step2" />
     <link rel="stylesheet" href="css/cancellation.css" />
     <link rel="stylesheet" href="css/bottom-nav.css" />
     <link rel="stylesheet" href="css/mobile.css" />
     <script type="module" src="js/planner.js?v=ride-options-step5"></script>
-    <script type="module" src="js/ride-options.js?v=ride-options-step5"></script>
+    <script type="module" src="js/ride-options.js?v=shared-icons-step2"></script>
     <script type="module" src="js/booking.js?v=ride-options-step5"></script>
     <script src="js/bottom-nav.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/animejs@3.2.2/lib/anime.min.js" defer></script>
@@ -285,16 +286,7 @@
 
           <div class="ride-options-vehicle-list" role="group" aria-label="Ride types">
             <button id="ride-option-keke" class="ride-option-row is-selected" type="button" aria-pressed="true">
-              <span class="keke-illustration" aria-hidden="true">
-                <svg viewBox="0 0 96 64" focusable="false">
-                  <path d="M22 18h40l11 12v20H18V28z"></path>
-                  <path d="M25 21h16v13H22zM45 21h15l9 10H45z"></path>
-                  <path d="M14 37h7v11h-7zM73 36h8v8h-8zM27 50h10M63 50h9"></path>
-                  <circle cx="31" cy="51" r="7"></circle>
-                  <circle cx="64" cy="51" r="7"></circle>
-                  <path d="M14 58h61M80 31h7M78 42h7"></path>
-                </svg>
-              </span>
+              <span class="keke-illustration" id="ride-option-icon" aria-hidden="true"></span>
               <span class="ride-option-copy">
                 <span class="ride-option-name">Keke</span>
                 <span class="ride-option-detail">Up to 4 passengers</span>

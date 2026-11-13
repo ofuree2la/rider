@@ -1,0 +1,56 @@
+.rider-vehicle-icon {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 3;
+}
+
+.rider-vehicle-icon__body {
+  fill: var(--color-brand-soft);
+  stroke: var(--color-brand-dark);
+}
+
+.rider-vehicle-icon__window {
+  fill: var(--color-white);
+  stroke: var(--color-brand);
+}
+
+.rider-vehicle-icon__wheel {
+  fill: var(--color-white);
+  stroke: var(--color-forest);
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.rider-vehicle-icon--animated .rider-vehicle-icon__body {
+  transform-origin: center;
+  animation: rider-vehicle-bounce 1.4s ease-in-out infinite;
+}
+
+.rider-vehicle-icon--animated .rider-vehicle-icon__wheel {
+  animation: rider-wheel-spin 1.2s linear infinite;
+}
+
+@keyframes rider-vehicle-bounce {
+  50% {
+    transform: translateY(-2px);
+  }
+}
+
+@keyframes rider-wheel-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rider-vehicle-icon--animated .rider-vehicle-icon__body,
+  .rider-vehicle-icon--animated .rider-vehicle-icon__wheel {
+    animation: none;
+  }
+}

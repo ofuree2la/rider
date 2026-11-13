@@ -125,11 +125,22 @@ body.admin-body .admin-bottom-nav {
 }
 
 .admin-driver-avatar {
+  display: block;
   flex: 0 0 auto;
   width: 52px;
   height: 52px;
   border-radius: 50%;
   object-fit: cover;
+  object-position: center;
+}
+
+.admin-avatar-fallback {
+  display: grid;
+  place-items: center;
+  background: var(--color-brand-soft);
+  color: var(--color-brand-dark);
+  font-size: 0.9rem;
+  font-weight: 800;
 }
 
 .admin-account-dialog {
@@ -178,6 +189,11 @@ body.admin-body .admin-bottom-nav {
   height: 72px;
   border-radius: 50%;
   object-fit: cover;
+  object-position: center;
+}
+
+.admin-account-avatar.admin-avatar-fallback {
+  font-size: 1.15rem;
 }
 
 .admin-account-metrics {

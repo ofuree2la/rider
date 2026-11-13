@@ -39,6 +39,11 @@
   --font-size-xl: 1.5rem;
   --font-size-2xl: 2.25rem;
   --font-size-3xl: clamp(2.5rem, 6vw, 4.5rem);
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --font-weight-extrabold: 800;
   --line-height-body: 1.7;
   --line-height-heading: 1.15;
 }

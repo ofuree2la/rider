@@ -1,5 +1,6 @@
 import { calculateFare, loadFareConfig } from "./pricing.js";
 import { createRide, getCurrentUser, getRides } from "./supabase-api.js";
+import { createVehicleIcon } from "./vehicle-icons.js";
 
 const plannerScreen = document.querySelector("#planner-screen");
 const sheet = document.querySelector("#ride-options-sheet");
@@ -17,6 +18,7 @@ const cancelRequestButton = document.querySelector("#ride-options-cancel-request
 const continueButton = document.querySelector("#ride-options-continue");
 const scheduleButton = document.querySelector("#ride-options-schedule");
 const paymentMethod = document.querySelector("#ride-options-payment-method");
+const vehicleIconRoot = document.querySelector("#ride-option-icon");
 
 const OPEN_RIDE_STATUSES = new Set(["finding", "accepted", "arriving"]);
 const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -36,6 +38,8 @@ let existingRideFound = false;
 let resumeAfterSelection = false;
 let returnFocusTarget = null;
 let closingTimer = null;
+
+vehicleIconRoot.replaceChildren(createVehicleIcon("keke"));
 
 function isRideOpen(ride) {
   return OPEN_RIDE_STATUSES.has(ride.status);

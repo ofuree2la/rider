@@ -16,6 +16,7 @@ import {
   updatePricingConfig,
 } from "./supabase-api.js?v=account-details";
 import { FARE_CONFIG } from "./pricing.js?v=admin";
+import { attachPhotoPicker } from "./photo-picker.js";
 
 const adminStatus = document.querySelector("#admin-status");
 const adminError = document.querySelector("#admin-error");
@@ -136,6 +137,8 @@ function renderRegisteredUsers(users) {
       avatar.src = user.avatarUrl;
       avatar.alt = `${user.name}'s profile`;
       card.append(avatar);
+    } else {
+      card.append(createInitialsAvatar(user.name, "admin-driver-avatar"));
     }
     const main = document.createElement("div");
     main.className = "admin-record-main";
@@ -158,6 +161,19 @@ function renderRegisteredUsers(users) {
     card.append(main);
     registeredUserList.append(card);
   }
+}
+
+function createInitialsAvatar(name, className) {
+  const initials = document.createElement("span");
+  initials.className = `${className} admin-avatar-fallback`;
+  initials.setAttribute("aria-hidden", "true");
+  initials.textContent = String(name || "R")
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => part[0] ?? "")
+    .join("")
+    .toUpperCase();
+  return initials;
 }
 
 function makeButton(label, action, id, status, className = "btn btn-secondary") {
@@ -209,6 +225,8 @@ function renderDrivers(drivers) {
       avatar.src = driver.avatarUrl;
       avatar.alt = `${driver.name}'s profile`;
       card.append(avatar);
+    } else {
+      card.append(createInitialsAvatar(driver.name, "admin-driver-avatar"));
     }
     const main = document.createElement("div");
     main.className = "admin-record-main";
@@ -291,6 +309,8 @@ async function openAccountDetails(profileId) {
       avatar.src = account.avatarUrl;
       avatar.alt = `${account.name}'s profile`;
       summary.append(avatar);
+    } else {
+      summary.append(createInitialsAvatar(account.name, "admin-account-avatar"));
     }
     const identity = document.createElement("div");
     const name = document.createElement("h3");
@@ -361,6 +381,7 @@ async function openAccountDetails(profileId) {
     photoInput.accept = "image/jpeg,image/png,image/webp";
     photoField.append(photoLabel, photoInput);
     form.append(photoField);
+    const photoPicker = attachPhotoPicker(photoInput, { shape: "profile" });
     const saveButton = document.createElement("button");
     saveButton.className = "btn btn-primary";
     saveButton.type = "submit";
@@ -369,6 +390,10 @@ async function openAccountDetails(profileId) {
     form.addEventListener("submit", async (event) => {
       event.preventDefault();
       saveButton.disabled = true;
+      const photoFile = photoPicker.getFile();
+      if (photoFile) {
+        photoPicker.setStatus("Uploading photo…", "uploading");
+      }
       try {
         const values = new FormData(form);
         const warning = await updateAccountAsAdmin(
@@ -384,12 +409,19 @@ async function openAccountDetails(profileId) {
                 }
               : {}),
           },
-          photoInput.files[0] ?? null,
+          photoFile ?? null,
         );
+        if (photoFile) {
+          photoPicker.clear();
+          photoPicker.setStatus("Photo updated.", "success");
+        }
         dialog.close();
         showStatus(warning || "Account details updated.");
         await refreshDashboard();
       } catch (error) {
+        if (photoFile) {
+          photoPicker.setStatus(error.message || "The photo could not be uploaded.", "error");
+        }
         showError(error.message);
       } finally {
         saveButton.disabled = false;
@@ -399,7 +431,10 @@ async function openAccountDetails(profileId) {
     dialog.addEventListener("click", (event) => {
       if (event.target === dialog) dialog.close();
     });
-    dialog.addEventListener("close", () => dialog.remove(), { once: true });
+    dialog.addEventListener("close", () => {
+      photoPicker.destroy();
+      dialog.remove();
+    }, { once: true });
     document.body.append(dialog);
     dialog.showModal();
   } catch (error) {
