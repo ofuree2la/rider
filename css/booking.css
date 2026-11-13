@@ -347,7 +347,32 @@
 }
 
 .booking-message[hidden],
-.match-card[hidden] {
+.match-card[hidden],
+.booking-auth-loading[hidden],
+#booking-signin-link[hidden],
+#find-ride[hidden] {
+  display: none;
+}
+
+.booking-auth-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.65rem;
+  min-height: 52px;
+  color: var(--color-slate);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.booking-auth-skeleton {
+  width: 42px;
+  height: 12px;
+  border-radius: 999px;
+  background: rgba(22, 130, 75, 0.12);
+}
+
+.booking-auth-loading.is-error .booking-auth-skeleton {
   display: none;
 }
 

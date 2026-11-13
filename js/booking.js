@@ -32,6 +32,8 @@ const fareBreakdownElement = document.querySelector("#fare-breakdown");
 const fareNoteElement = document.querySelector("#fare-note");
 const errorElement = document.querySelector("#booking-error");
 const statusElement = document.querySelector("#booking-status");
+const bookingAuthLoading = document.querySelector("#booking-auth-loading");
+const bookingSigninLink = document.querySelector("#booking-signin-link");
 const findRideButton = document.querySelector("#find-ride");
 const matchCard = document.querySelector("#match-card");
 const matchCardContent = document.querySelector("#match-card-content");
@@ -83,6 +85,7 @@ let pendingReplacementSource = null;
 let cancellationFeedbackTimer = null;
 let cancellationCollapseTimer = null;
 let cancellationFeedbackRideId = null;
+let authStateSubscription = null;
 const activeSuggestionIndexes = new WeakMap();
 const noRidePrompt = mountNoRideAvailablePrompt(bookingNoRidePromptRoot, {
   onTryAgain: handleTryAgain,
@@ -333,6 +336,40 @@ function showStatus(message) {
   statusElement.textContent = message;
   statusElement.hidden = false;
   errorElement.hidden = true;
+}
+
+function setBookingActionState(state) {
+  bookingAuthLoading.hidden = state !== "loading" && state !== "error";
+  bookingAuthLoading.classList.toggle("is-error", state === "error");
+  if (state === "loading") {
+    bookingAuthLoading.textContent = "";
+    const spinner = document.createElement("span");
+    spinner.className = "booking-auth-skeleton";
+    spinner.setAttribute("aria-hidden", "true");
+    const label = document.createElement("span");
+    label.textContent = "Checking your account...";
+    bookingAuthLoading.append(spinner, label);
+  } else if (state === "error") {
+    bookingAuthLoading.textContent = "We couldn’t check your account. Please reload to try again.";
+  }
+  bookingSigninLink.hidden = state !== "signed-out";
+  findRideButton.hidden = state !== "signed-in";
+  findRideButton.disabled = state !== "signed-in";
+}
+
+function clearRiderBookingState() {
+  try {
+    window.sessionStorage.removeItem(LAST_BOOKED_RIDE_KEY);
+  } catch (error) {
+    console.error("The saved booking reference could not be cleared after sign-out.", error);
+  }
+  stopBookingStatusUpdates();
+  clearCancellationFeedbackTimers();
+  removeBookingCard();
+  bookingRetryCard.hidden = true;
+  pendingReplacementInput = null;
+  pendingReplacementSource = null;
+  currentUser = null;
 }
 
 function clearMessages() {
@@ -971,6 +1008,9 @@ function wait(milliseconds) {
 
 async function findRide(event) {
   event.preventDefault();
+  if (!currentUser || currentUser.role !== "rider") {
+    return;
+  }
   clearMessages();
   resetBookingCardForNewRequest();
 
@@ -1044,6 +1084,7 @@ async function findRide(event) {
 }
 
 async function startBookingPage() {
+  setBookingActionState("loading");
   scheduledAtInput.min = localDateTimeValue(new Date(Date.now() + 60_000));
   onlinePaymentOption.disabled = !isOnlinePaymentConfigured();
   if (onlinePaymentOption.disabled) {
@@ -1051,14 +1092,18 @@ async function startBookingPage() {
   } else {
     onlinePaymentOption.textContent = "Pay online (after driver accepts)";
   }
-  currentUser = await getCurrentUser();
-  if (!currentUser || currentUser.role !== "rider") {
-    showError("Sign in with a Rider account before requesting a ride.");
-    const signInLink = document.querySelector("#booking-signin-link");
-    signInLink.hidden = false;
-    findRideButton.disabled = true;
+  const user = await getCurrentUser();
+  if (!user || user.role !== "rider") {
+    clearRiderBookingState();
+    setBookingActionState("signed-out");
+    clearMessages();
+    if (user) {
+      showError("Sign in with a Rider account before requesting a ride.");
+    }
     return;
   }
+  currentUser = user;
+  setBookingActionState("signed-in");
   emailInput.value = currentUser.email;
   const restoreBooking = async () => {
     await restoreLastBooking();
@@ -1097,6 +1142,7 @@ async function startBookingPage() {
     stopBookingStatusUpdates();
     clearCancellationFeedbackTimers();
     noRidePrompt.cleanup();
+    authStateSubscription?.unsubscribe();
   }, { once: true });
   updateVehicleFields();
   await updatePaymentFields();
@@ -1105,9 +1151,19 @@ async function startBookingPage() {
   form.addEventListener("submit", findRide);
 }
 
+const { data: authStateData } = supabase.auth.onAuthStateChange((event) => {
+  if (event !== "SIGNED_OUT") {
+    return;
+  }
+  clearRiderBookingState();
+  clearMessages();
+  setBookingActionState("signed-out");
+});
+authStateSubscription = authStateData.subscription;
+
 try {
   await startBookingPage();
 } catch (error) {
   showError(`Booking could not be loaded: ${error.message}`);
-  findRideButton.disabled = true;
+  setBookingActionState("error");
 }
