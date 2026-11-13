@@ -41,6 +41,7 @@ const cancelRideButton = document.querySelector("#cancel-ride-button");
 const cancelRideNotice = document.querySelector("#ride-cancel-notice");
 const trackingNoRidePromptRoot = document.querySelector("#tracking-no-ride-prompt");
 const trackingRetryCard = document.querySelector("#tracking-retry-card");
+const trackingRetryTitle = document.querySelector("#tracking-retry-title");
 const trackingRetryDetails = document.querySelector("#tracking-retry-details");
 const trackingRetryCreateButton = document.querySelector("#tracking-retry-create");
 const statusSteps = [...document.querySelectorAll("[data-status-step]")];
@@ -473,6 +474,8 @@ async function createReplacementRide() {
 
   isRetryCreateInProgress = true;
   trackingRetryCreateButton.disabled = true;
+  trackingRetryTitle.textContent = "Finding a new ride";
+  trackingRetryDetails.textContent = "Sending a new request with the same trip details...";
   try {
     const newRide = await createRide(pendingReplacementInput);
     completeReplacementRide(newRide);
@@ -492,6 +495,7 @@ async function createReplacementRide() {
     }
 
     console.error("The replacement ride request could not be created.", error);
+    trackingRetryTitle.textContent = "Your request was cancelled, but a new request was not sent";
     trackingRetryDetails.textContent =
       "Your previous request was cancelled, but the new request could not be sent. Your trip details are saved; try sending again.";
   } finally {
@@ -538,9 +542,11 @@ async function handleTryAgain(previousRide) {
   clearSavedBookingConfirmation(previousRide.id);
   ride = { ...cancelledRide, driver: previousRide.driver };
   renderRide();
+  hideMessages();
   pendingReplacementInput = retryInput;
   pendingReplacementSource = previousRide;
-  trackingRetryDetails.textContent = "Your old request is cancelled. Sending a new request with the same trip details.";
+  trackingRetryTitle.textContent = "Finding a new ride";
+  trackingRetryDetails.textContent = "Sending a new request with the same trip details...";
   trackingRetryCard.hidden = false;
   await createReplacementRide();
 }

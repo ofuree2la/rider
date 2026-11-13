@@ -34,6 +34,7 @@ const errorElement = document.querySelector("#booking-error");
 const statusElement = document.querySelector("#booking-status");
 const findRideButton = document.querySelector("#find-ride");
 const matchCard = document.querySelector("#match-card");
+const matchCardContent = document.querySelector("#match-card-content");
 const matchTitle = document.querySelector("#match-title");
 const matchDetails = document.querySelector("#match-details");
 const matchTrackingLink = document.querySelector("#match-tracking-link");
@@ -41,6 +42,7 @@ const matchCancelButton = document.querySelector("#match-cancel-button");
 const matchBookAgainLink = document.querySelector("#match-book-again-link");
 const bookingNoRidePromptRoot = document.querySelector("#booking-no-ride-prompt");
 const bookingRetryCard = document.querySelector("#booking-retry-card");
+const bookingRetryTitle = document.querySelector("#booking-retry-title");
 const bookingRetryDetails = document.querySelector("#booking-retry-details");
 const bookingRetryCreateButton = document.querySelector("#booking-retry-create");
 const mapRouteLabel = document.querySelector("#map-route-label");
@@ -50,6 +52,10 @@ const emailField = document.querySelector("#email-field");
 const emailInput = document.querySelector("#customer-email");
 const LAST_BOOKED_RIDE_KEY = "rider:last-booked-ride";
 const RIDE_STATUS_REFRESH_INTERVAL_MS = 45_000;
+const CANCELLATION_FEEDBACK_MS = 1_500;
+const CANCELLATION_COLLAPSE_MS = 400;
+const reusableMatchCardContent = document.createDocumentFragment();
+reusableMatchCardContent.append(...matchCardContent.childNodes);
 
 const currencyFormatter = new Intl.NumberFormat("en-NG", {
   style: "currency",
@@ -66,12 +72,17 @@ let selectedPickup = null;
 let selectedDestination = null;
 let bookingStatusChannel = null;
 let bookingStatusTimer = null;
+let bookingStatusRideId = null;
+let bookingStatusGeneration = 0;
 let isBookingStatusRefreshRunning = false;
 let isBookingCancellationInProgress = false;
 let isRetryCreateInProgress = false;
 let currentBookingRide = null;
 let pendingReplacementInput = null;
 let pendingReplacementSource = null;
+let cancellationFeedbackTimer = null;
+let cancellationCollapseTimer = null;
+let cancellationFeedbackRideId = null;
 const activeSuggestionIndexes = new WeakMap();
 const noRidePrompt = mountNoRideAvailablePrompt(bookingNoRidePromptRoot, {
   onTryAgain: handleTryAgain,
@@ -141,6 +152,8 @@ async function createReplacementBooking() {
 
   isRetryCreateInProgress = true;
   bookingRetryCreateButton.disabled = true;
+  bookingRetryTitle.textContent = "Finding a new ride";
+  bookingRetryDetails.textContent = "Sending a new request with the same trip details...";
   try {
     const newRide = await createRide(pendingReplacementInput);
     completeReplacementBooking(newRide);
@@ -160,6 +173,7 @@ async function createReplacementBooking() {
     }
 
     console.error("The replacement ride request could not be created.", error);
+    bookingRetryTitle.textContent = "Your request was cancelled, but a new request was not sent";
     bookingRetryDetails.textContent =
       "Your previous request was cancelled, but the new request could not be sent. Your booking details are still available; try sending again.";
   } finally {
@@ -226,10 +240,11 @@ async function handleTryAgain(previousRide) {
 
   stopBookingStatusUpdates();
   clearSavedBookingConfirmation(previousRide.id);
-  showSubmittedRide(cancelledRide, true);
+  removeBookingCard();
   pendingReplacementInput = retryInput;
   pendingReplacementSource = previousRide;
-  bookingRetryDetails.textContent = "Your old request is cancelled. Sending a new request with the same trip details.";
+  bookingRetryTitle.textContent = "Finding a new ride";
+  bookingRetryDetails.textContent = "Sending a new request with the same trip details...";
   bookingRetryCard.hidden = false;
   await createReplacementBooking();
 }
@@ -327,7 +342,107 @@ function clearMessages() {
   statusElement.hidden = true;
 }
 
+function clearCancellationFeedbackTimers() {
+  if (cancellationFeedbackTimer !== null) {
+    window.clearTimeout(cancellationFeedbackTimer);
+    cancellationFeedbackTimer = null;
+  }
+  if (cancellationCollapseTimer !== null) {
+    window.clearTimeout(cancellationCollapseTimer);
+    cancellationCollapseTimer = null;
+  }
+  cancellationFeedbackRideId = null;
+}
+
+function restoreMatchCardContent() {
+  if (reusableMatchCardContent.childNodes.length > 0) {
+    matchCardContent.replaceChildren(reusableMatchCardContent);
+  }
+}
+
+function ensureMatchCardMounted() {
+  if (!matchCard.isConnected) {
+    form.insertAdjacentElement("afterend", matchCard);
+  }
+}
+
+function removeBookingCard() {
+  clearCancellationFeedbackTimers();
+  matchCard.hidden = true;
+  matchCard.classList.remove("cancellation-feedback", "is-collapsing");
+  matchCard.remove();
+  currentBookingRide = null;
+  noRidePrompt.render(null);
+}
+
+function finishCancellationFeedback(rideId) {
+  if (cancellationFeedbackRideId !== rideId) {
+    return;
+  }
+  clearCancellationFeedbackTimers();
+  matchCard.hidden = true;
+  matchCard.classList.remove("cancellation-feedback", "is-collapsing");
+  matchCard.remove();
+}
+
+function showCancellationFeedback(rideId) {
+  clearCancellationFeedbackTimers();
+  stopBookingStatusUpdates();
+  clearSavedBookingConfirmation(rideId);
+  currentBookingRide = null;
+  noRidePrompt.render(null);
+  clearMessages();
+  ensureMatchCardMounted();
+  restoreMatchCardContent();
+  reusableMatchCardContent.append(...matchCardContent.childNodes);
+
+  const message = document.createElement("div");
+  message.className = "cancellation-confirmation";
+  message.setAttribute("role", "status");
+  message.setAttribute("aria-live", "polite");
+  const checkIcon = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  checkIcon.setAttribute("viewBox", "0 0 24 24");
+  checkIcon.setAttribute("aria-hidden", "true");
+  const checkPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  checkPath.setAttribute("d", "m5 12 4 4L19 6");
+  checkIcon.append(checkPath);
+  const messageText = document.createElement("span");
+  messageText.textContent = "Cancelled successfully";
+  message.append(checkIcon, messageText);
+  matchCardContent.replaceChildren(message);
+  matchCard.classList.remove("is-collapsing");
+  matchCard.classList.add("cancellation-feedback");
+  matchCard.hidden = false;
+  cancellationFeedbackRideId = rideId;
+
+  const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  cancellationFeedbackTimer = window.setTimeout(() => {
+    cancellationFeedbackTimer = null;
+    if (cancellationFeedbackRideId !== rideId) {
+      return;
+    }
+    if (prefersReducedMotion) {
+      finishCancellationFeedback(rideId);
+      return;
+    }
+    matchCard.classList.add("is-collapsing");
+    cancellationCollapseTimer = window.setTimeout(
+      () => finishCancellationFeedback(rideId),
+      CANCELLATION_COLLAPSE_MS,
+    );
+  }, prefersReducedMotion ? 1_000 : CANCELLATION_FEEDBACK_MS);
+}
+
 function showSubmittedRide(ride, restored = false) {
+  if (["cancelled", "completed"].includes(ride.status)) {
+    clearSavedBookingConfirmation(ride.id);
+    removeBookingCard();
+    return;
+  }
+  clearCancellationFeedbackTimers();
+  ensureMatchCardMounted();
+  restoreMatchCardContent();
+  matchCard.classList.remove("cancellation-feedback", "is-collapsing");
   currentBookingRide = ride;
   noRidePrompt.render(ride);
   const isDelivery = ride.serviceType === "delivery";
@@ -338,12 +453,6 @@ function showSubmittedRide(ride, restored = false) {
   } else if (["accepted", "arriving"].includes(ride.status)) {
     matchTitle.textContent = `${serviceName} accepted`;
     matchDetails.textContent = "A driver has accepted your request. Open tracking to see their details and follow trip updates.";
-  } else if (ride.status === "cancelled") {
-    matchTitle.textContent = `${serviceName} request cancelled`;
-    matchDetails.textContent = `Your ${serviceName.toLowerCase()} request has been cancelled. You can book another one whenever you’re ready.`;
-  } else if (ride.status === "completed") {
-    matchTitle.textContent = `${serviceName} ${ride.status}`;
-    matchDetails.textContent = `This ${serviceName.toLowerCase()} is ${ride.status}. Open tracking to review its details.`;
   } else {
     matchTitle.textContent = restored ? `${serviceName} request saved` : `${serviceName} request submitted`;
     matchDetails.textContent = restored
@@ -356,7 +465,8 @@ function showSubmittedRide(ride, restored = false) {
   matchCancelButton.hidden = !["finding", "accepted", "arriving"].includes(ride.status);
   matchCancelButton.disabled = isBookingCancellationInProgress;
   matchCancelButton.textContent = isBookingCancellationInProgress ? "Cancelling..." : "Cancel request";
-  matchBookAgainLink.hidden = ride.status !== "cancelled";
+  matchTrackingLink.hidden = false;
+  matchBookAgainLink.hidden = true;
   matchCard.hidden = false;
 }
 
@@ -379,10 +489,7 @@ async function handleBookingCancellation() {
     if (cancelledRide.status !== "cancelled") {
       throw new Error("The ride was not cancelled. Refresh and check its current status.");
     }
-    stopBookingStatusUpdates();
-    clearSavedBookingConfirmation(rideId);
-    showSubmittedRide(cancelledRide, true);
-    showStatus("Your request has been cancelled. You can book another ride whenever you’re ready.");
+    showCancellationFeedback(rideId);
   } catch (error) {
     showError(error.message);
   } finally {
@@ -396,6 +503,8 @@ async function handleBookingCancellation() {
 }
 
 function stopBookingStatusUpdates() {
+  bookingStatusGeneration += 1;
+  bookingStatusRideId = null;
   if (bookingStatusTimer !== null) {
     window.clearInterval(bookingStatusTimer);
     bookingStatusTimer = null;
@@ -407,20 +516,30 @@ function stopBookingStatusUpdates() {
 }
 
 async function refreshBookingStatus(rideId) {
-  if (isBookingStatusRefreshRunning || document.visibilityState !== "visible") {
+  if (
+    isBookingStatusRefreshRunning ||
+    document.visibilityState !== "visible" ||
+    bookingStatusRideId !== rideId
+  ) {
     return;
   }
+  const requestGeneration = bookingStatusGeneration;
   isBookingStatusRefreshRunning = true;
   try {
     const latestRide = await getRide(rideId, { includeDriver: false });
+    if (bookingStatusRideId !== rideId || bookingStatusGeneration !== requestGeneration) {
+      return;
+    }
     if (!latestRide) {
       throw new Error("This ride is no longer available to your account.");
     }
-    showSubmittedRide(latestRide, true);
-    if (latestRide.status === "cancelled") {
+    if (["cancelled", "completed"].includes(latestRide.status)) {
       clearSavedBookingConfirmation(rideId);
       stopBookingStatusUpdates();
+      showSubmittedRide(latestRide, true);
+      return;
     }
+    showSubmittedRide(latestRide, true);
   } catch (error) {
     showError(`Your ride status could not be refreshed: ${error.message}`);
   } finally {
@@ -430,6 +549,8 @@ async function refreshBookingStatus(rideId) {
 
 function watchBookingStatus(rideId) {
   stopBookingStatusUpdates();
+  bookingStatusRideId = rideId;
+  const watchGeneration = bookingStatusGeneration;
   bookingStatusChannel = supabase
     .channel(`booking-ride-status:${rideId}`)
     .on(
@@ -443,6 +564,9 @@ function watchBookingStatus(rideId) {
       () => refreshBookingStatus(rideId),
     )
     .subscribe((status, error) => {
+      if (bookingStatusRideId !== rideId || bookingStatusGeneration !== watchGeneration) {
+        return;
+      }
       if (status === "SUBSCRIBED") {
         refreshBookingStatus(rideId);
       } else if (["CHANNEL_ERROR", "TIMED_OUT", "CLOSED"].includes(status)) {
@@ -475,12 +599,13 @@ async function restoreLastBooking() {
       window.sessionStorage.removeItem(LAST_BOOKED_RIDE_KEY);
       return;
     }
-    showSubmittedRide(previousRide, true);
-    if (previousRide.status === "cancelled") {
+    if (["cancelled", "completed"].includes(previousRide.status)) {
       clearSavedBookingConfirmation(previousRideId);
-    } else if (previousRide.status !== "completed") {
-      watchBookingStatus(previousRideId);
+      removeBookingCard();
+      return;
     }
+    showSubmittedRide(previousRide, true);
+    watchBookingStatus(previousRideId);
   } catch (error) {
     try {
       window.sessionStorage.removeItem(LAST_BOOKED_RIDE_KEY);
@@ -503,8 +628,11 @@ async function restoreOpenImmediateRide() {
 }
 
 function resetBookingCardForNewRequest() {
+  clearCancellationFeedbackTimers();
   stopBookingStatusUpdates();
   matchCard.hidden = true;
+  matchCard.classList.remove("cancellation-feedback", "is-collapsing");
+  restoreMatchCardContent();
   bookingRetryCard.hidden = true;
   noRidePrompt.render(null);
 }
@@ -967,6 +1095,7 @@ async function startBookingPage() {
   });
   window.addEventListener("pagehide", () => {
     stopBookingStatusUpdates();
+    clearCancellationFeedbackTimers();
     noRidePrompt.cleanup();
   }, { once: true });
   updateVehicleFields();

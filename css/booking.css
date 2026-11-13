@@ -373,6 +373,57 @@
   border: 1px solid rgba(22, 130, 75, 0.18);
   border-radius: 16px;
   background: #f5faf6;
+  box-shadow: 0 12px 30px rgba(18, 20, 18, 0.08);
+}
+
+.match-card-content {
+  min-height: 0;
+}
+
+.match-card.cancellation-feedback {
+  display: grid;
+  grid-template-rows: 1fr;
+  overflow: hidden;
+  transition:
+    grid-template-rows 400ms ease,
+    opacity 400ms ease,
+    margin 400ms ease,
+    padding 400ms ease,
+    border-width 400ms ease;
+}
+
+.match-card.cancellation-feedback .match-card-content {
+  overflow: hidden;
+}
+
+.match-card.cancellation-feedback.is-collapsing {
+  grid-template-rows: 0fr;
+  margin-block: 0;
+  padding-block: 0;
+  border-block-width: 0;
+  opacity: 0;
+}
+
+.cancellation-confirmation {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  min-height: 76px;
+  color: var(--color-success);
+  font-size: 1rem;
+  font-weight: 800;
+  text-align: center;
+}
+
+.cancellation-confirmation svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
 }
 
 .match-card h2 {
@@ -438,6 +489,12 @@
 .match-card[hidden],
 #booking-retry-card[hidden] {
   display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .match-card.cancellation-feedback {
+    transition: none;
+  }
 }
 
 #booking-retry-card {
