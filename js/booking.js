@@ -12,6 +12,7 @@ import { isOnlinePaymentConfigured } from "./payment.js";
 import { supabase } from "./supabase-client.js";
 import { clearSavedBookingConfirmation, confirmRideCancellation } from "./cancel-ride-dialog.js";
 import { mountNoRideAvailablePrompt } from "./no-ride-available.js";
+import { createVehicleIcon } from "./vehicle-icons.js";
 
 const form = document.querySelector("#booking-form");
 const pickupInput = document.querySelector("#pickup");
@@ -39,6 +40,10 @@ const matchCard = document.querySelector("#match-card");
 const matchCardContent = document.querySelector("#match-card-content");
 const matchTitle = document.querySelector("#match-title");
 const matchDetails = document.querySelector("#match-details");
+const matchLiveVehicle = document.querySelector("#match-live-vehicle");
+const matchDriverSummary = document.querySelector("#match-driver-summary");
+const matchProgressTrack = document.querySelector(".match-progress-track");
+const matchProgressFill = document.querySelector("#match-progress-fill");
 const matchTrackingLink = document.querySelector("#match-tracking-link");
 const matchCancelButton = document.querySelector("#match-cancel-button");
 const matchBookAgainLink = document.querySelector("#match-book-again-link");
@@ -484,14 +489,34 @@ function showSubmittedRide(ride, restored = false) {
   noRidePrompt.render(ride);
   const isDelivery = ride.serviceType === "delivery";
   const serviceName = isDelivery ? "Delivery" : "Ride";
+  const progressByStatus = {
+    finding: 15,
+    accepted: 40,
+    arriving: 70,
+    "on-trip": 85,
+  };
+  const progress = progressByStatus[ride.status] ?? 15;
+  const vehicleType = ride.driver?.vehicleType ?? ride.vehicleType ?? "keke";
+  matchLiveVehicle.replaceChildren(createVehicleIcon(vehicleType, { animated: true }));
+  matchProgressFill.dataset.progress = String(progress);
+  matchProgressTrack.setAttribute("aria-valuenow", String(progress));
+  const driverName = ride.driver?.name?.trim() ?? "";
+  matchDriverSummary.hidden = !driverName || !["accepted", "arriving", "on-trip"].includes(ride.status);
+  if (!matchDriverSummary.hidden) {
+    matchDriverSummary.querySelector(".match-driver-name").textContent = driverName;
+    matchDriverSummary.querySelector(".match-driver-plate").textContent =
+      ride.driver.plateNumber || "Plate not available";
+  }
   if (ride.status === "on-trip") {
-    matchTitle.textContent = `${serviceName} in progress`;
+    matchTitle.textContent = "On your way";
     matchDetails.textContent = "The trip has started, so this ride can no longer be cancelled. Open tracking for current updates.";
   } else if (["accepted", "arriving"].includes(ride.status)) {
-    matchTitle.textContent = `${serviceName} accepted`;
-    matchDetails.textContent = "A driver has accepted your request. Open tracking to see their details and follow trip updates.";
+    matchTitle.textContent = ride.status === "accepted" ? "Driver found" : "Your driver has arrived";
+    matchDetails.textContent = "Open tracking for the latest trip updates and driver details.";
   } else {
-    matchTitle.textContent = restored ? `${serviceName} request saved` : `${serviceName} request submitted`;
+    matchTitle.textContent = ride.timing === "scheduled"
+      ? `${serviceName} scheduled`
+      : "Looking for a driver...";
     matchDetails.textContent = restored
       ? `Your request is ${ride.status.replace("-", " ")}. Open tracking for current updates.`
       : ride.paymentMethod === "online"

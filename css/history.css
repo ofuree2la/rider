@@ -1,97 +1,427 @@
-@import url("./tracking.css");
-
 .history-shell {
   display: grid;
-  gap: 1rem;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-6);
+  padding-bottom: var(--space-8);
+}
+
+.history-shell > * {
+  min-width: 0;
 }
 
 .history-shell .page-heading {
   margin-bottom: 0;
 }
 
-.history-section {
-  padding: clamp(1.1rem, 3vw, 1.6rem);
+.activity-heading h1 {
+  margin-bottom: var(--space-2);
 }
 
-.history-section-heading {
-  margin-bottom: 1.1rem;
+.activity-heading p {
+  margin-bottom: 0;
 }
 
-.ride-count {
-  background: #f1f3f1;
-  color: var(--color-slate);
-  text-transform: none;
-}
-
-.ride-list {
+.activity-panel {
   display: grid;
-  gap: 0.75rem;
-}
-
-.ride-history-card {
-  display: grid;
-  gap: 0.65rem;
-  padding: 1rem;
+  gap: var(--space-5);
+  padding: clamp(1rem, 3vw, 1.75rem);
   border: 1px solid var(--color-border);
-  border-radius: 16px;
-  background: #fbfcfb;
+  border-radius: var(--radius-xl);
+  background: var(--color-surface);
+  box-shadow: var(--color-shadow);
 }
 
-.ride-history-heading {
+.activity-toolbar {
   display: flex;
-  align-items: flex-start;
+  min-width: 0;
+  align-items: center;
   justify-content: space-between;
-  gap: 0.75rem;
+  gap: var(--space-4);
 }
 
-.ride-history-heading h3 {
+.activity-filters {
+  display: flex;
+  min-width: 0;
+  max-width: 100%;
+  gap: var(--space-2);
+  overflow-x: auto;
+  padding: 3px;
+  scrollbar-width: thin;
+}
+
+.activity-filter {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0.55rem 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  background: var(--color-white);
+  color: var(--color-slate);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 160ms ease, color 160ms ease, border-color 160ms ease;
+}
+
+.activity-filter[aria-pressed="true"] {
+  border-color: var(--color-forest);
+  background: var(--color-forest);
+  color: var(--color-white);
+}
+
+.activity-count {
+  flex: 0 0 auto;
+  margin: 0;
+  color: var(--color-slate);
+  font-size: var(--font-size-sm);
+}
+
+.activity-groups {
+  display: grid;
+  gap: var(--space-6);
+}
+
+.activity-month {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.activity-month-heading {
   margin: 0;
   color: var(--color-ink);
-  font-size: 1rem;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-bold);
+}
+
+.activity-ride-list {
+  display: grid;
+  border-top: 1px solid var(--color-border);
+}
+
+.activity-ride {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-4) 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.activity-ride-link {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: var(--space-4);
+  border-radius: var(--radius-md);
+}
+
+.activity-vehicle {
+  display: grid;
+  width: 64px;
+  height: 64px;
+  flex: 0 0 64px;
+  place-items: center;
+  border-radius: var(--radius-md);
+  background: var(--color-forest-soft);
+  color: var(--color-brand-dark);
+}
+
+.activity-vehicle--minivan {
+  background: #edf0fc;
+  color: #424e8b;
+}
+
+.activity-vehicle--bike {
+  background: #fff3df;
+  color: #92610c;
+}
+
+.activity-vehicle svg {
+  width: 52px;
+  height: 42px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2.4;
+}
+
+.activity-ride-content {
+  display: grid;
+  min-width: 0;
+  flex: 1;
+  gap: 0.35rem;
+}
+
+.activity-ride-heading {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.activity-route {
+  overflow: hidden;
+  color: var(--color-ink);
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-bold);
+  line-height: 1.4;
+  text-overflow: ellipsis;
+}
+
+.activity-status {
+  flex: 0 0 auto;
+  padding: 0.25rem 0.65rem;
+  border-radius: var(--radius-pill);
+  background: var(--color-muted);
+  color: var(--color-slate);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
   line-height: 1.4;
 }
 
-.ride-history-meta {
-  margin: 0;
-  font-size: 0.8rem;
+.activity-status[data-status="completed"] {
+  background: var(--color-brand-soft);
+  color: var(--color-success);
 }
 
-.ride-history-actions {
+.activity-status[data-status="cancelled"] {
+  background: #fff0ef;
+  color: #9a3030;
+}
+
+.activity-status[data-status="scheduled"] {
+  background: #fff3df;
+  color: #835600;
+}
+
+.activity-ride-time {
+  color: var(--color-slate);
+  font-size: var(--font-size-sm);
+}
+
+.activity-ride-footer {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.6rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  color: var(--color-slate);
+  font-size: var(--font-size-sm);
 }
 
-.ride-history-actions .btn {
-  min-height: 42px;
-  padding: 0.65rem 0.95rem;
-  font-size: 0.82rem;
+.activity-fare {
+  color: var(--color-ink);
+  font-weight: var(--font-weight-bold);
+  white-space: nowrap;
 }
 
-.cancel-ride-button {
+.activity-ride-actions {
+  display: flex;
+  justify-content: flex-end;
+  padding-left: 80px;
+}
+
+.activity-cancel-button,
+.activity-load-more {
+  min-height: 44px;
+  padding: 0.55rem 0.9rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  background: var(--color-white);
+  color: var(--color-ink);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+}
+
+.activity-cancel-button {
   color: #8d2929;
 }
 
-.empty-state {
+.activity-cancel-button:disabled,
+.activity-load-more:disabled,
+.history-error .btn:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.activity-load-more {
+  justify-self: center;
+  min-width: 148px;
+  border-color: var(--color-brand);
+  color: var(--color-brand-dark);
+}
+
+.activity-empty {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-3);
+  padding: clamp(2rem, 8vw, 4rem) var(--space-4);
+  text-align: center;
+}
+
+.activity-empty-icon {
+  display: grid;
+  width: 56px;
+  height: 56px;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--color-brand-soft);
+  color: var(--color-brand-dark);
+  font-size: 1.75rem;
+  font-weight: var(--font-weight-bold);
+}
+
+.activity-empty h2 {
   margin: 0;
-  padding: 1.2rem;
-  border: 1px dashed rgba(18, 20, 18, 0.2);
-  border-radius: 14px;
+  font-size: var(--font-size-lg);
+}
+
+.activity-empty p {
+  max-width: 28rem;
+  margin: 0;
   color: var(--color-slate);
-  font-size: 0.88rem;
 }
 
-.empty-state[hidden] {
-  display: none;
+.activity-empty .btn,
+.history-error .btn {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
 }
 
-@media (max-width: 520px) {
-  .history-section-heading {
+.history-error,
+.history-notice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-muted);
+}
+
+.history-error {
+  border-color: rgba(154, 48, 48, 0.22);
+  background: #fff5f4;
+}
+
+.history-error p,
+.history-notice {
+  margin: 0;
+}
+
+.history-error p {
+  min-width: 0;
+  color: #8d2929;
+  overflow-wrap: anywhere;
+}
+
+.activity-skeleton-list {
+  display: grid;
+}
+
+.activity-skeleton {
+  display: grid;
+  min-height: 104px;
+  align-content: center;
+  grid-template-columns: 64px minmax(0, 1fr);
+  grid-template-rows: 18px 14px;
+  gap: 10px 16px;
+  padding: var(--space-4) 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.activity-skeleton span {
+  width: 64px;
+  height: 64px;
+  grid-row: 1 / span 2;
+  border-radius: var(--radius-md);
+}
+
+.activity-skeleton i {
+  height: 14px;
+  border-radius: var(--radius-pill);
+}
+
+.activity-skeleton i:last-child {
+  width: 62%;
+}
+
+.activity-skeleton span,
+.activity-skeleton i {
+  display: block;
+  background: linear-gradient(90deg, #eef1ee 20%, #f7f8f7 45%, #eef1ee 70%);
+  background-size: 220% 100%;
+  animation: activity-shimmer 1.4s ease-in-out infinite;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+@keyframes activity-shimmer {
+  to {
+    background-position-x: -220%;
+  }
+}
+
+@media (max-width: 640px) {
+  .activity-toolbar {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  .activity-filters {
+    width: 100%;
+  }
+
+  .activity-ride-link {
+    align-items: flex-start;
+    gap: var(--space-3);
+  }
+
+  .activity-vehicle {
+    width: 52px;
+    height: 52px;
+    flex-basis: 52px;
+  }
+
+  .activity-vehicle svg {
+    width: 44px;
+    height: 36px;
+  }
+
+  .activity-ride-heading {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: var(--space-1);
+  }
+
+  .activity-ride-actions {
+    padding-left: 64px;
+  }
+
+  .history-error,
+  .history-notice {
     align-items: flex-start;
     flex-direction: column;
   }
+}
 
-  .ride-history-heading {
-    flex-direction: column;
+@media (prefers-reduced-motion: reduce) {
+  .activity-filter,
+  .activity-skeleton span,
+  .activity-skeleton i {
+    animation: none;
+    transition: none;
+  }
+
+  .activity-skeleton span,
+  .activity-skeleton i {
+    background: #eef1ee;
   }
 }

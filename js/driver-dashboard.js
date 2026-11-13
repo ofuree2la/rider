@@ -7,6 +7,7 @@ import {
   logout,
   setDriverOnline,
 } from "./supabase-api.js";
+import { createLoadingState } from "./loading.js";
 
 const driverNameHeading = document.querySelector("#driver-name-heading");
 const driverOnlineToggle = document.querySelector("#driver-online-toggle");
@@ -14,6 +15,11 @@ const dashboardStatus = document.querySelector("#dashboard-status");
 const dashboardError = document.querySelector("#dashboard-error");
 const pendingCount = document.querySelector("#pending-count");
 const activeCount = document.querySelector("#active-count");
+const overviewShell = document.querySelector("#driver-overview-shell");
+const overviewContent = document.querySelector("#driver-overview-content");
+const overviewLoading = createLoadingState(overviewShell, overviewContent, {
+  label: "Loading your trip overview…",
+});
 const logoutButton = document.querySelector("#logout-button");
 const DASHBOARD_REFRESH_INTERVAL_MS = 45_000;
 const AVAILABILITY_STORAGE_KEY = "rider:driver-availability";
@@ -21,6 +27,7 @@ const AVAILABILITY_STORAGE_KEY = "rider:driver-availability";
 let driver = null;
 let isRefreshRunning = false;
 let overviewRefreshTimer = null;
+let sessionListenersRegistered = false;
 
 function showStatus(message) {
   dashboardStatus.textContent = message;
@@ -53,6 +60,9 @@ async function refreshOverview() {
   activeCount.textContent = String(
     rides.filter((ride) => ["accepted", "arriving", "on-trip"].includes(ride.status)).length,
   );
+  if (overviewContent.hidden) {
+    overviewLoading.showLoaded();
+  }
 }
 
 function stopOverviewRefresh() {
@@ -161,17 +171,20 @@ async function startDashboard() {
       );
     }
 
-    logoutButton.addEventListener("click", async () => {
-      try {
-        await logout();
-        window.location.assign("login.html");
-      } catch (error) {
-        showError(`Logout failed: ${error.message}`);
-      }
-    });
-    driverOnlineToggle.addEventListener("change", handleOnlineToggle);
-    document.addEventListener("driver-availability-state-changed", handleAvailabilityStateChange);
-    document.addEventListener("driver-session-ended", handleDriverSessionEnded);
+    if (!sessionListenersRegistered) {
+      logoutButton.addEventListener("click", async () => {
+        try {
+          await logout();
+          window.location.assign("login.html");
+        } catch (error) {
+          showError(`Logout failed: ${error.message}`);
+        }
+      });
+      driverOnlineToggle.addEventListener("change", handleOnlineToggle);
+      document.addEventListener("driver-availability-state-changed", handleAvailabilityStateChange);
+      document.addEventListener("driver-session-ended", handleDriverSessionEnded);
+      sessionListenersRegistered = true;
+    }
 
     await refreshOverview();
     startOverviewRefresh();
@@ -181,7 +194,10 @@ async function startDashboard() {
       document.removeEventListener("driver-session-ended", handleDriverSessionEnded);
     }, { once: true });
   } catch (error) {
-    showError(`The driver dashboard could not be loaded: ${error.message}`);
+    overviewLoading.showError(error, () => {
+      overviewLoading.showLoading();
+      void startDashboard();
+    });
   }
 }
 

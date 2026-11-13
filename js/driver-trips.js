@@ -9,6 +9,7 @@ import {
   updateDriverRideStatus,
 } from "./supabase-api.js";
 import { mountRideChat } from "./ride-chat.js";
+import { createLoadingState } from "./loading.js";
 
 const driverNameHeading = document.querySelector("#driver-name-heading");
 const requestHeading = document.querySelector("#incoming-title");
@@ -19,6 +20,11 @@ const requestList = document.querySelector("#request-list");
 const scheduledRides = document.querySelector("#scheduled-rides");
 const rideHistoryList = document.querySelector("#ride-history-list");
 const activeRideCard = document.querySelector("#active-ride-card");
+const tripsDataShell = document.querySelector("#trips-data-shell");
+const tripsDataContent = document.querySelector("#trips-data-content");
+const tripsLoading = createLoadingState(tripsDataShell, tripsDataContent, {
+  label: "Loading your trips…",
+});
 const dashboardStatus = document.querySelector("#dashboard-status");
 const dashboardError = document.querySelector("#dashboard-error");
 const logoutButton = document.querySelector("#logout-button");
@@ -50,6 +56,7 @@ let expiredNoticeUntil = 0;
 let requestTimingState = { firstSeenAt: {}, expiredIds: [] };
 let activeRideIds = new Set();
 let latestRides = [];
+let tripsListenersRegistered = false;
 const DECLINE_CONFIRMATION_MS = 5000;
 const declineConfirmations = new Map();
 
@@ -555,6 +562,9 @@ async function refreshTrips() {
   renderActiveRide(rides);
   renderScheduledRides(rides);
   renderRideHistory(rides);
+  if (tripsDataContent.hidden) {
+    tripsLoading.showLoaded();
+  }
 }
 
 async function handleRideAction(event) {
@@ -857,24 +867,30 @@ async function startTripsPage() {
     driverNameHeading.textContent = driver.name;
     requestHeading.textContent = driver.vehicleType === "bike" ? "Delivery requests" : "Ride requests";
     activeHeading.textContent = driver.vehicleType === "bike" ? "Active delivery" : "Active ride";
-    logoutButton.addEventListener("click", async () => {
-      try {
-        await logout();
-        window.location.assign("login.html");
-      } catch (error) {
-        showError(`Logout failed: ${error.message}`);
-      }
-    });
-    requestList.addEventListener("click", handleRideAction);
-    activeRideCard.addEventListener("click", handleRideAction);
-    document.addEventListener("driver-availability-state-changed", handleDriverAvailabilityChange);
-    document.addEventListener("driver-session-ended", cleanupTripsPage);
-    document.addEventListener("driver-ride-updated", handleDriverRideUpdate);
+    if (!tripsListenersRegistered) {
+      logoutButton.addEventListener("click", async () => {
+        try {
+          await logout();
+          window.location.assign("login.html");
+        } catch (error) {
+          showError(`Logout failed: ${error.message}`);
+        }
+      });
+      requestList.addEventListener("click", handleRideAction);
+      activeRideCard.addEventListener("click", handleRideAction);
+      document.addEventListener("driver-availability-state-changed", handleDriverAvailabilityChange);
+      document.addEventListener("driver-session-ended", cleanupTripsPage);
+      document.addEventListener("driver-ride-updated", handleDriverRideUpdate);
+      tripsListenersRegistered = true;
+    }
     await refreshTrips();
     document.addEventListener("driver-ride-requests-updated", refreshTripsSafely);
     startTripsRefresh();
   } catch (error) {
-    showError(`Trips could not be loaded: ${error.message}`);
+    tripsLoading.showError(error, () => {
+      tripsLoading.showLoading();
+      void startTripsPage();
+    });
   }
 }
 

@@ -15,7 +15,7 @@
     <link rel="stylesheet" href="../css/photo-picker.css?v=photo-picker-step2" />
     <link rel="stylesheet" href="../css/bottom-nav.css" />
     <link rel="stylesheet" href="../css/mobile.css" />
-    <script type="module" src="../js/admin.js?v=shared-loading-photo-step2"></script>
+    <script type="module" src="../js/admin.js?v=admin-users-pricing-redesign"></script>
   </head>
   <body class="admin-body has-bottom-nav">
     <header class="site-header">
@@ -28,20 +28,33 @@
     </header>
     <main class="container admin-shell" id="admin-top">
       <div class="admin-heading">
-        <div><span class="eyebrow accent">Accounts</span><h1>Registered users</h1><p>Rider, driver, and Admin accounts registered with Rider.</p></div>
+        <div><span class="eyebrow accent">Accounts</span><h1>Registered users</h1><p>Rider and driver accounts registered with Rider.</p></div>
         <nav class="admin-shortcuts" aria-label="Admin pages">
           <a href="dashboard.html">Overview</a><a href="users.html" aria-current="page">Users</a><a href="drivers.html">Drivers</a><a href="locations.html">Locations</a><a href="pricing.html">Pricing</a><a href="rides.html">Rides</a>
         </nav>
       </div>
       <p id="admin-status" class="admin-message status-message" role="status" aria-live="polite" hidden></p>
       <p id="admin-error" class="admin-message error-message" role="alert" aria-live="assertive" hidden></p>
-      <section class="admin-stats" aria-label="Registered user count">
-        <article class="admin-stat-card"><span>Registered users</span><strong id="metric-users">0</strong></article>
-      </section>
-      <section class="admin-panel" aria-labelledby="users-heading">
-        <div class="admin-section-heading"><div><span class="eyebrow accent">Accounts</span><h2 id="users-heading">All accounts</h2></div><p>Select a rider or driver to view and edit their account details.</p></div>
-        <div id="registered-user-list" class="admin-record-list" aria-live="polite"></div>
-      </section>
+      <div id="users-load-container" class="admin-page-loader" aria-busy="true">
+        <div id="users-content" class="admin-page-content" hidden>
+          <section class="admin-stats" aria-label="Registered user count">
+            <article class="admin-stat-card"><span>Rider and driver accounts</span><strong id="metric-users"></strong></article>
+          </section>
+          <section class="admin-panel" aria-labelledby="users-heading">
+            <div class="admin-section-heading"><div><span class="eyebrow accent">Accounts</span><h2 id="users-heading">Rider and driver accounts</h2></div><p>Select an account to view and edit its details.</p></div>
+            <div class="admin-user-tabs" role="tablist" aria-label="Account type">
+              <button id="users-tab-riders" class="btn btn-secondary" type="button" role="tab" aria-selected="true" aria-controls="registered-user-list" data-user-tab="rider">Riders <span id="users-count-riders"></span></button>
+              <button id="users-tab-drivers" class="btn btn-secondary" type="button" role="tab" aria-selected="false" aria-controls="registered-user-list" data-user-tab="driver" tabindex="-1">Drivers <span id="users-count-drivers"></span></button>
+            </div>
+            <div class="admin-user-search">
+              <label for="users-search">Search by name or phone</label>
+              <input id="users-search" type="search" autocomplete="off" placeholder="Name or phone number" />
+              <p>Email search is unavailable because the registered-user list does not include email addresses.</p>
+            </div>
+            <div id="registered-user-list" class="admin-record-list" role="tabpanel" aria-labelledby="users-tab-riders" aria-live="polite"></div>
+          </section>
+        </div>
+      </div>
     </main>
     <nav class="bottom-nav admin-bottom-nav" aria-label="Admin dashboard navigation">
       <a href="dashboard.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11.2 12 4l8 7.2V20a1 1 0 0 1-1 1h-4.5v-5.5h-5V21H5a1 1 0 0 1-1-1z"/></svg><span>Overview</span></a>

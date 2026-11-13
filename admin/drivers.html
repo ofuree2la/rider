@@ -11,10 +11,11 @@
     <link rel="stylesheet" href="../css/base.css?v=shared-loading-photo-step2" />
     <link rel="stylesheet" href="../css/components.css" />
     <link rel="stylesheet" href="../css/admin.css" />
+    <link rel="stylesheet" href="../css/loading.css" />
     <link rel="stylesheet" href="../css/photo-picker.css?v=photo-picker-step2" />
     <link rel="stylesheet" href="../css/bottom-nav.css" />
     <link rel="stylesheet" href="../css/mobile.css" />
-    <script type="module" src="../js/admin.js?v=shared-loading-photo-step2"></script>
+    <script type="module" src="../js/admin.js?v=admin-users-pricing-redesign"></script>
   </head>
   <body class="admin-body has-bottom-nav">
     <header class="site-header"><div class="container nav-shell admin-nav-shell"><a href="dashboard.html" class="brand" aria-label="Rider Admin overview"><span class="brand-mark">R</span><span class="brand-text">Rider Admin</span></a><button type="button" class="btn btn-ghost" id="admin-logout">Logout</button></div></header>
@@ -22,15 +23,19 @@
       <div class="admin-heading"><div><span class="eyebrow accent">Access control</span><h1>Driver approval</h1><p>Review and manage driver accounts.</p></div><nav class="admin-shortcuts" aria-label="Admin pages"><a href="dashboard.html">Overview</a><a href="users.html">Users</a><a href="drivers.html" aria-current="page">Drivers</a><a href="locations.html">Locations</a><a href="pricing.html">Pricing</a><a href="rides.html">Rides</a></nav></div>
       <p id="admin-status" class="admin-message status-message" role="status" aria-live="polite" hidden></p>
       <p id="admin-error" class="admin-message error-message" role="alert" aria-live="assertive" hidden></p>
-      <section class="admin-panel" aria-labelledby="drivers-heading"><div class="admin-section-heading"><div><span class="eyebrow accent">Driver accounts</span><h2 id="drivers-heading">Drivers</h2></div><p>Select a driver to view and edit account details. Review applications and switch between pending, approved, and suspended drivers.</p></div>
-        <div class="driver-status-filters" role="group" aria-label="Filter drivers by approval status">
-          <button type="button" class="btn btn-secondary" data-driver-status-filter="pending" aria-pressed="true">Pending approval <span id="driver-count-pending">0</span></button>
-          <button type="button" class="btn btn-secondary" data-driver-status-filter="approved" aria-pressed="false">Approved <span id="driver-count-approved">0</span></button>
-          <button type="button" class="btn btn-secondary" data-driver-status-filter="suspended" aria-pressed="false">Suspended <span id="driver-count-suspended">0</span></button>
+      <div id="drivers-load-container" class="admin-page-loader" aria-busy="true">
+        <div id="drivers-content" class="admin-page-content" hidden>
+          <section class="admin-panel" aria-labelledby="drivers-heading"><div class="admin-section-heading"><div><span class="eyebrow accent">Driver accounts</span><h2 id="drivers-heading">Drivers</h2></div><p>Review applications and switch between pending, approved, and suspended drivers. Availability is shown for approved drivers.</p></div>
+            <div class="driver-status-filters" role="group" aria-label="Filter drivers by approval status">
+              <button type="button" class="btn btn-secondary" data-driver-status-filter="pending" aria-pressed="true">Pending approval <span id="driver-count-pending"></span></button>
+              <button type="button" class="btn btn-secondary" data-driver-status-filter="approved" aria-pressed="false">Approved <span id="driver-count-approved"></span></button>
+              <button type="button" class="btn btn-secondary" data-driver-status-filter="suspended" aria-pressed="false">Suspended <span id="driver-count-suspended"></span></button>
+            </div>
+            <div id="driver-list" class="admin-record-list"></div>
+          </section>
+          <p class="admin-prototype-note">Review driver identity and vehicle documents through your approved process before approving an account.</p>
         </div>
-        <div id="driver-list" class="admin-record-list"></div>
-      </section>
-      <p class="admin-prototype-note">Review driver identity and vehicle documents through your approved process before approving an account.</p>
+      </div>
     </main>
     <nav class="bottom-nav admin-bottom-nav" aria-label="Admin dashboard navigation">
       <a href="dashboard.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11.2 12 4l8 7.2V20a1 1 0 0 1-1 1h-4.5v-5.5h-5V21H5a1 1 0 0 1-1-1z"/></svg><span>Overview</span></a>

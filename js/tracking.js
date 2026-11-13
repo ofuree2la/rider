@@ -5,12 +5,18 @@ import { mountRideChat } from "./ride-chat.js";
 import { supabase } from "./supabase-client.js";
 import { clearSavedBookingConfirmation, confirmRideCancellation } from "./cancel-ride-dialog.js";
 import { mountNoRideAvailablePrompt } from "./no-ride-available.js";
+import { createVehicleIcon } from "./vehicle-icons.js";
 
 const rideId = new URLSearchParams(window.location.search).get("id");
 const paymentResult = new URLSearchParams(window.location.search).get("payment");
 const trackingError = document.querySelector("#tracking-error");
 const trackingStatus = document.querySelector("#tracking-status");
 const trackingContent = document.querySelector("#tracking-content");
+const trackingLoading = document.querySelector("#tracking-loading");
+const illustratedHeader = document.querySelector("#ride-illustrated-header");
+const illustratedVehicle = document.querySelector("#ride-vehicle-illustration");
+const illustratedTitle = document.querySelector("#ride-illustrated-title");
+const illustratedCaption = document.querySelector("#ride-illustrated-caption");
 const routeCard = document.querySelector(".route-card");
 const rideStatusLabel = document.querySelector("#ride-status-label");
 const rideStatusBadge = document.querySelector("#ride-status-badge");
@@ -20,11 +26,22 @@ const pickupElement = document.querySelector("#ride-pickup");
 const destinationElement = document.querySelector("#ride-destination");
 const scheduleElement = document.querySelector("#ride-schedule");
 const driverAvatar = document.querySelector("#driver-avatar");
+const driverVehicleArt = document.querySelector("#driver-vehicle-art");
 const driverName = document.querySelector("#driver-name");
 const driverVehicle = document.querySelector("#driver-vehicle");
 const driverPlate = document.querySelector("#driver-plate");
 const driverRating = document.querySelector("#driver-rating");
-const driverPhone = document.querySelector("#driver-phone");
+const driverCallButton = document.querySelector("#driver-call-button");
+const driverCallUnavailable = document.querySelector("#driver-call-unavailable");
+const openRideChatButton = document.querySelector("#open-ride-chat");
+const rideRecordCard = document.querySelector("#ride-record-card");
+const rideTimeline = document.querySelector("#ride-route-timeline");
+const cancellationDetails = document.querySelector("#ride-cancellation-details");
+const cancellationText = document.querySelector("#ride-cancellation-text");
+const paymentMethodValue = document.querySelector("#ride-payment-method");
+const paymentFareValue = document.querySelector("#ride-payment-fare");
+const paymentStatusValue = document.querySelector("#ride-payment-status");
+const rebookButton = document.querySelector("#ride-rebook-button");
 const verifiedBadge = document.querySelector("#verified-badge");
 const deliverySummary = document.querySelector("#delivery-summary");
 const deliveryDescription = document.querySelector("#delivery-description");
@@ -48,10 +65,11 @@ const statusSteps = [...document.querySelectorAll("[data-status-step]")];
 const LAST_BOOKED_RIDE_KEY = "rider:last-booked-ride";
 
 const RIDE_STAGES = [
+  { status: "finding", label: "Looking for a driver..." },
   { status: "accepted", label: "Driver accepted" },
-  { status: "arriving", label: "Driver arriving" },
+  { status: "arriving", label: "Your driver has arrived" },
   { status: "on-trip", label: "On your way" },
-  { status: "completed", label: "Ride completed" },
+  { status: "completed", label: "Trip completed" },
 ];
 
 const dateFormatter = new Intl.DateTimeFormat("en-NG", {
@@ -66,6 +84,7 @@ const currencyFormatter = new Intl.NumberFormat("en-NG", {
 
 let ride = null;
 let riderName = "";
+let trackingInitialized = false;
 let refreshTimer = null;
 let rideChannel = null;
 let isRefreshRunning = false;
@@ -82,7 +101,22 @@ const noRidePrompt = mountNoRideAvailablePrompt(trackingNoRidePromptRoot, {
 });
 
 function showError(message) {
-  trackingError.textContent = message;
+  trackingLoading.hidden = true;
+  trackingError.replaceChildren(document.createTextNode(message));
+  const retryButton = document.createElement("button");
+  retryButton.className = "btn btn-secondary";
+  retryButton.type = "button";
+  retryButton.textContent = "Retry";
+  retryButton.addEventListener("click", () => {
+    trackingError.hidden = true;
+    trackingLoading.hidden = false;
+    if (trackingInitialized) {
+      void refreshRideStatus();
+    } else {
+      void startTrackingPage().catch((error) => showError(error.message));
+    }
+  }, { once: true });
+  trackingError.append(document.createTextNode(" "), retryButton);
   trackingError.hidden = false;
   trackingStatus.hidden = true;
 }
@@ -122,7 +156,7 @@ function getStatusLabel(status) {
   }
   const stage = RIDE_STAGES.find((candidate) => candidate.status === status);
   if (stage) {
-    return stage.label;
+    return status === "accepted" ? "Driver found" : stage.label;
   }
   if (status === "finding") {
     return "Finding a driver";
@@ -141,11 +175,12 @@ function getRideTotal(currentRide) {
 
 function renderProgress(status) {
   const stageIndex = getStageIndex(status);
-  const progress = stageIndex >= 0 ? (stageIndex + 1) * 25 : 0;
+  const progressValues = [15, 40, 70, 85, 100];
+  const progress = stageIndex >= 0 ? progressValues[stageIndex] : 0;
   const labels =
     ride.serviceType === "delivery"
-      ? ["Courier accepted", "Courier arriving", "Package on the way", "Delivery complete"]
-      : ["Driver accepted", "Driver arriving", "On your way", "Ride completed"];
+      ? ["Finding a courier", "Courier accepted", "Courier arriving", "Package on the way", "Delivery complete"]
+      : ["Looking for a driver", "Driver found", "Your driver has arrived", "On your way", "Trip completed"];
   progressFill.dataset.progress = String(progress);
   progressTrack.setAttribute("aria-valuenow", String(progress));
 
@@ -218,7 +253,20 @@ function renderPayment() {
 }
 
 function renderRide() {
+  trackingLoading.hidden = true;
   trackingContent.hidden = false;
+  illustratedHeader.hidden = false;
+  const vehicleType = ride.driver?.vehicleType ?? ride.vehicleType ?? "keke";
+  illustratedVehicle.replaceChildren(createVehicleIcon(vehicleType, { animated: true }));
+  driverVehicleArt.replaceChildren(createVehicleIcon(vehicleType, { animated: true }));
+  illustratedTitle.textContent = getStatusLabel(ride.status);
+  illustratedCaption.textContent = ride.status === "finding"
+    ? "Your request is being shared with available drivers."
+    : ride.status === "completed"
+      ? "Thanks for travelling with Rider."
+      : ride.status === "cancelled"
+        ? "This ride request has been cancelled."
+        : "Ride updates are based on the status shared by your driver.";
   routeCard.hidden = ride.status === "cancelled";
   noRidePrompt.render(ride);
   cancelRideButton.hidden = !["finding", "accepted", "arriving"].includes(ride.status);
@@ -251,8 +299,11 @@ function renderRide() {
       : "Assigned after acceptance";
   driverPlate.textContent = driver?.plateNumber ?? "Not provided";
   driverRating.textContent = driver?.rating ? `★ ${driver.rating} / 5` : "Not rated";
-  driverPhone.textContent = driver?.phone ?? "Not provided";
-  driverPhone.href = driver?.phone ? `tel:${driver.phone.replace(/[^\d+]/g, "")}` : "";
+  const callablePhone = driver?.phone?.trim() ?? "";
+  const phoneHref = callablePhone ? `tel:${callablePhone.replace(/[^\d+]/g, "")}` : "";
+  driverCallButton.href = phoneHref;
+  driverCallButton.hidden = !phoneHref;
+  driverCallUnavailable.hidden = Boolean(phoneHref) || !driver;
   if (driver?.avatarUrl) {
     const image = document.createElement("img");
     image.src = driver.avatarUrl;
@@ -266,6 +317,7 @@ function renderRide() {
   verifiedBadge.hidden = !driver?.verified;
   const canChat = Boolean(ride.driverId) && ["accepted", "arriving", "on-trip"].includes(ride.status);
   rideChatCard.hidden = !canChat;
+  openRideChatButton.hidden = !canChat;
   if (canChat && chatRideId !== ride.id) {
     chatCleanup?.();
     rideChatRoot.replaceChildren();
@@ -277,6 +329,7 @@ function renderRide() {
     chatRideId = null;
     rideChatRoot.replaceChildren();
   }
+  renderRideRecord();
   renderProgress(ride.status);
   renderRating();
   renderPayment();
@@ -292,6 +345,56 @@ function renderRide() {
   } else {
     hideMessages();
   }
+}
+
+function renderRideRecord() {
+  const timelineEvents = [
+    ["Ride requested", ride.createdAt],
+    ["Driver accepted", ride.matchedAt],
+    ["Driver arrived", ride.arrivedAt],
+    ["Trip started", ride.startedAt],
+    ["Trip completed", ride.completedAt],
+  ];
+  rideTimeline.replaceChildren();
+  for (const [label, value] of timelineEvents) {
+    if (!value) {
+      continue;
+    }
+    const item = document.createElement("li");
+    const title = document.createElement("strong");
+    title.textContent = label;
+    const time = document.createElement("time");
+    time.dateTime = value;
+    time.textContent = formatScheduledTime(value);
+    item.append(title, time);
+    rideTimeline.append(item);
+  }
+
+  openRideChatButton.addEventListener("click", () => {
+    rideChatCard.scrollIntoView({ behavior: "smooth", block: "start" });
+    rideChatCard.querySelector("input, textarea, button")?.focus({ preventScroll: true });
+  });
+
+  cancellationDetails.hidden = ride.status !== "cancelled";
+  cancellationText.textContent = ride.status === "cancelled"
+    ? `Cancelled by ${ride.cancelledBy || "Not recorded"}${ride.cancellationReason ? ` · ${ride.cancellationReason}` : ""}.`
+    : "";
+  paymentMethodValue.textContent = ride.paymentMethod === "cash"
+    ? "Cash"
+    : ride.paymentMethod === "online"
+      ? "Online"
+      : "Not recorded";
+  paymentFareValue.textContent = currencyFormatter.format(getRideTotal(ride));
+  paymentStatusValue.textContent = ride.paymentStatus
+    ? ride.paymentStatus.replace(/-/g, " ")
+    : "Not recorded";
+  const rebookUrl = new URL("book.html", window.location.href);
+  rebookUrl.searchParams.set("rebookPickup", ride.pickup?.id ?? "");
+  rebookUrl.searchParams.set("rebookDestination", ride.destination?.id ?? "");
+  rebookUrl.searchParams.set("passengers", String(ride.passengers ?? 1));
+  rebookUrl.searchParams.set("vehicle", ride.vehicleType ?? "keke");
+  rebookButton.href = rebookUrl.href;
+  rideRecordCard.hidden = false;
 }
 
 async function refreshRideStatus() {
@@ -630,6 +733,7 @@ async function startTrackingPage() {
     throw new Error("Please sign in to view your ride tracking details.");
   }
   riderName = rider.name?.trim() ?? "";
+  trackingInitialized = true;
 
   renderRide();
   startRideRealtimeUpdates();

@@ -11,9 +11,10 @@
     <link rel="stylesheet" href="../css/base.css" />
     <link rel="stylesheet" href="../css/components.css" />
     <link rel="stylesheet" href="../css/admin.css" />
+    <link rel="stylesheet" href="../css/loading.css" />
     <link rel="stylesheet" href="../css/bottom-nav.css" />
     <link rel="stylesheet" href="../css/mobile.css" />
-    <script type="module" src="../js/admin.js?v=account-details"></script>
+    <script type="module" src="../js/admin.js?v=admin-users-pricing-redesign"></script>
   </head>
   <body class="admin-body has-bottom-nav">
     <header class="site-header"><div class="container nav-shell admin-nav-shell"><a href="dashboard.html" class="brand" aria-label="Rider Admin overview"><span class="brand-mark">R</span><span class="brand-text">Rider Admin</span></a><button type="button" class="btn btn-ghost" id="admin-logout">Logout</button></div></header>
@@ -21,21 +22,46 @@
       <div class="admin-heading"><div><span class="eyebrow accent">Fare settings</span><h1>Pricing</h1><p>Configure fixed fares for the Rider service zones.</p></div><nav class="admin-shortcuts" aria-label="Admin pages"><a href="dashboard.html">Overview</a><a href="users.html">Users</a><a href="drivers.html">Drivers</a><a href="locations.html">Locations</a><a href="pricing.html" aria-current="page">Pricing</a><a href="rides.html">Rides</a></nav></div>
       <p id="admin-status" class="admin-message status-message" role="status" aria-live="polite" hidden></p>
       <p id="admin-error" class="admin-message error-message" role="alert" aria-live="assertive" hidden></p>
-      <section class="admin-panel" aria-labelledby="pricing-heading">
-        <div class="admin-section-heading"><div><span class="eyebrow accent">Fare settings</span><h2 id="pricing-heading">Vehicle zone fare matrix</h2></div><p>Fares are in naira per passenger (or per bike delivery), rounded to the nearest ₦50. Replace the placeholders with cost-based figures.</p></div>
-        <form id="pricing-form" class="admin-form">
-          <div class="admin-field pricing-vehicle-field">
-            <label for="fare-vehicle-type">Vehicle</label>
-            <select id="fare-vehicle-type" name="vehicleType">
-              <option value="keke">Keke</option>
-              <option value="minivan">Mini bus</option>
-              <option value="bike">Bike delivery</option>
-            </select>
-          </div>
-          <div id="fare-matrix" class="fare-matrix"></div>
-          <button type="submit" class="btn btn-primary">Save fare settings</button>
-        </form>
-      </section>
+      <div id="pricing-load-container" class="admin-page-loader" aria-busy="true">
+        <div id="pricing-content" class="admin-page-content" hidden>
+          <section class="admin-panel" aria-labelledby="pricing-heading">
+            <div class="admin-section-heading"><div><span class="eyebrow accent">Fare settings</span><h2 id="pricing-heading">Route fares</h2></div><p>Set a whole-naira fare per passenger. Estimates and bookings round to the nearest ₦50.</p></div>
+            <p class="admin-pricing-notice">Starter prices may be placeholders. Confirm each fare against your operating costs before launch.</p>
+            <form id="pricing-form" class="admin-form">
+              <div class="admin-field pricing-vehicle-field">
+                <span class="admin-field-label">Vehicle type</span>
+                <div class="pricing-vehicle-selector" role="group" aria-label="Vehicle type">
+                  <button type="button" class="btn btn-secondary" data-pricing-vehicle="keke" aria-pressed="true">Keke</button>
+                  <button type="button" class="btn btn-secondary" disabled aria-describedby="vehicle-coming-soon">Mini bus <span>Coming soon</span></button>
+                  <button type="button" class="btn btn-secondary" disabled aria-describedby="vehicle-coming-soon">Bike delivery <span>Coming soon</span></button>
+                </div>
+                <span id="vehicle-coming-soon" class="visually-hidden">This vehicle type cannot be edited yet.</span>
+                <input id="fare-vehicle-type" name="vehicleType" type="hidden" value="keke" />
+              </div>
+              <label class="pricing-symmetric-toggle">
+                <input id="same-price-both-ways" type="checkbox" />
+                <span>Same price both ways</span>
+                <small>When enabled, changing one direction also updates the reverse route.</small>
+              </label>
+              <div id="fare-matrix" class="fare-routes" role="group" aria-label="Route fares"></div>
+              <div class="pricing-unsaved-row">
+                <p id="pricing-unsaved" role="status" aria-live="polite">All changes saved.</p>
+                <button id="pricing-save" type="submit" class="btn btn-primary" disabled>Save fare settings</button>
+              </div>
+            </form>
+          </section>
+          <section class="admin-panel" aria-labelledby="try-fare-heading">
+            <div class="admin-section-heading"><div><span class="eyebrow accent">Preview</span><h2 id="try-fare-heading">Try a fare</h2></div><p>Check how current route prices estimate for a trip.</p></div>
+            <form id="try-fare-form" class="try-fare-form">
+              <div class="admin-field"><label for="try-fare-pickup">Pickup</label><select id="try-fare-pickup" required></select></div>
+              <div class="admin-field"><label for="try-fare-destination">Destination</label><select id="try-fare-destination" required></select></div>
+              <div class="admin-field"><label for="try-fare-passengers">Passengers</label><input id="try-fare-passengers" type="number" min="1" max="4" step="1" value="1" required /></div>
+              <button type="submit" class="btn btn-secondary">Calculate estimate</button>
+            </form>
+            <p id="try-fare-result" class="try-fare-result" role="status" aria-live="polite">Choose a pickup and destination to preview a fare.</p>
+          </section>
+        </div>
+      </div>
     </main>
     <nav class="bottom-nav admin-bottom-nav" aria-label="Admin dashboard navigation">
       <a href="dashboard.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11.2 12 4l8 7.2V20a1 1 0 0 1-1 1h-4.5v-5.5h-5V21H5a1 1 0 0 1-1-1z"/></svg><span>Overview</span></a>

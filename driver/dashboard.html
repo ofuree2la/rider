@@ -11,6 +11,7 @@
     <link rel="stylesheet" href="../css/base.css?v=no-notification-underline-20261108" />
     <link rel="stylesheet" href="../css/components.css" />
     <link rel="stylesheet" href="../css/driver.css?v=bell-alerts-20261108" />
+    <link rel="stylesheet" href="../css/loading.css" />
     <link rel="stylesheet" href="../css/bottom-nav.css" />
     <link rel="stylesheet" href="../css/mobile.css" />
     <script type="module" src="../js/driver-notifications.js?v=bell-alerts-20261108"></script>
@@ -61,20 +62,31 @@
         <button type="button" class="btn btn-primary" id="driver-push-toggle">Enable push alerts</button>
       </section>
 
-      <section class="stats-grid driver-overview-stats" aria-label="Driver overview">
-        <a class="stat-card driver-stat-link" href="trips.html">
-          <span>Pending requests</span>
-          <strong id="pending-count">0</strong>
-          <span>View trips</span>
-        </a>
-        <a class="stat-card driver-stat-link" href="trips.html">
-          <span>Active trips</span>
-          <strong id="active-count">0</strong>
-          <span>Manage active trips</span>
-        </a>
-      </section>
+      <div id="driver-overview-shell">
+        <div class="rider-loading-state" role="status" aria-live="polite" aria-atomic="true">
+          <span class="rider-loading-state__spinner" aria-hidden="true"></span>
+          <p class="rider-loading-state__message">Loading your trip overview…</p>
+          <div class="rider-loading-state__skeletons" aria-hidden="true">
+            <span class="rider-loading-state__skeleton"></span>
+            <span class="rider-loading-state__skeleton"></span>
+            <span class="rider-loading-state__skeleton"></span>
+          </div>
+        </div>
+        <div id="driver-overview-content" hidden>
+          <section class="stats-grid driver-overview-stats" aria-label="Driver overview">
+            <a class="stat-card driver-stat-link" href="trips.html">
+              <span>Pending requests</span>
+              <strong id="pending-count">—</strong>
+              <span>View trips</span>
+            </a>
+            <a class="stat-card driver-stat-link" href="trips.html">
+              <span>Active trips</span>
+              <strong id="active-count">—</strong>
+              <span>Manage active trips</span>
+            </a>
+          </section>
 
-      <section class="driver-page-links" aria-label="Driver portal pages">
+          <section class="driver-page-links" aria-label="Driver portal pages">
         <a class="panel driver-page-link" href="trips.html">
           <span class="eyebrow accent">Trip management</span>
           <h2>Trips</h2>
@@ -93,7 +105,9 @@
           <p>Update your contact information, profile photo, and vehicle registration.</p>
           <span class="driver-page-link-action">Edit profile</span>
         </a>
-      </section>
+          </section>
+        </div>
+      </div>
     </main>
 
     <nav class="bottom-nav driver-bottom-nav" aria-label="Driver dashboard navigation">

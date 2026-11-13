@@ -1,5 +1,6 @@
 import "./notifications.js";
 import { getCurrentDriver, getCurrentUser, getDriverRides, logout } from "./supabase-api.js";
+import { createLoadingState } from "./loading.js";
 
 const driverNameHeading = document.querySelector("#driver-name-heading");
 const todayCount = document.querySelector("#today-count");
@@ -8,10 +9,16 @@ const weekEarnings = document.querySelector("#week-earnings");
 const completedTotal = document.querySelector("#completed-total");
 const allTimeEarnings = document.querySelector("#alltime-earnings");
 const earningsError = document.querySelector("#earnings-error");
+const earningsShell = document.querySelector("#earnings-data-shell");
+const earningsContent = document.querySelector("#earnings-data-content");
+const earningsLoading = createLoadingState(earningsShell, earningsContent, {
+  label: "Loading your earnings…",
+});
 const logoutButton = document.querySelector("#logout-button");
 const EARNINGS_REFRESH_INTERVAL_MS = 60_000;
 let earningsRefreshTimer = null;
 let driverIsOnline = false;
+let earningsListenersRegistered = false;
 const currencyFormatter = new Intl.NumberFormat("en-NG", {
   style: "currency",
   currency: "NGN",
@@ -76,6 +83,9 @@ async function refreshEarnings(driverId) {
   allTimeEarnings.textContent = formatCash(
     completedRides.reduce((sum, ride) => sum + Number(getRideTotal(ride)), 0),
   );
+  if (earningsContent.hidden) {
+    earningsLoading.showLoaded();
+  }
 }
 
 function stopEarningsRefresh() {
@@ -134,18 +144,21 @@ async function startEarningsPage() {
     driverId = driver.id;
     driverIsOnline = Boolean(driver.isOnline && driver.status === "approved");
     driverNameHeading.textContent = driver.name;
-    logoutButton.addEventListener("click", async () => {
-      try {
-        await logout();
-        window.location.assign("login.html");
-      } catch (error) {
-        showError(`Logout failed: ${error.message}`);
-      }
-    });
+    if (!earningsListenersRegistered) {
+      logoutButton.addEventListener("click", async () => {
+        try {
+          await logout();
+          window.location.assign("login.html");
+        } catch (error) {
+          showError(`Logout failed: ${error.message}`);
+        }
+      });
+      document.addEventListener("driver-availability-state-changed", handleDriverAvailabilityChange);
+      document.addEventListener("driver-session-ended", handleDriverSessionEnded);
+      earningsListenersRegistered = true;
+    }
 
     await refreshEarnings(driver.id);
-    document.addEventListener("driver-availability-state-changed", handleDriverAvailabilityChange);
-    document.addEventListener("driver-session-ended", handleDriverSessionEnded);
     startEarningsRefresh(driver.id);
     window.addEventListener("pagehide", () => {
       stopEarningsRefresh();
@@ -153,7 +166,10 @@ async function startEarningsPage() {
       document.removeEventListener("driver-session-ended", handleDriverSessionEnded);
     }, { once: true });
   } catch (error) {
-    showError(`Earnings could not be loaded: ${error.message}`);
+    earningsLoading.showError(error, () => {
+      earningsLoading.showLoading();
+      void startEarningsPage();
+    });
   }
 }
 

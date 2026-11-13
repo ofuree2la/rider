@@ -390,6 +390,224 @@ body.admin-body .admin-bottom-nav {
   text-align: right;
 }
 
+.admin-page-content {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.admin-user-tabs,
+.pricing-vehicle-selector {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
+.admin-user-tabs {
+  margin-bottom: 1rem;
+}
+
+.admin-user-tabs button,
+.pricing-vehicle-selector button,
+.admin-record-actions .btn,
+.admin-location-form .btn,
+.admin-location-form .btn-compact {
+  min-height: 44px;
+}
+
+.admin-user-tabs button[aria-selected="true"],
+.pricing-vehicle-selector button[aria-pressed="true"] {
+  border-color: var(--color-brand);
+  background: var(--color-brand-soft);
+  color: var(--color-brand-dark);
+}
+
+.admin-user-search {
+  display: grid;
+  gap: 0.35rem;
+  width: min(100%, 480px);
+  margin-bottom: 1rem;
+}
+
+.admin-user-search label,
+.admin-field-label {
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.admin-user-search input {
+  min-height: 44px;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-white);
+}
+
+.admin-user-search p {
+  margin: 0;
+  color: var(--color-slate);
+  font-size: 0.78rem;
+}
+
+.admin-status-badge.online {
+  background: var(--color-brand-soft);
+  color: var(--color-success);
+}
+
+.admin-status-badge.offline {
+  background: var(--color-muted);
+  color: var(--color-slate);
+}
+
+.admin-record-actions a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+}
+
+.admin-pricing-notice {
+  margin: -0.25rem 0 1rem;
+  padding: 0.8rem 1rem;
+  border-left: 4px solid var(--color-brand);
+  border-radius: var(--radius-sm);
+  background: var(--color-brand-soft);
+  color: var(--color-brand-dark);
+  font-size: 0.88rem;
+}
+
+.pricing-vehicle-field {
+  width: 100%;
+}
+
+.pricing-vehicle-selector {
+  margin-top: 0.35rem;
+}
+
+.pricing-vehicle-selector button {
+  display: grid;
+  justify-items: start;
+  gap: 0.1rem;
+  text-align: left;
+}
+
+.pricing-vehicle-selector button span {
+  color: var(--color-slate);
+  font-size: 0.68rem;
+}
+
+.pricing-vehicle-selector button:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  clip-path: inset(50%);
+}
+
+.pricing-symmetric-toggle {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  align-items: center;
+  gap: 0.25rem 0.65rem;
+  width: fit-content;
+  min-height: 44px;
+  cursor: pointer;
+}
+
+.pricing-symmetric-toggle input {
+  width: 22px;
+  height: 22px;
+  margin: 0;
+  accent-color: var(--color-brand);
+}
+
+.pricing-symmetric-toggle small {
+  grid-column: 2;
+  color: var(--color-slate);
+  font-size: 0.76rem;
+}
+
+.fare-routes {
+  display: grid;
+  gap: 0.85rem;
+  max-width: 760px;
+}
+
+.fare-route-group {
+  padding: 0.85rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.fare-route-group h3 {
+  margin: 0 0 0.4rem;
+  font-size: 0.96rem;
+}
+
+.fare-route {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(120px, 190px);
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 52px;
+  border-top: 1px solid var(--color-border);
+}
+
+.fare-route label {
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.fare-route input {
+  width: 100%;
+  min-height: 44px;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-white);
+  text-align: right;
+}
+
+.pricing-unsaved-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem 1rem;
+}
+
+.pricing-unsaved-row p {
+  margin: 0;
+  color: var(--color-slate);
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+.try-fare-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: end;
+  gap: 0.85rem;
+}
+
+.try-fare-form button {
+  min-height: 44px;
+}
+
+.try-fare-result {
+  min-height: 44px;
+  margin: 0.85rem 0 0;
+  padding: 0.65rem 0.8rem;
+  border-radius: var(--radius-sm);
+  background: var(--color-muted);
+  font-weight: 700;
+}
+
 .ride-filters {
   grid-template-columns: repeat(2, minmax(180px, 240px));
   margin-bottom: 1rem;
@@ -522,7 +740,8 @@ body.admin-body .admin-bottom-nav {
 
   .admin-location-create,
   .admin-location-form,
-  .ride-filters {
+  .ride-filters,
+  .try-fare-form {
     grid-template-columns: 1fr;
   }
 
@@ -530,25 +749,23 @@ body.admin-body .admin-bottom-nav {
     width: 100%;
   }
 
-  .fare-matrix {
-    grid-template-columns: minmax(80px, 1fr) repeat(3, minmax(58px, 1fr));
-    gap: 0.25rem;
+  .fare-route-group {
+    padding: 0.7rem;
   }
 
-  .fare-matrix-heading {
-    padding: 0.2rem 0;
-    font-size: 0.65rem;
-    overflow-wrap: anywhere;
+  .fare-route {
+    grid-template-columns: minmax(0, 1fr) minmax(90px, 115px);
+    gap: 0.5rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-body .btn {
+    transition: none;
   }
 
-  .fare-matrix-row-label {
-    font-size: 0.7rem;
-    overflow-wrap: anywhere;
-  }
-
-  .fare-matrix .admin-field input {
-    min-height: 42px;
-    padding-inline: 0.35rem;
-    font-size: 0.85rem;
+  .admin-body .btn:hover,
+  .admin-body .btn:focus-visible {
+    transform: none;
   }
 }

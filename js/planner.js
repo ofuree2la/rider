@@ -12,10 +12,19 @@ const locationMessage = document.querySelector("#planner-location-message");
 const typeFilters = document.querySelector("#planner-type-filters");
 const timeChip = document.querySelector("#planner-time-chip");
 const timePicker = document.querySelector("#planner-time-picker");
-const scheduledAtInput = document.querySelector("#planner-scheduled-at");
+const scheduleChoice = document.querySelector("#planner-schedule-choice");
+const scheduleFields = document.querySelector("#planner-schedule-fields");
+const scheduledDateInput = document.querySelector("#planner-scheduled-date");
+const scheduledTimeInput = document.querySelector("#planner-scheduled-time");
+const scheduleMessage = document.querySelector("#planner-schedule-message");
 const passengerChip = document.querySelector("#planner-passenger-chip");
 const passengerPicker = document.querySelector("#planner-passenger-picker");
-const passengerCountInput = document.querySelector("#planner-passenger-count");
+const passengerValue = document.querySelector("#planner-passenger-value");
+const passengerDecrease = document.querySelector("#planner-passenger-decrease");
+const passengerIncrease = document.querySelector("#planner-passenger-increase");
+const swapLocationsButton = document.querySelector("#planner-swap-locations");
+const clearPickupButton = document.querySelector('[data-clear-location="pickup"]');
+const clearDestinationButton = document.querySelector('[data-clear-location="destination"]');
 
 const RECENT_LOCATION_LIMIT = 5;
 const DEFAULT_PASSENGER_COUNT = 1;
@@ -40,6 +49,7 @@ let plannerOpen = false;
 let historyEntryPending = false;
 let closingTimer = null;
 let loadGeneration = 0;
+let rebookHandled = false;
 
 function getStorageKey(name) {
   return `rider:planner:${currentUserId}:${name}`;
@@ -85,6 +95,19 @@ function renderEntry() {
   }
 }
 
+function maybeOpenRebookPlanner() {
+  const params = new URLSearchParams(window.location.search);
+  if (
+    authState === "signed-in" &&
+    bookingReady &&
+    params.has("rebookPickup") &&
+    params.has("rebookDestination") &&
+    !plannerOpen
+  ) {
+    openPlanner();
+  }
+}
+
 function setLocationMessage(message, isError = false) {
   locationMessage.textContent = message;
   locationMessage.hidden = !message;
@@ -106,6 +129,30 @@ function formatLocalDateTime(date) {
   return new Date(date.getTime() - offsetMilliseconds).toISOString().slice(0, 16);
 }
 
+function updateScheduleMinimum() {
+  const earliest = new Date(Date.now() + 60_000);
+  const earliestLocal = formatLocalDateTime(earliest);
+  const [minimumDate, minimumTime] = earliestLocal.split("T");
+  scheduledDateInput.min = minimumDate;
+  scheduledTimeInput.min =
+    scheduledDateInput.value === minimumDate ? minimumTime : "00:00";
+  if (!scheduledDateInput.value || scheduledDateInput.value < minimumDate) {
+    scheduledDateInput.value = minimumDate;
+  }
+  if (
+    !scheduledTimeInput.value ||
+    (scheduledDateInput.value === minimumDate && scheduledTimeInput.value < minimumTime)
+  ) {
+    scheduledTimeInput.value = minimumTime;
+  }
+}
+
+function setScheduleMessage(message, isError = false) {
+  scheduleMessage.textContent = message;
+  scheduleMessage.classList.toggle("is-error", isError);
+  scheduleMessage.hidden = !message;
+}
+
 function formatScheduledTime(value) {
   return new Intl.DateTimeFormat("en-NG", {
     day: "numeric",
@@ -123,6 +170,12 @@ function updateTimeChip() {
 
 function updatePassengerChip() {
   passengerChip.textContent = `${passengerCount} ${passengerCount === 1 ? "passenger" : "passengers"}`;
+  passengerValue.textContent = `${passengerCount} ${passengerCount === 1 ? "passenger" : "passengers"}`;
+  passengerDecrease.disabled = passengerCount <= 1;
+  passengerIncrease.disabled = passengerCount >= 4;
+  swapLocationsButton.disabled = !pickup || !destination;
+  clearPickupButton.hidden = !pickup;
+  clearDestinationButton.hidden = !destination;
 }
 
 function getSavedRecentIds() {
@@ -170,13 +223,16 @@ function createPlaceButton(location) {
   ));
   button.dataset.locationId = location.id;
 
+  const icon = document.createElement("span");
+  icon.className = "planner-place-icon";
+  icon.setAttribute("aria-hidden", "true");
   const name = document.createElement("span");
   name.className = "planner-place-name";
   name.textContent = location.name;
   const detail = document.createElement("span");
   detail.className = "planner-place-detail";
   detail.textContent = location.type || location.zone;
-  button.append(name, detail);
+  button.append(icon, name, detail);
   return button;
 }
 
@@ -358,6 +414,7 @@ function selectLocation(location) {
   }
 
   saveRecentLocation(location);
+  updatePassengerChip();
   if (pickup && destination) {
     dispatchRouteSelection();
     return;
@@ -368,6 +425,82 @@ function selectLocation(location) {
     return;
   }
   renderLocations();
+}
+
+function updateLocationControls() {
+  clearPickupButton.hidden = !pickup;
+  clearDestinationButton.hidden = !destination;
+  swapLocationsButton.disabled = !pickup || !destination;
+}
+
+function clearLocation(field) {
+  if (field === "pickup") {
+    pickup = null;
+    pickupInput.value = "";
+    writeStorage(getStorageKey("last-pickup"), "");
+  } else {
+    destination = null;
+    destinationInput.value = "";
+  }
+  updateLocationControls();
+  focusLocationField(field);
+}
+
+function swapLocations() {
+  if (!pickup || !destination) {
+    return;
+  }
+  [pickup, destination] = [destination, pickup];
+  pickupInput.value = pickup.name;
+  destinationInput.value = destination.name;
+  writeStorage(getStorageKey("last-pickup"), pickup.id);
+  activeField = "destination";
+  searchQuery = "";
+  setLocationMessage("");
+  renderLocations();
+  updateLocationControls();
+}
+
+function consumeRebookRoute() {
+  if (rebookHandled) {
+    return;
+  }
+  const params = new URLSearchParams(window.location.search);
+  const pickupId = params.get("rebookPickup");
+  const destinationId = params.get("rebookDestination");
+  if (!pickupId || !destinationId) {
+    return;
+  }
+  rebookHandled = true;
+  const requestedVehicle = params.get("vehicle");
+  const nextUrl = new URL(window.location.href);
+  nextUrl.searchParams.delete("rebookPickup");
+  nextUrl.searchParams.delete("rebookDestination");
+  nextUrl.searchParams.delete("passengers");
+  nextUrl.searchParams.delete("vehicle");
+  window.history.replaceState(window.history.state, "", `${nextUrl.pathname}${nextUrl.search}${nextUrl.hash}`);
+  const savedPickup = locations.find((location) => location.id === pickupId);
+  const savedDestination = locations.find((location) => location.id === destinationId);
+  if (!savedPickup || !savedDestination || savedPickup.id === savedDestination.id) {
+    setLocationMessage("That saved route is no longer available. Choose your locations again.", true);
+    return;
+  }
+  pickup = savedPickup;
+  destination = savedDestination;
+  pickupInput.value = pickup.name;
+  destinationInput.value = destination.name;
+  const requestedPassengers = Number(params.get("passengers"));
+  passengerCount = Number.isInteger(requestedPassengers)
+    ? Math.max(1, Math.min(4, requestedPassengers))
+    : DEFAULT_PASSENGER_COUNT;
+  updatePassengerChip();
+  writeStorage(getStorageKey("last-pickup"), pickup.id);
+  updateLocationControls();
+  if (requestedVehicle && requestedVehicle !== "keke") {
+    setLocationMessage("That vehicle is not available for new bookings yet. Choose a Keke ride instead.", true);
+    return;
+  }
+  dispatchRouteSelection();
 }
 
 function handleLocationInput(input, field) {
@@ -382,6 +515,7 @@ function handleLocationInput(input, field) {
   }
   placeListLabel.textContent = field === "pickup" ? "Choose a pickup" : "Choose a destination";
   setLocationMessage("");
+  updateLocationControls();
   renderLocations();
 }
 
@@ -424,6 +558,8 @@ async function loadPlannerData(generation) {
     document.querySelector("#planner-location-tools").hidden = false;
     placeListLabel.textContent = activeField === "pickup" ? "Choose a pickup" : "Choose a destination";
     renderLocations();
+    consumeRebookRoute();
+    updateLocationControls();
     if (!pickup) {
       setLocationMessage("Choose a pickup location to get started.");
     } else {
@@ -547,11 +683,13 @@ window.addEventListener("rider:booking-auth-state", (event) => {
     closePlanner({ restoreFocus: false });
   }
   renderEntry();
+  maybeOpenRebookPlanner();
 });
 
 window.addEventListener("rider:booking-ready", () => {
   bookingReady = true;
   renderEntry();
+  maybeOpenRebookPlanner();
 });
 
 plannerButton.addEventListener("click", openPlanner);
@@ -577,13 +715,23 @@ timeChip.addEventListener("click", () => {
   setPickerVisibility(passengerChip, passengerPicker, false);
   setPickerVisibility(timeChip, timePicker, !isExpanded);
   if (!isExpanded) {
-    scheduledAtInput.min = formatLocalDateTime(new Date(Date.now() + 60_000));
+    scheduleFields.hidden = timing !== "scheduled";
+    document.querySelector("#planner-now-choice").setAttribute("aria-pressed", String(timing === "now"));
+    scheduleChoice.setAttribute("aria-pressed", String(timing === "scheduled"));
+    if (timing === "scheduled" && scheduledAt) {
+      const localValue = formatLocalDateTime(new Date(scheduledAt));
+      [scheduledDateInput.value, scheduledTimeInput.value] = localValue.split("T");
+    }
+    updateScheduleMinimum();
   }
 });
 
 document.querySelector("#planner-now-choice").addEventListener("click", () => {
   timing = "now";
   scheduledAt = null;
+  scheduleFields.hidden = true;
+  document.querySelector("#planner-now-choice").setAttribute("aria-pressed", "true");
+  scheduleChoice.setAttribute("aria-pressed", "false");
   updateTimeChip();
   setPickerVisibility(timeChip, timePicker, false);
   window.dispatchEvent(new CustomEvent("rider:planner-selection-changed", {
@@ -591,18 +739,36 @@ document.querySelector("#planner-now-choice").addEventListener("click", () => {
   }));
 });
 
+scheduleChoice.addEventListener("click", () => {
+  scheduleFields.hidden = false;
+  document.querySelector("#planner-now-choice").setAttribute("aria-pressed", "false");
+  scheduleChoice.setAttribute("aria-pressed", "true");
+  setScheduleMessage("");
+  updateScheduleMinimum();
+  scheduledDateInput.focus();
+});
+
+scheduledDateInput.addEventListener("change", updateScheduleMinimum);
+
 document.querySelector("#planner-time-apply").addEventListener("click", () => {
-  const chosenDate = new Date(scheduledAtInput.value);
-  if (!scheduledAtInput.value || Number.isNaN(chosenDate.getTime()) || chosenDate <= new Date()) {
-    setLocationMessage("Choose a pickup time in the future.", true);
-    scheduledAtInput.focus();
+  const localDateTime = `${scheduledDateInput.value}T${scheduledTimeInput.value}`;
+  const chosenDate = new Date(localDateTime);
+  if (
+    !scheduledDateInput.value ||
+    !scheduledTimeInput.value ||
+    Number.isNaN(chosenDate.getTime()) ||
+    chosenDate.getTime() < Date.now() + 60_000
+  ) {
+    setScheduleMessage("Choose a date and time at least one minute from now.", true);
+    updateScheduleMinimum();
+    scheduledDateInput.focus();
     return;
   }
   timing = "scheduled";
   scheduledAt = chosenDate.toISOString();
   updateTimeChip();
   setPickerVisibility(timeChip, timePicker, false);
-  setLocationMessage("");
+  setScheduleMessage("");
   window.dispatchEvent(new CustomEvent("rider:planner-selection-changed", {
     detail: { passengers: passengerCount, timing, scheduledAt },
   }));
@@ -613,18 +779,23 @@ passengerChip.addEventListener("click", () => {
   setPickerVisibility(timeChip, timePicker, false);
   setPickerVisibility(passengerChip, passengerPicker, !isExpanded);
   if (!isExpanded) {
-    passengerCountInput.focus();
+    passengerDecrease.focus();
   }
 });
 
-passengerCountInput.addEventListener("change", () => {
-  passengerCount = Number(passengerCountInput.value);
+function setPassengerCount(nextCount) {
+  passengerCount = Math.max(1, Math.min(4, nextCount));
   updatePassengerChip();
-  setPickerVisibility(passengerChip, passengerPicker, false);
   window.dispatchEvent(new CustomEvent("rider:planner-selection-changed", {
     detail: { passengers: passengerCount, timing, scheduledAt },
   }));
-});
+}
+
+passengerDecrease.addEventListener("click", () => setPassengerCount(passengerCount - 1));
+passengerIncrease.addEventListener("click", () => setPassengerCount(passengerCount + 1));
+clearPickupButton.addEventListener("click", () => clearLocation("pickup"));
+clearDestinationButton.addEventListener("click", () => clearLocation("destination"));
+swapLocationsButton.addEventListener("click", swapLocations);
 
 window.addEventListener("rider:planner-focus-field", (event) => {
   focusLocationField(event.detail?.field === "destination" ? "destination" : "pickup");
@@ -633,7 +804,10 @@ window.addEventListener("rider:planner-focus-field", (event) => {
 window.addEventListener("rider:planner-open-time-picker", () => {
   setPickerVisibility(passengerChip, passengerPicker, false);
   setPickerVisibility(timeChip, timePicker, true);
-  scheduledAtInput.min = formatLocalDateTime(new Date(Date.now() + 60_000));
+  scheduleFields.hidden = true;
+  document.querySelector("#planner-now-choice").setAttribute("aria-pressed", "true");
+  scheduleChoice.setAttribute("aria-pressed", "false");
+  updateScheduleMinimum();
   timeChip.focus();
 });
 

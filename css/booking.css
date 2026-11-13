@@ -40,7 +40,7 @@
 .ride-shell {
   display: grid;
   gap: 1.5rem;
-  padding: 2rem 0 3rem;
+  padding: 2rem 0 calc(5.5rem + env(safe-area-inset-bottom, 0px));
 }
 
 .ride-panel,
@@ -381,7 +381,68 @@
 
 .match-card-content {
   min-height: 0;
+  display: grid;
+  gap: var(--space-2);
 }
+
+.match-live-vehicle {
+  width: 110px;
+  height: 72px;
+  margin-left: auto;
+  color: var(--color-brand-dark);
+}
+
+.match-badge {
+  width: fit-content;
+  min-height: 30px;
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-pill);
+  background: var(--color-brand-soft);
+  color: var(--color-brand-dark);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+}
+
+.match-driver-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--color-white);
+}
+
+.match-driver-summary[hidden] {
+  display: none;
+}
+
+.match-driver-name {
+  color: var(--color-ink);
+  font-weight: var(--font-weight-bold);
+}
+
+.match-progress-track {
+  height: 6px;
+  margin-block: var(--space-2);
+  overflow: hidden;
+  border-radius: var(--radius-pill);
+  background: #e7eee8;
+}
+
+.match-progress-track > span {
+  display: block;
+  width: 15%;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--color-brand);
+  transition: width 250ms ease;
+}
+
+.match-progress-track > span[data-progress="15"] { width: 15%; }
+.match-progress-track > span[data-progress="40"] { width: 40%; }
+.match-progress-track > span[data-progress="70"] { width: 70%; }
+.match-progress-track > span[data-progress="85"] { width: 85%; }
 
 .match-card.cancellation-feedback {
   display: grid;
@@ -694,5 +755,11 @@
 
   .ride-shell {
     padding-top: 1.25rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .match-progress-track > span {
+    transition: none;
   }
 }

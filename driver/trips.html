@@ -11,6 +11,7 @@
     <link rel="stylesheet" href="../css/base.css?v=no-notification-underline-20261108" />
     <link rel="stylesheet" href="../css/components.css" />
     <link rel="stylesheet" href="../css/driver.css?v=bell-alerts-20261108" />
+    <link rel="stylesheet" href="../css/loading.css" />
     <link rel="stylesheet" href="../css/chat.css" />
     <link rel="stylesheet" href="../css/bottom-nav.css" />
     <link rel="stylesheet" href="../css/mobile.css" />
@@ -49,14 +50,25 @@
       <p id="dashboard-status" class="dashboard-message status-message" role="status" aria-live="polite" hidden></p>
       <p id="dashboard-error" class="dashboard-message error-message" role="alert" aria-live="assertive" hidden></p>
 
+      <div id="trips-data-shell">
+        <div class="rider-loading-state" role="status" aria-live="polite" aria-atomic="true">
+          <span class="rider-loading-state__spinner" aria-hidden="true"></span>
+          <p class="rider-loading-state__message">Loading your trips…</p>
+          <div class="rider-loading-state__skeletons" aria-hidden="true">
+            <span class="rider-loading-state__skeleton"></span>
+            <span class="rider-loading-state__skeleton"></span>
+            <span class="rider-loading-state__skeleton"></span>
+          </div>
+        </div>
+        <div id="trips-data-content" hidden>
       <section class="stats-grid driver-overview-stats" aria-label="Trip overview">
         <article class="stat-card">
           <span>Pending requests</span>
-          <strong id="pending-count">0</strong>
+          <strong id="pending-count">—</strong>
         </article>
         <article class="stat-card">
           <span>Active trips</span>
-          <strong id="active-count">0</strong>
+          <strong id="active-count">—</strong>
         </article>
       </section>
 
@@ -105,6 +117,8 @@
         </div>
         <div id="ride-history-list" class="scheduled-rides" aria-live="polite"></div>
       </section>
+        </div>
+      </div>
     </main>
 
     <nav class="bottom-nav driver-bottom-nav" aria-label="Driver dashboard navigation">

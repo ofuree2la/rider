@@ -35,7 +35,6 @@
           <a href="earnings.html">Earnings</a>
           <a href="profile.html" aria-current="page">Profile</a>
         </nav>
-        <button id="logout-button" class="btn btn-ghost" type="button">Log out</button>
       </div>
     </header>
 
@@ -51,32 +50,26 @@
           </div>
         </div>
         <div id="profile-content" class="profile-content" hidden>
-        <span class="eyebrow accent">Rider Driver account</span>
-        <h1 id="profile-title">Driver profile</h1>
-        <p>Complete these account steps to finish your driver profile and payout details.</p>
-
-        <section class="profile-completion" aria-labelledby="profile-completion-title">
-          <div class="profile-completion-heading">
-            <h2 id="profile-completion-title">Account steps</h2>
-            <span id="profile-completion-count">0 of 4 complete</span>
+        <header class="profile-hero">
+          <div class="profile-photo-frame">
+            <img id="profile-photo" alt="Your profile photo" hidden />
+            <span id="profile-photo-initials" aria-hidden="true">R</span>
           </div>
-          <progress id="profile-completion-progress" max="100" value="0" aria-label="Account completion"></progress>
-          <ol class="profile-completion-steps">
-            <li data-profile-step="details"><span>Step 1 · Add your name and phone number</span><strong>Incomplete</strong></li>
-            <li data-profile-step="photo"><span>Step 2 · Add a profile photo</span><strong>Incomplete</strong></li>
-            <li data-profile-step="vehicle"><span>Step 3 · Add your vehicle registration</span><strong>Incomplete</strong></li>
-            <li data-profile-step="bank"><span>Step 4 · Add your bank name and account number</span><strong>Incomplete</strong></li>
-          </ol>
-        </section>
+          <div>
+            <span class="eyebrow accent">Driver account</span>
+            <h1 id="profile-title">Driver profile</h1>
+            <p id="profile-display-name" class="profile-display-name"></p>
+            <span id="driver-approval-status" class="profile-status-badge">Loading approval status</span>
+            <span id="driver-profile-rating" class="profile-rating" hidden></span>
+          </div>
+        </header>
 
         <p id="profile-message" class="auth-message" role="status" aria-live="polite" hidden></p>
 
-        <form id="profile-form" class="auth-form">
+        <section class="profile-section" aria-labelledby="driver-profile-section-title">
+          <h2 id="driver-profile-section-title">Profile</h2>
+          <form id="profile-form" class="auth-form">
           <div class="profile-photo-control">
-            <div class="profile-photo-frame">
-              <img id="profile-photo" alt="Your profile photo" hidden />
-              <span id="profile-photo-initials" aria-hidden="true">R</span>
-            </div>
             <div class="field">
               <label for="profile-photo-input">Profile photo</label>
               <input id="profile-photo-input" name="profilePhoto" type="file" accept="image/jpeg,image/png,image/webp" />
@@ -89,7 +82,7 @@
           </div>
           <div class="field">
             <label for="profile-email">Email</label>
-            <input id="profile-email" name="email" type="email" autocomplete="email" required />
+            <input id="profile-email" name="email" type="email" autocomplete="email" readonly />
           </div>
           <div class="field">
             <label for="profile-phone">Phone number</label>
@@ -103,17 +96,44 @@
             <label for="profile-plate">Vehicle registration / plate number</label>
             <input id="profile-plate" name="plateNumber" type="text" autocomplete="off" required />
           </div>
+          <button class="btn btn-primary btn-large" type="submit">Save profile</button>
+          </form>
+        </section>
+
+        <section class="profile-section" aria-labelledby="driver-vehicle-title">
+          <h2 id="driver-vehicle-title">Vehicle</h2>
+          <p>Vehicle photos are not available yet. Your registration and vehicle type are shown in your profile.</p>
+        </section>
+
+        <section class="profile-section" aria-labelledby="driver-availability-title">
+          <h2 id="driver-availability-title">Availability</h2>
+          <p id="driver-availability-description">Your availability is managed from the driver dashboard.</p>
+          <a class="btn btn-secondary" href="dashboard.html">Open driver dashboard</a>
+        </section>
+
+        <section class="profile-section" aria-labelledby="driver-payout-title">
+          <h2 id="driver-payout-title">Payout details</h2>
           <div class="field">
             <label for="profile-bank-name">Bank name</label>
-            <input id="profile-bank-name" name="bankName" type="text" maxlength="120" autocomplete="organization" />
+            <input id="profile-bank-name" name="bankName" type="text" maxlength="120" autocomplete="organization" form="profile-form" />
           </div>
           <div class="field">
             <label for="profile-bank-account">Bank account number</label>
-            <input id="profile-bank-account" name="bankAccountNumber" type="text" inputmode="numeric" pattern="[0-9]{10}" maxlength="10" autocomplete="off" aria-describedby="profile-bank-privacy" />
+            <input id="profile-bank-account" name="bankAccountNumber" type="text" inputmode="numeric" pattern="[0-9]{10}" maxlength="10" autocomplete="off" aria-describedby="profile-bank-privacy" form="profile-form" />
             <small id="profile-bank-privacy">10 digits. Visible only to you and Rider admins.</small>
           </div>
-          <button class="btn btn-primary btn-large" type="submit">Save account steps</button>
-        </form>
+          <p>Save payout details with the Profile form above.</p>
+        </section>
+
+        <section class="profile-section" aria-labelledby="driver-support-title">
+          <h2 id="driver-support-title">Support</h2>
+          <p><a href="mailto:vunarider1@gmail.com">vunarider1@gmail.com</a> · <a href="tel:+2347077715740">+234 707 771 5740</a></p>
+        </section>
+
+        <section class="profile-section profile-logout-section" aria-labelledby="driver-logout-title">
+          <h2 id="driver-logout-title">Account</h2>
+          <button id="logout-button" class="btn btn-ghost" type="button">Log out</button>
+        </section>
         </div>
       </section>
     </main>

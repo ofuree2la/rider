@@ -13,9 +13,11 @@
     <link rel="stylesheet" href="css/tracking.css?v=ride-realtime" />
     <link rel="stylesheet" href="css/cancellation.css" />
     <link rel="stylesheet" href="css/chat.css" />
+    <link rel="stylesheet" href="css/loading.css" />
+    <link rel="stylesheet" href="css/vehicle-icons.css?v=shared-icons-step2" />
     <link rel="stylesheet" href="css/bottom-nav.css" />
     <link rel="stylesheet" href="css/mobile.css" />
-    <script type="module" src="js/tracking.js?v=cancel-step3"></script>
+    <script type="module" src="js/tracking.js?v=ride-sheet-step4"></script>
     <script src="js/bottom-nav.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/animejs@3.2.2/lib/anime.min.js" defer></script>
     <script src="js/motion.js" defer></script>
@@ -42,12 +44,31 @@
         <p>Booking progress, driver or courier details, and ride-scoped chat.</p>
       </div>
 
-      <p id="tracking-error" class="journey-message error-message" role="alert" hidden></p>
+      <div id="tracking-error" class="journey-message error-message" role="alert" hidden></div>
       <p id="tracking-status" class="journey-message status-message" role="status" aria-live="polite" hidden></p>
       <section id="tracking-retry-card" class="journey-card retry-create-card" aria-labelledby="tracking-retry-title" hidden>
         <h2 id="tracking-retry-title">Your request was cancelled, but a new request was not sent</h2>
         <p id="tracking-retry-details"></p>
         <button id="tracking-retry-create" class="btn btn-primary" type="button">Retry sending request</button>
+      </section>
+
+      <section id="tracking-loading" class="rider-loading-state" role="status" aria-live="polite" aria-atomic="true">
+        <span class="rider-loading-state__spinner" aria-hidden="true"></span>
+        <p class="rider-loading-state__message">Loading ride details…</p>
+        <div class="rider-loading-state__skeletons" aria-hidden="true">
+          <span class="rider-loading-state__skeleton"></span>
+          <span class="rider-loading-state__skeleton"></span>
+          <span class="rider-loading-state__skeleton"></span>
+        </div>
+      </section>
+
+      <section id="ride-illustrated-header" class="ride-illustrated-header" aria-label="Ride status" hidden>
+        <div id="ride-vehicle-illustration" class="ride-illustrated-header__vehicle" aria-hidden="true"></div>
+        <div>
+          <span class="eyebrow accent">Your campus ride</span>
+          <h2 id="ride-illustrated-title">Looking for a driver…</h2>
+          <p id="ride-illustrated-caption">Your request is being shared with available drivers.</p>
+        </div>
       </section>
 
       <section id="tracking-content" class="tracking-layout" aria-label="Ride tracking" hidden>
@@ -61,13 +82,14 @@
           </div>
 
           <ol id="ride-progress" class="ride-progress" aria-label="Ride progress">
+            <li data-status-step="finding">Finding a driver</li>
             <li data-status-step="accepted">Driver accepted</li>
             <li data-status-step="arriving">Driver arriving</li>
             <li data-status-step="on-trip">On your way</li>
             <li data-status-step="completed">Ride completed</li>
           </ol>
           <div class="progress-track" role="progressbar" aria-label="Ride progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="25">
-            <span id="progress-fill" class="progress-fill" data-progress="25"></span>
+            <span id="progress-fill" class="progress-fill" data-progress="15"></span>
           </div>
           <div class="trip-actions ride-cancel-actions">
             <button id="cancel-ride-button" class="btn btn-danger" type="button" hidden>Cancel request</button>
@@ -101,17 +123,19 @@
               <h2 id="driver-title">Driver details</h2>
             </div>
             <span id="verified-badge" class="verified-badge">Verified</span>
+            <div id="driver-vehicle-art" class="driver-vehicle-art" aria-hidden="true"></div>
           </div>
           <dl class="driver-details">
             <div><dt>Driver</dt><dd id="driver-name"></dd></div>
             <div><dt>Vehicle</dt><dd id="driver-vehicle"></dd></div>
-            <div><dt>Registration</dt><dd id="driver-plate"></dd></div>
+            <div><dt>Plate number</dt><dd><span id="driver-plate" class="vehicle-plate-badge"></span></dd></div>
             <div><dt>Rating</dt><dd id="driver-rating"></dd></div>
-            <div><dt>Phone</dt><dd><a id="driver-phone" href=""></a></dd></div>
           </dl>
           <div class="trip-actions">
-            <button id="share-trip" class="btn btn-secondary" type="button">Share my trip</button>
-            <a class="btn btn-ghost emergency-action" href="tel:112">Emergency call · 112</a>
+            <button id="open-ride-chat" class="btn btn-secondary" type="button" hidden>Chat</button>
+            <a id="driver-call-button" class="btn btn-primary" href="" hidden>Call driver</a>
+            <p id="driver-call-unavailable" class="driver-call-unavailable" hidden>Calling is unavailable because the driver has not shared a phone number.</p>
+            <button id="share-trip" class="btn btn-ghost" type="button">Share my trip</button>
           </div>
         </section>
 
@@ -119,6 +143,25 @@
           <span class="eyebrow accent">Ride chat</span>
           <h2 id="ride-chat-title">Message your driver</h2>
           <div id="ride-chat"></div>
+        </section>
+
+        <section id="ride-record-card" class="journey-card ride-record-card" aria-labelledby="ride-record-title" hidden>
+          <span class="eyebrow accent">Ride record</span>
+          <h2 id="ride-record-title">Trip details</h2>
+          <ol id="ride-route-timeline" class="ride-route-timeline"></ol>
+          <div id="ride-cancellation-details" class="ride-cancellation-details" hidden>
+            <h3>Cancellation</h3>
+            <p id="ride-cancellation-text"></p>
+          </div>
+          <dl class="ride-payment-details">
+            <div><dt>Payment method</dt><dd id="ride-payment-method"></dd></div>
+            <div><dt>Fare</dt><dd id="ride-payment-fare"></dd></div>
+            <div><dt>Payment status</dt><dd id="ride-payment-status"></dd></div>
+          </dl>
+          <div class="ride-record-actions">
+            <a id="ride-rebook-button" class="btn btn-primary" href="book.html">Rebook</a>
+            <a class="btn btn-secondary" href="mailto:vunarider1@gmail.com?subject=Help%20with%20a%20Rider%20trip">Get help with this ride</a>
+          </div>
         </section>
 
         <section id="ride-payment-card" class="journey-card" aria-labelledby="ride-payment-title" hidden>

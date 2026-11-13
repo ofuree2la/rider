@@ -10,6 +10,20 @@
   stroke-width: 3;
 }
 
+.vehicle-plate-badge {
+  display: inline-flex;
+  min-height: 34px;
+  align-items: center;
+  padding: var(--space-1) var(--space-3);
+  border: 2px solid #313d34;
+  border-radius: var(--radius-sm);
+  background: #f7f5e8;
+  color: #1d2720;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-extrabold);
+  letter-spacing: 0.08em;
+}
+
 .rider-vehicle-icon__body {
   fill: var(--color-brand-soft);
   stroke: var(--color-brand-dark);

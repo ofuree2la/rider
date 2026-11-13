@@ -27,16 +27,15 @@ const bankAccountInput = document.querySelector("#profile-bank-account");
 const profilePhotoInput = document.querySelector("#profile-photo-input");
 const profilePhoto = document.querySelector("#profile-photo");
 const profilePhotoInitials = document.querySelector("#profile-photo-initials");
-const completionCount = document.querySelector("#profile-completion-count");
-const completionProgress = document.querySelector("#profile-completion-progress");
-const completionSteps = [...document.querySelectorAll("[data-profile-step]")];
+const profileDisplayName = document.querySelector("#profile-display-name");
+const driverApprovalStatus = document.querySelector("#driver-approval-status");
+const driverProfileRating = document.querySelector("#driver-profile-rating");
 const logoutButton = document.querySelector("#logout-button");
 const isDriverPage = window.location.pathname.includes("/driver/");
 const photoPicker = profilePhotoInput
   ? attachPhotoPicker(profilePhotoInput, { shape: "profile" })
   : null;
 let previewUrl = null;
-let hasSavedProfilePhoto = false;
 
 function getLoginPath(role = expectedRole) {
   if (role === "driver") {
@@ -68,28 +67,6 @@ function showProfilePhoto(url, name) {
   }
 }
 
-function updateCompletionSteps() {
-  const completed = {
-    details: Boolean(nameInput.value.trim()) && phoneInput.value.replace(/\D/g, "").length >= 10,
-    photo: hasSavedProfilePhoto,
-    vehicle: Boolean(plateInput?.value.trim()),
-    bank:
-      Boolean(bankNameInput?.value.trim()) &&
-      /^\d{10}$/.test(bankAccountInput?.value.trim() ?? ""),
-  };
-  let completedCount = 0;
-  for (const step of completionSteps) {
-    const isComplete = completed[step.dataset.profileStep] === true;
-    completedCount += Number(isComplete);
-    step.dataset.complete = String(isComplete);
-    step.querySelector("strong").textContent = isComplete ? "Complete" : "Incomplete";
-  }
-  completionCount.textContent = `${completedCount} of ${completionSteps.length} complete`;
-  completionProgress.value = completionSteps.length
-    ? Math.round((completedCount / completionSteps.length) * 100)
-    : 0;
-}
-
 async function loadProfile() {
   const user = await getCurrentUser();
   if (!user || user.role !== expectedRole) {
@@ -99,8 +76,9 @@ async function loadProfile() {
 
   nameInput.value = user.name ?? "";
   emailInput.value = user.email ?? "";
+  emailInput.readOnly = true;
   phoneInput.value = user.phone ?? "";
-  hasSavedProfilePhoto = Boolean(user.avatarUrl);
+  profileDisplayName.textContent = user.name ?? "";
   showProfilePhoto(user.avatarUrl, user.name);
 
   if (expectedRole === "driver" && plateInput) {
@@ -112,9 +90,20 @@ async function loadProfile() {
       { bike: "Bike · delivery only", keke: "Keke · up to 4 passengers", minivan: "Mini bus · up to 6 passengers" }[
         driver.vehicleType
       ] ?? "Vehicle";
+    driverApprovalStatus.textContent = driver.status ?? "Status unavailable";
+    driverApprovalStatus.dataset.status = driver.status ?? "";
+    if (Number.isFinite(driver.rating) && driver.rating > 0) {
+      driverProfileRating.textContent = `★ ${driver.rating.toFixed(1)} / 5`;
+      driverProfileRating.hidden = false;
+    } else {
+      driverProfileRating.hidden = true;
+    }
+    document.querySelector("#driver-availability-description").textContent =
+      driver.status === "approved"
+        ? `You are currently ${driver.isOnline ? "online" : "offline"}. Change your availability from the driver dashboard.`
+        : "You can change your availability after your driver account is approved.";
   }
 
-  updateCompletionSteps();
   return true;
 }
 
@@ -125,7 +114,6 @@ async function handleSubmit(event) {
   const formData = new FormData(form);
   const updates = {
     name: formData.get("name"),
-    email: formData.get("email"),
     phone: formData.get("phone"),
   };
   if (expectedRole === "driver") {
@@ -141,7 +129,6 @@ async function handleSubmit(event) {
       photoPicker.setStatus("Uploading your photo…", "uploading");
       const result = await uploadProfilePhoto(photo);
       updatedUser = result.user;
-      hasSavedProfilePhoto = Boolean(updatedUser.avatarUrl);
       showProfilePhoto(updatedUser.avatarUrl, updatedUser.name);
       photoPicker.clear();
       photoPicker.setStatus("Profile photo uploaded.", "success");
@@ -158,9 +145,8 @@ async function handleSubmit(event) {
       bankNameInput.value = updatedUser.bankName ?? bankNameInput.value;
       bankAccountInput.value = updatedUser.bankAccountNumber ?? bankAccountInput.value;
     }
-    hasSavedProfilePhoto = Boolean(updatedUser.avatarUrl);
-    updateCompletionSteps();
-    showMessage("Your profile has been updated. If you changed your email, confirm it from the message we sent.");
+    profileDisplayName.textContent = updatedUser.name ?? "";
+    showMessage("Your profile has been updated.");
   } catch (error) {
     if (photoPicker?.getFile()) {
       photoPicker.setStatus(error.message || "The photo could not be uploaded.", "error");
@@ -201,8 +187,6 @@ async function startProfile() {
     form.addEventListener("submit", handleSubmit);
     logoutButton.addEventListener("click", handleLogout);
     profilePhotoInput?.addEventListener("photo-picker:ready", previewProfilePhoto);
-    form.addEventListener("input", updateCompletionSteps);
-    form.addEventListener("change", updateCompletionSteps);
     profileLoading.showLoaded();
   }
 }

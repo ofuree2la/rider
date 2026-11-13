@@ -185,9 +185,17 @@
 
         <section id="match-card" class="match-card" aria-labelledby="match-title" hidden>
           <div id="match-card-content" class="match-card-content">
+            <div class="match-live-vehicle" id="match-live-vehicle" aria-hidden="true"></div>
             <span class="match-badge">Request sent</span>
             <h2 id="match-title">Your keke is matched</h2>
             <p id="match-details"></p>
+            <div id="match-driver-summary" class="match-driver-summary" hidden>
+              <span class="match-driver-name"></span>
+              <span class="vehicle-plate-badge match-driver-plate"></span>
+            </div>
+            <div class="match-progress-track" role="progressbar" aria-label="Ride progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="15">
+              <span id="match-progress-fill" data-progress="15"></span>
+            </div>
             <a id="match-tracking-link" class="btn btn-primary" href="tracking.html">Track your ride</a>
             <button id="match-cancel-button" class="btn btn-danger" type="button" hidden>Cancel request</button>
             <a id="match-book-again-link" class="btn btn-secondary" href="book.html" hidden>Book another ride</a>
@@ -218,25 +226,32 @@
         <div class="planner-controls">
           <div class="planner-chip-control">
             <button id="planner-time-chip" class="planner-control-chip" type="button" aria-expanded="false" aria-controls="planner-time-picker">Now</button>
-            <div id="planner-time-picker" class="planner-picker-panel planner-time-picker" hidden>
-              <button id="planner-now-choice" class="planner-picker-now" type="button">Ride now</button>
-              <div class="planner-date-field">
-                <label for="planner-scheduled-at">Schedule pickup</label>
-                <input id="planner-scheduled-at" type="datetime-local" />
+            <section id="planner-time-picker" class="planner-picker-panel planner-time-picker" role="group" aria-label="Choose pickup time" hidden>
+              <h3 class="planner-picker-title">When should we pick you up?</h3>
+              <div class="planner-timing-choices">
+                <button id="planner-now-choice" class="planner-picker-now" type="button" aria-pressed="true">Now</button>
+                <button id="planner-schedule-choice" class="planner-picker-now" type="button" aria-pressed="false">Schedule</button>
               </div>
-              <button id="planner-time-apply" class="planner-picker-apply" type="button">Apply time</button>
-            </div>
+              <div id="planner-schedule-fields" class="planner-schedule-fields" hidden>
+                <div class="planner-date-field">
+                  <label for="planner-scheduled-date">Date</label>
+                  <input id="planner-scheduled-date" type="date" />
+                </div>
+                <div class="planner-date-field">
+                  <label for="planner-scheduled-time">Time</label>
+                  <input id="planner-scheduled-time" type="time" />
+                </div>
+                <p id="planner-schedule-message" class="planner-message" role="status" aria-live="polite"></p>
+                <button id="planner-time-apply" class="planner-picker-apply" type="button">Confirm time</button>
+              </div>
+            </section>
           </div>
           <div class="planner-chip-control">
             <button id="planner-passenger-chip" class="planner-control-chip" type="button" aria-expanded="false" aria-controls="planner-passenger-picker">1 passenger</button>
-            <div id="planner-passenger-picker" class="planner-picker-panel planner-passenger-picker" hidden>
-              <label for="planner-passenger-count">Passengers</label>
-              <select id="planner-passenger-count">
-                <option value="1">1 passenger</option>
-                <option value="2">2 passengers</option>
-                <option value="3">3 passengers</option>
-                <option value="4">4 passengers</option>
-              </select>
+            <div id="planner-passenger-picker" class="planner-picker-panel planner-passenger-picker" role="group" aria-label="Choose passenger count" hidden>
+              <button id="planner-passenger-decrease" type="button" aria-label="Remove one passenger">−</button>
+              <output id="planner-passenger-value" aria-live="polite">1 passenger</output>
+              <button id="planner-passenger-increase" type="button" aria-label="Add one passenger">+</button>
             </div>
           </div>
         </div>
@@ -251,12 +266,15 @@
             <div class="planner-route-field">
               <label for="planner-pickup">Pickup</label>
               <input id="planner-pickup" type="search" placeholder="Choose a pickup location" autocomplete="off" aria-controls="planner-place-list" />
+              <button class="planner-clear-field" type="button" data-clear-location="pickup" aria-label="Clear pickup" hidden>×</button>
             </div>
             <div class="planner-route-divider"></div>
             <div class="planner-route-field">
               <label for="planner-destination">Destination</label>
               <input id="planner-destination" type="search" placeholder="Where are you going?" autocomplete="off" aria-controls="planner-place-list" />
+              <button class="planner-clear-field" type="button" data-clear-location="destination" aria-label="Clear destination" hidden>×</button>
             </div>
+            <button id="planner-swap-locations" class="planner-swap-button" type="button" aria-label="Swap pickup and destination" disabled>Swap locations</button>
           </div>
         </div>
         <p id="planner-location-message" class="planner-message" role="status" aria-live="polite" hidden></p>

@@ -4,17 +4,17 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#16824b" />
-    <title>Ride history | Rider</title>
+    <title>Activity | Rider</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="css/base.css" />
     <link rel="stylesheet" href="css/components.css" />
-    <link rel="stylesheet" href="css/history.css?v=step4" />
+    <link rel="stylesheet" href="css/history.css?v=activity-redesign" />
     <link rel="stylesheet" href="css/cancellation.css" />
     <link rel="stylesheet" href="css/bottom-nav.css" />
     <link rel="stylesheet" href="css/mobile.css" />
-    <script type="module" src="js/history.js?v=cancel-step3"></script>
+    <script type="module" src="js/history.js?v=activity-redesign"></script>
     <script src="js/bottom-nav.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/animejs@3.2.2/lib/anime.min.js" defer></script>
     <script src="js/motion.js" defer></script>
@@ -28,43 +28,49 @@
         </a>
         <nav class="journey-nav" aria-label="Ride navigation">
           <a href="book.html">Book a ride</a>
-          <a href="history.html" aria-current="page">Ride history</a>
+          <a href="history.html" aria-current="page">Activity</a>
           <a href="profile.html">Profile</a>
         </nav>
       </div>
     </header>
 
     <main class="container journey-shell history-shell">
-      <div class="page-heading">
-        <span class="eyebrow accent">Your rides</span>
-        <h1>Ride history</h1>
-        <p>Keep track of your scheduled and completed campus trips.</p>
+      <div class="page-heading activity-heading">
+        <span class="eyebrow accent">Your trips</span>
+        <h1>Activity</h1>
+        <p>Your rides, all in one place.</p>
       </div>
-      <p id="history-error" class="journey-message error-message" role="alert" hidden></p>
-      <p id="history-status" class="journey-message status-message" role="status" aria-live="polite" hidden></p>
 
-      <section class="journey-card history-section" aria-labelledby="upcoming-title">
-        <div class="history-section-heading">
-          <div>
-            <span class="eyebrow accent">Plan ahead</span>
-            <h2 id="upcoming-title">Upcoming rides</h2>
-          </div>
-          <span id="upcoming-count" class="ride-count">0 rides</span>
-        </div>
-        <div id="upcoming-rides" class="ride-list"></div>
-        <p id="upcoming-empty" class="empty-state" hidden>No upcoming rides yet. Schedule a ride for your next early class.</p>
-      </section>
+      <div id="history-status" class="history-notice" role="status" aria-live="polite" hidden></div>
+      <div id="history-error" class="history-error" role="alert" hidden>
+        <p id="history-error-message">Your activity could not be loaded.</p>
+        <button id="history-retry" class="btn btn-secondary" type="button">Retry</button>
+      </div>
 
-      <section class="journey-card history-section" aria-labelledby="past-title">
-        <div class="history-section-heading">
-          <div>
-            <span class="eyebrow accent">Your trip record</span>
-            <h2 id="past-title">Past rides</h2>
+      <section class="activity-panel" aria-label="Ride activity">
+        <div class="activity-toolbar">
+          <div class="activity-filters" role="group" aria-label="Filter rides">
+            <button type="button" class="activity-filter" data-filter="all" aria-pressed="true">All</button>
+            <button type="button" class="activity-filter" data-filter="completed" aria-pressed="false">Completed</button>
+            <button type="button" class="activity-filter" data-filter="cancelled" aria-pressed="false">Cancelled</button>
+            <button type="button" class="activity-filter" data-filter="scheduled" aria-pressed="false">Scheduled</button>
           </div>
-          <span id="past-count" class="ride-count">0 rides</span>
+          <p id="activity-count" class="activity-count" aria-live="polite"></p>
         </div>
-        <div id="past-rides" class="ride-list"></div>
-        <p id="past-empty" class="empty-state" hidden>Your completed and cancelled rides will appear here.</p>
+
+        <div id="history-loading" class="activity-skeleton-list" role="status" aria-live="polite" aria-label="Loading ride activity">
+          <div class="activity-skeleton" aria-hidden="true"><span></span><i></i><i></i></div>
+          <div class="activity-skeleton" aria-hidden="true"><span></span><i></i><i></i></div>
+          <div class="activity-skeleton" aria-hidden="true"><span></span><i></i><i></i></div>
+        </div>
+        <div id="activity-empty" class="activity-empty" hidden>
+          <span class="activity-empty-icon" aria-hidden="true">↗</span>
+          <h2 id="activity-empty-title">No rides yet</h2>
+          <p id="activity-empty-message">Your trips will show up here after you book a ride.</p>
+          <a class="btn btn-primary" href="book.html">Book a ride</a>
+        </div>
+        <div id="activity-groups" class="activity-groups" aria-live="polite" hidden></div>
+        <button id="activity-load-more" class="activity-load-more" type="button" hidden>Load more</button>
       </section>
     </main>
   </body>
