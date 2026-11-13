@@ -355,6 +355,7 @@ function setBookingActionState(state) {
   bookingSigninLink.hidden = state !== "signed-out";
   findRideButton.hidden = state !== "signed-in";
   findRideButton.disabled = state !== "signed-in";
+  window.dispatchEvent(new CustomEvent("rider:booking-auth-state", { detail: { state } }));
 }
 
 function clearRiderBookingState() {
@@ -1115,6 +1116,7 @@ async function startBookingPage() {
     }
   };
   await Promise.all([restoreBooking(), loadFareConfig(), populateLocations()]);
+  window.dispatchEvent(new Event("rider:booking-ready"));
   updateFareEstimate();
 
   enableLocationAutocomplete(pickupInput, pickupSuggestions, (location) => {

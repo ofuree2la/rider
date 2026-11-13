@@ -10,9 +10,11 @@
     <link rel="stylesheet" href="css/base.css" />
     <link rel="stylesheet" href="css/components.css" />
     <link rel="stylesheet" href="css/booking.css?v=vehicles" />
+    <link rel="stylesheet" href="css/planner.css" />
     <link rel="stylesheet" href="css/cancellation.css" />
     <link rel="stylesheet" href="css/bottom-nav.css" />
     <link rel="stylesheet" href="css/mobile.css" />
+    <script type="module" src="js/planner.js"></script>
     <script type="module" src="js/booking.js?v=cancel-step3"></script>
     <script src="js/bottom-nav.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/animejs@3.2.2/lib/anime.min.js" defer></script>
@@ -46,7 +48,35 @@
           <h1 id="ride-title">Book a ride or delivery</h1>
         </div>
 
-        <div class="ride-options" role="radiogroup" aria-label="Ride options">
+        <p id="booking-error" class="booking-message error-message" role="alert" hidden></p>
+        <section id="planner-entry" class="planner-entry" aria-label="Book a ride">
+          <div id="booking-auth-loading" class="booking-auth-loading" role="status" aria-live="polite">
+            <span class="booking-auth-skeleton" aria-hidden="true"></span>
+            <span>Checking your account...</span>
+          </div>
+          <a id="booking-signin-link" class="btn btn-primary btn-large" href="login.html" hidden>Sign in to get a ride</a>
+          <button id="planner-open-button" class="planner-search-pill" type="button" aria-label="Where to? Open ride planner" hidden>
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <circle cx="10.8" cy="10.8" r="6.8"></circle>
+              <path d="m16 16 4.5 4.5"></path>
+            </svg>
+            <span class="planner-search-label">Where to?</span>
+            <span class="planner-later-chip">Later</span>
+          </button>
+        </section>
+        <p id="booking-status" class="booking-message status-message" role="status" aria-live="polite" hidden></p>
+
+        <section id="planner-bridge" class="planner-bridge" hidden>
+          <div class="planner-bridge-panel" role="dialog" aria-modal="true" aria-labelledby="planner-bridge-title">
+            <header class="planner-bridge-header">
+              <button id="planner-bridge-close" class="planner-back-button" type="button" aria-label="Close ride planner">←</button>
+              <h2 id="planner-bridge-title">Plan your ride</h2>
+            </header>
+            <p class="planner-bridge-message">Your campus ride planner will open here. Ride requests are temporarily unavailable while the new booking flow is being built.</p>
+          </div>
+        </section>
+
+        <div class="ride-options" role="radiogroup" aria-label="Ride options" hidden inert>
           <label class="ride-option active">
             <input type="radio" name="vehicle-type" value="keke" checked />
             <span class="option-label">Keke</span>
@@ -72,7 +102,7 @@
           </label>
         </div>
 
-        <form id="booking-form" class="booking-form">
+        <form id="booking-form" class="booking-form" hidden inert>
           <div class="field-row">
             <label for="pickup">Pickup</label>
             <input id="pickup" name="pickup" type="text" placeholder="Type a pickup location" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="pickup-suggestions" autocomplete="off" required />
@@ -156,14 +186,6 @@
             </dl>
             <p id="fare-note" class="fare-note">Demo fare estimate. Final fare is shown before you confirm.</p>
           </section>
-
-          <p id="booking-error" class="booking-message error-message" role="alert" hidden></p>
-          <div id="booking-auth-loading" class="booking-auth-loading" role="status" aria-live="polite">
-            <span class="booking-auth-skeleton" aria-hidden="true"></span>
-            <span>Checking your account...</span>
-          </div>
-          <a id="booking-signin-link" class="btn btn-primary btn-large" href="login.html" hidden>Sign in to get a ride</a>
-          <p id="booking-status" class="booking-message status-message" role="status" aria-live="polite" hidden></p>
 
           <button id="find-ride" type="submit" class="btn btn-primary btn-large" hidden>Find a ride</button>
         </form>
