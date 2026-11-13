@@ -6,6 +6,14 @@ Rider is a mobile-first campus ride and delivery web app for Veritas University,
 
 Serve the repository over HTTP (ES modules do not work reliably from `file://`) and open `index.html`. The booking screen is available from **Book a Ride**. Configure Supabase Auth Site URL and redirect URLs for the local or deployed origin.
 
+## Rider booking planner
+
+On the booking page, signed-in riders open **Where to?** to choose a pickup and destination from active campus locations. The planner can remember the rider's last pickup and up to five recent places on that device, scoped to the signed-in user. Riders can also choose one to four passengers or a future pickup time.
+
+Choosing a destination opens the ride-options sheet. Keke is the only available vehicle; Bike and Mini bus are shown as coming soon. The fare displayed is an estimate from the configured fare matrix, while the existing ride-creation endpoint calculates and returns the authoritative fare. Cash is the only available payment method. **Continue** submits a ride request; scheduling is available from the planner or the sheet's calendar button.
+
+The planner and sheet are implemented in `js/planner.js` and `js/ride-options.js`, with their styling in `css/planner.css` and `css/ride-options.css`. Test the UI on a local HTTP server while signed in. To avoid submitting a real request, test route editing, passenger and time controls, Back/Escape dismissal, and keyboard navigation without pressing **Continue**.
+
 ## Site address
 
 Internal links, assets, imports, and splash redirects use paths relative to the current page, so they work from both GitHub Pages at `/rider/` and a custom-domain root. No site-root path needs to be changed for the switch.
