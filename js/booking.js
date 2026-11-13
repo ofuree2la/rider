@@ -47,7 +47,6 @@ const bookingRetryCard = document.querySelector("#booking-retry-card");
 const bookingRetryTitle = document.querySelector("#booking-retry-title");
 const bookingRetryDetails = document.querySelector("#booking-retry-details");
 const bookingRetryCreateButton = document.querySelector("#booking-retry-create");
-const mapRouteLabel = document.querySelector("#map-route-label");
 const paymentMethodSelect = document.querySelector("#payment-method");
 const onlinePaymentOption = paymentMethodSelect.querySelector('option[value="online"]');
 const emailField = document.querySelector("#email-field");
@@ -712,9 +711,6 @@ function appendBreakdownRow(label, amount, formatter = currencyFormatter) {
 function updateFareEstimate() {
   const pickup = selectedPickup;
   const destination = selectedDestination;
-  mapRouteLabel.textContent =
-    pickup && destination ? `${pickup.name} to ${destination.name}` : "Choose your route";
-
   if (!pickup || !destination) {
     fareTotalElement.textContent = "—";
     fareBreakdownElement.replaceChildren();
@@ -1162,6 +1158,48 @@ const { data: authStateData } = supabase.auth.onAuthStateChange((event) => {
   setBookingActionState("signed-out");
 });
 authStateSubscription = authStateData.subscription;
+
+window.addEventListener("rider:ride-options-created", (event) => {
+  const ride = event.detail?.ride;
+  if (!ride?.id) {
+    console.error("Ride options reported an invalid created ride.");
+    return;
+  }
+  saveBookingRideId(ride.id);
+  showSubmittedRide(ride);
+  const serverFare = ride.fare?.rideTotal ?? ride.fare?.total;
+  const fareMessage = Number.isFinite(serverFare)
+    ? ` The server-priced fare is ${new Intl.NumberFormat("en-NG", {
+        style: "currency",
+        currency: ride.fare.currency || "NGN",
+        maximumFractionDigits: 0,
+      }).format(serverFare)}.`
+    : "";
+  showStatus(`Finding your keke...${fareMessage}`);
+  if (!["completed", "cancelled"].includes(ride.status)) {
+    watchBookingStatus(ride.id);
+  }
+});
+
+window.addEventListener("rider:ride-options-existing-ride", (event) => {
+  const ride = event.detail?.ride;
+  if (!ride?.id) {
+    console.error("Ride options reported an invalid existing ride.");
+    return;
+  }
+  saveBookingRideId(ride.id);
+  showSubmittedRide(ride, true);
+  if (!["completed", "cancelled"].includes(ride.status)) {
+    watchBookingStatus(ride.id);
+  }
+});
+
+window.addEventListener("rider:ride-options-cancel-existing", (event) => {
+  const rideId = event.detail?.rideId;
+  if (rideId && currentBookingRide?.id === rideId) {
+    void handleBookingCancellation();
+  }
+});
 
 try {
   await startBookingPage();

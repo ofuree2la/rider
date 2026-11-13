@@ -318,7 +318,7 @@ function dispatchRouteSelection() {
     return;
   }
   document.querySelector("#planner-location-tools").hidden = true;
-  setLocationMessage("Route selected. Ride options will open here in the next step.");
+  setLocationMessage("");
   window.dispatchEvent(new CustomEvent("rider:planner-route-selected", {
     detail: {
       pickup,
@@ -626,8 +626,19 @@ passengerCountInput.addEventListener("change", () => {
   }));
 });
 
+window.addEventListener("rider:planner-focus-field", (event) => {
+  focusLocationField(event.detail?.field === "destination" ? "destination" : "pickup");
+});
+
+window.addEventListener("rider:planner-open-time-picker", () => {
+  setPickerVisibility(passengerChip, passengerPicker, false);
+  setPickerVisibility(timeChip, timePicker, true);
+  scheduledAtInput.min = formatLocalDateTime(new Date(Date.now() + 60_000));
+  timeChip.focus();
+});
+
 document.addEventListener("keydown", (event) => {
-  if (!plannerOpen) {
+  if (!plannerOpen || !document.querySelector("#ride-options-sheet").hidden) {
     return;
   }
   if (event.key === "Escape") {
@@ -644,6 +655,10 @@ window.addEventListener("popstate", () => {
   }
   historyEntryPending = false;
   closePlanner({ fromHistory: true });
+});
+
+window.addEventListener("rider:planner-close-after-booking", () => {
+  closePlanner({ restoreFocus: false });
 });
 
 const rideCardObserver = new MutationObserver(renderEntry);

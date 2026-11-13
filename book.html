@@ -10,12 +10,14 @@
     <link rel="stylesheet" href="css/base.css" />
     <link rel="stylesheet" href="css/components.css" />
     <link rel="stylesheet" href="css/booking.css?v=vehicles" />
-    <link rel="stylesheet" href="css/planner.css" />
+    <link rel="stylesheet" href="css/planner.css?v=ride-options-step4" />
+    <link rel="stylesheet" href="css/ride-options.css?v=ride-options-step4" />
     <link rel="stylesheet" href="css/cancellation.css" />
     <link rel="stylesheet" href="css/bottom-nav.css" />
     <link rel="stylesheet" href="css/mobile.css" />
-    <script type="module" src="js/planner.js"></script>
-    <script type="module" src="js/booking.js?v=cancel-step3"></script>
+    <script type="module" src="js/planner.js?v=ride-options-step4"></script>
+    <script type="module" src="js/ride-options.js?v=ride-options-step4"></script>
+    <script type="module" src="js/booking.js?v=ride-options-step4"></script>
     <script src="js/bottom-nav.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/animejs@3.2.2/lib/anime.min.js" defer></script>
     <script src="js/motion.js" defer></script>
@@ -199,33 +201,6 @@
         </section>
       </section>
 
-      <section class="map-panel" aria-label="Demo route map">
-        <div class="map-card">
-          <div class="map-header">
-            <span class="map-badge">Demo map</span>
-            <span id="map-route-label">Choose your route</span>
-          </div>
-
-          <div class="map-surface" aria-hidden="true">
-            <div class="road road-h road-1"></div>
-            <div class="road road-v road-2"></div>
-            <div class="road road-h road-3"></div>
-            <div class="road road-v road-4"></div>
-            <div class="grid-line grid-1"></div>
-            <div class="grid-line grid-2"></div>
-            <div class="grid-line grid-3"></div>
-            <div class="grid-line grid-4"></div>
-
-            <div class="route-line route-a"></div>
-            <div class="route-line route-b"></div>
-
-            <div class="map-pin pickup-pin">A</div>
-            <div class="map-pin destination-pin">B</div>
-            <div class="map-label pickup-label">Pickup</div>
-            <div class="map-label destination-label">Destination</div>
-          </div>
-        </div>
-      </section>
     </main>
 
     <section id="planner-screen" class="planner-screen" role="dialog" aria-modal="true" aria-labelledby="planner-title" hidden>
@@ -260,8 +235,6 @@
                 <option value="2">2 passengers</option>
                 <option value="3">3 passengers</option>
                 <option value="4">4 passengers</option>
-                <option value="5">5 passengers</option>
-                <option value="6">6 passengers</option>
               </select>
             </div>
           </div>
@@ -291,6 +264,89 @@
           <div id="planner-type-filters" class="planner-type-filters" aria-label="Filter campus locations" hidden></div>
           <p id="planner-place-list-label" class="planner-place-list-label">Choose a destination</p>
           <div id="planner-place-list" class="planner-place-list" role="listbox" aria-label="Campus locations" aria-busy="false"></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="ride-options-sheet" class="ride-options-sheet" role="dialog" aria-modal="true" aria-labelledby="ride-options-title" hidden>
+      <div class="ride-options-backdrop" data-ride-options-close></div>
+      <div class="ride-options-panel">
+        <div class="ride-options-grabber" aria-hidden="true"></div>
+        <div class="ride-options-scroll">
+          <header class="ride-options-header">
+            <h2 id="ride-options-title">Choose your ride</h2>
+            <button id="ride-options-close" class="ride-options-close" type="button" aria-label="Back to trip planner">Back</button>
+          </header>
+
+          <button id="ride-options-route" class="ride-options-route" type="button" aria-label="Edit pickup and destination">
+            <span id="ride-options-route-text"></span>
+            <span class="ride-options-edit">Edit</span>
+          </button>
+
+          <div class="ride-options-vehicle-list" role="group" aria-label="Ride types">
+            <button id="ride-option-keke" class="ride-option-row is-selected" type="button" aria-pressed="true">
+              <span class="keke-illustration" aria-hidden="true">
+                <svg viewBox="0 0 96 64" focusable="false">
+                  <path d="M22 18h40l11 12v20H18V28z"></path>
+                  <path d="M25 21h16v13H22zM45 21h15l9 10H45z"></path>
+                  <path d="M14 37h7v11h-7zM73 36h8v8h-8zM27 50h10M63 50h9"></path>
+                  <circle cx="31" cy="51" r="7"></circle>
+                  <circle cx="64" cy="51" r="7"></circle>
+                  <path d="M14 58h61M80 31h7M78 42h7"></path>
+                </svg>
+              </span>
+              <span class="ride-option-copy">
+                <span class="ride-option-name">Keke</span>
+                <span class="ride-option-detail">Up to 4 passengers</span>
+              </span>
+              <span class="ride-option-price" id="ride-options-fare">—</span>
+            </button>
+            <div class="ride-option-row is-unavailable" aria-disabled="true">
+              <span class="ride-option-symbol" aria-hidden="true">B</span>
+              <span class="ride-option-copy">
+                <span class="ride-option-name">Bike</span>
+                <span class="ride-option-detail">Coming soon</span>
+              </span>
+            </div>
+            <div class="ride-option-row is-unavailable" aria-disabled="true">
+              <span class="ride-option-symbol" aria-hidden="true">M</span>
+              <span class="ride-option-copy">
+                <span class="ride-option-name">Mini bus</span>
+                <span class="ride-option-detail">Coming soon</span>
+              </span>
+            </div>
+          </div>
+
+          <section class="ride-options-fare-card" aria-label="Fare estimate">
+            <div class="ride-options-fare-heading">
+              <span>Estimated fare</span>
+              <strong id="ride-options-fare-total">—</strong>
+            </div>
+            <p id="ride-options-fare-breakdown" class="ride-options-fare-breakdown">Choose a route to see the fare.</p>
+            <p id="ride-options-fare-note" class="ride-options-fare-note" hidden></p>
+          </section>
+
+          <label class="ride-options-payment" for="ride-options-payment-method">
+            <span>Payment</span>
+            <select id="ride-options-payment-method" aria-label="Payment method">
+              <option value="cash" selected>Cash</option>
+            </select>
+          </label>
+
+          <p id="ride-options-error" class="ride-options-error" role="alert" aria-live="assertive" hidden></p>
+          <div id="ride-options-existing-actions" class="ride-options-existing-actions" hidden>
+            <a id="ride-options-track-link" class="ride-options-track-link" href="history.html">Track open request</a>
+            <button id="ride-options-cancel-request" class="ride-options-cancel-request" type="button">Cancel request</button>
+          </div>
+          <div class="ride-options-actions">
+            <button id="ride-options-continue" class="ride-options-continue" type="button" disabled>Continue</button>
+            <button id="ride-options-schedule" class="ride-options-schedule" type="button" aria-label="Schedule pickup">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <rect x="3.5" y="5" width="17" height="16" rx="2"></rect>
+                <path d="M7.5 3v4M16.5 3v4M3.5 10h17M8 14h3M8 17h3"></path>
+              </svg>
+            </button>
+          </div>
         </div>
       </div>
     </section>
