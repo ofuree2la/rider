@@ -161,6 +161,272 @@ select:disabled {
   }
 }
 
+@media (max-width: 760px) {
+  :root {
+    font-size: 15px;
+  }
+
+  body {
+    line-height: 1.55;
+  }
+
+  .container,
+  .ride-shell,
+  .journey-shell,
+  .dashboard-shell,
+  .profile-shell,
+  .admin-shell {
+    width: calc(100% - 1.5rem);
+  }
+
+  .ride-shell,
+  .journey-shell,
+  .dashboard-shell,
+  .profile-shell,
+  .admin-shell {
+    padding-top: 1rem;
+  }
+
+  .page-heading h1,
+  .panel-header h1,
+  .auth-shell h1,
+  .profile-card-shell h1,
+  .admin-heading h1 {
+    font-size: clamp(1.75rem, 7vw, 2.35rem);
+    line-height: 1.12;
+    letter-spacing: -0.045em;
+  }
+
+  .section {
+    padding-block: 3rem;
+  }
+
+  .ride-panel,
+  .journey-card,
+  .profile-card-shell,
+  .admin-panel,
+  .panel,
+  .activity-panel,
+  .booking-card {
+    padding: 1rem;
+    border-radius: 18px;
+  }
+
+  .ride-panel,
+  .journey-card {
+    box-shadow: 0 8px 24px rgba(18, 20, 18, 0.06);
+  }
+
+  .btn {
+    min-height: 46px;
+    padding: 0.7rem 1rem;
+  }
+
+  .btn-large {
+    min-height: 50px;
+    padding-inline: 1.15rem;
+  }
+
+  .auth-form input,
+  .auth-form select,
+  .admin-form input,
+  .admin-form select,
+  .booking-form input,
+  .booking-form select,
+  .field input,
+  .field select,
+  .field-row input,
+  .field-row select {
+    min-height: 48px;
+    font-size: 16px;
+  }
+
+  .hero-section {
+    padding-block: clamp(2.5rem, 9vw, 4rem);
+  }
+
+  .hero-copy h1 {
+    font-size: clamp(2.35rem, 10vw, 3.4rem);
+    line-height: 1;
+  }
+
+  .hero-copy p {
+    font-size: 1rem;
+    line-height: 1.55;
+  }
+
+  .hero-actions .btn {
+    flex: 1 1 150px;
+  }
+
+  .site-header .nav-shell,
+  .journey-header-inner {
+    min-height: 60px;
+  }
+
+  .brand {
+    gap: 0.5rem;
+  }
+
+  .brand-mark {
+    width: 32px;
+    height: 32px;
+  }
+
+  .brand-text {
+    font-size: 1.05rem;
+  }
+
+  .university-picker {
+    max-width: 170px;
+  }
+
+  .ride-panel {
+    padding: 1rem;
+  }
+
+  .panel-header h1 {
+    margin-bottom: 0;
+  }
+
+  .planner-screen-scroll {
+    padding-inline: 0.875rem;
+  }
+
+  .planner-route-box,
+  .planner-location-tools {
+    min-width: 0;
+  }
+
+  .planner-place-list {
+    max-height: min(42dvh, 360px);
+  }
+
+  .ride-options-panel {
+    height: min(94dvh, 820px);
+    max-height: min(94dvh, 820px);
+  }
+
+  .ride-options-header h2 {
+    font-size: 1.1rem;
+  }
+
+  .ride-option-row {
+    min-width: 0;
+  }
+
+  .ride-option-detail {
+    line-height: 1.35;
+  }
+
+  .activity-toolbar {
+    min-width: 0;
+  }
+
+  .activity-filter {
+    min-height: 44px;
+    padding-inline: 0.8rem;
+  }
+
+  .activity-route {
+    font-size: 0.95rem;
+  }
+
+  .ride-illustrated-header {
+    padding: 1rem;
+    border-radius: 18px;
+  }
+
+  .driver-heading {
+    min-width: 0;
+  }
+
+  .driver-details {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-stats,
+  .stats-grid {
+    gap: 0.65rem;
+  }
+
+  .stats-grid.driver-overview-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-stat-card,
+  .stat-card {
+    padding: 0.8rem;
+  }
+
+  .admin-stat-card span,
+  .stat-card span {
+    font-size: 0.78rem;
+    line-height: 1.35;
+  }
+
+  .admin-stat-card strong,
+  .stat-card strong {
+    font-size: clamp(1.15rem, 5vw, 1.6rem);
+  }
+
+  .bottom-nav {
+    width: min(calc(100% - 24px), 420px);
+    padding: 5px;
+  }
+
+  .bottom-nav a {
+    min-height: 48px;
+    justify-content: center;
+    padding-block: 5px;
+    font-size: 0.72rem;
+  }
+
+  .bottom-nav svg {
+    width: 23px;
+    height: 23px;
+  }
+}
+
+@media (max-width: 380px) {
+  .container,
+  .ride-shell,
+  .journey-shell,
+  .dashboard-shell,
+  .profile-shell,
+  .admin-shell {
+    width: calc(100% - 1.25rem);
+  }
+
+  .ride-panel,
+  .journey-card,
+  .profile-card-shell,
+  .admin-panel,
+  .panel,
+  .activity-panel {
+    padding: 0.85rem;
+  }
+
+  .ride-options-scroll {
+    padding-inline: 0.75rem;
+  }
+
+  .activity-vehicle {
+    width: 48px;
+    height: 48px;
+    flex-basis: 48px;
+  }
+
+  .activity-vehicle .vehicle-art--small {
+    width: 44px;
+    height: 34px;
+  }
+
+  .driver-details {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
