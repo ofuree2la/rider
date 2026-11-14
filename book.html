@@ -11,13 +11,14 @@
     <link rel="stylesheet" href="css/components.css" />
     <link rel="stylesheet" href="css/booking.css?v=vehicles" />
     <link rel="stylesheet" href="css/planner.css?v=ride-options-step5" />
-    <link rel="stylesheet" href="css/ride-options.css?v=ride-options-step5" />
+    <link rel="stylesheet" href="css/ride-options.css?v=draggable-sheet-step3b" />
     <link rel="stylesheet" href="css/vehicle-icons.css?v=shared-icons-step2" />
+    <link rel="stylesheet" href="css/vehicle-art.css?v=vehicle-art-options-step3" />
     <link rel="stylesheet" href="css/cancellation.css" />
     <link rel="stylesheet" href="css/bottom-nav.css" />
     <link rel="stylesheet" href="css/mobile.css" />
     <script type="module" src="js/planner.js?v=ride-options-step5"></script>
-    <script type="module" src="js/ride-options.js?v=shared-icons-step2"></script>
+    <script type="module" src="js/ride-options.js?v=draggable-sheet-step3b"></script>
     <script type="module" src="js/booking.js?v=ride-options-step5"></script>
     <script src="js/bottom-nav.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/animejs@3.2.2/lib/anime.min.js" defer></script>
@@ -290,13 +291,23 @@
     <section id="ride-options-sheet" class="ride-options-sheet" role="dialog" aria-modal="true" aria-labelledby="ride-options-title" hidden>
       <div class="ride-options-backdrop" data-ride-options-close></div>
       <div class="ride-options-panel">
-        <div class="ride-options-grabber" aria-hidden="true"></div>
-        <div class="ride-options-scroll">
+        <div class="ride-options-drag-area">
+          <button
+            id="ride-options-grabber"
+            class="ride-options-grabber"
+            type="button"
+            aria-label="Expand or collapse options"
+            aria-controls="ride-options-scroll"
+            aria-expanded="false"
+          >
+            <span aria-hidden="true"></span>
+          </button>
           <header class="ride-options-header">
             <h2 id="ride-options-title">Choose your ride</h2>
             <button id="ride-options-close" class="ride-options-close" type="button" aria-label="Back to trip planner">Back</button>
           </header>
-
+        </div>
+        <div id="ride-options-scroll" class="ride-options-scroll">
           <button id="ride-options-route" class="ride-options-route" type="button" aria-label="Edit pickup and destination">
             <span id="ride-options-route-text"></span>
             <span class="ride-options-edit">Edit</span>
@@ -304,26 +315,28 @@
 
           <div class="ride-options-vehicle-list" role="group" aria-label="Ride types">
             <button id="ride-option-keke" class="ride-option-row is-selected" type="button" aria-pressed="true">
-              <span class="keke-illustration" id="ride-option-icon" aria-hidden="true"></span>
+              <span class="keke-illustration" id="ride-option-icon"></span>
               <span class="ride-option-copy">
                 <span class="ride-option-name">Keke</span>
-                <span class="ride-option-detail">Up to 4 passengers</span>
+                <span class="ride-option-detail">Up to 4 passengers · Campus rides</span>
               </span>
               <span class="ride-option-price" id="ride-options-fare">—</span>
             </button>
             <div class="ride-option-row is-unavailable" aria-disabled="true">
-              <span class="ride-option-symbol" aria-hidden="true">B</span>
+              <span class="keke-illustration ride-option-illustration" id="ride-option-bike"></span>
               <span class="ride-option-copy">
-                <span class="ride-option-name">Bike</span>
-                <span class="ride-option-detail">Coming soon</span>
+                <span class="ride-option-name">Motorbike delivery</span>
+                <span class="ride-option-detail">Parcel delivery · Coming soon</span>
               </span>
+              <span class="ride-option-price">—</span>
             </div>
             <div class="ride-option-row is-unavailable" aria-disabled="true">
-              <span class="ride-option-symbol" aria-hidden="true">M</span>
+              <span class="keke-illustration ride-option-illustration" id="ride-option-minivan"></span>
               <span class="ride-option-copy">
                 <span class="ride-option-name">Mini bus</span>
-                <span class="ride-option-detail">Coming soon</span>
+                <span class="ride-option-detail">Up to 6 passengers · Coming soon</span>
               </span>
+              <span class="ride-option-price">—</span>
             </div>
           </div>
 
@@ -336,29 +349,31 @@
             <p id="ride-options-fare-note" class="ride-options-fare-note" hidden></p>
           </section>
 
-          <label class="ride-options-payment" for="ride-options-payment-method">
-            <span>Payment</span>
-            <select id="ride-options-payment-method" aria-label="Payment method">
-              <option value="cash" selected>Cash</option>
-            </select>
-          </label>
-
           <p id="ride-options-error" class="ride-options-error" role="alert" aria-live="assertive" hidden></p>
           <div id="ride-options-existing-actions" class="ride-options-existing-actions" hidden>
             <a id="ride-options-track-link" class="ride-options-track-link" href="history.html">Track open request</a>
             <button id="ride-options-cancel-request" class="ride-options-cancel-request" type="button">Cancel request</button>
           </div>
-          <div class="ride-options-actions">
-            <button id="ride-options-continue" class="ride-options-continue" type="button" disabled>Continue</button>
-            <button id="ride-options-schedule" class="ride-options-schedule" type="button" aria-label="Schedule pickup">
-              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                <rect x="3.5" y="5" width="17" height="16" rx="2"></rect>
-                <path d="M7.5 3v4M16.5 3v4M3.5 10h17M8 14h3M8 17h3"></path>
-              </svg>
-            </button>
-          </div>
         </div>
+
       </div>
+      <footer class="ride-options-footer">
+        <label class="ride-options-payment" for="ride-options-payment-method">
+          <span>Payment</span>
+          <select id="ride-options-payment-method" aria-label="Payment method">
+            <option value="cash" selected>Cash</option>
+          </select>
+        </label>
+        <div class="ride-options-actions">
+          <button id="ride-options-continue" class="ride-options-continue" type="button" disabled>Select Keke</button>
+          <button id="ride-options-schedule" class="ride-options-schedule" type="button" aria-label="Schedule pickup">
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <rect x="3.5" y="5" width="17" height="16" rx="2"></rect>
+              <path d="M7.5 3v4M16.5 3v4M3.5 10h17M8 14h3M8 17h3"></path>
+            </svg>
+          </button>
+        </div>
+      </footer>
     </section>
   </body>
 </html>

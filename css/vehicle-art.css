@@ -1,0 +1,172 @@
+.vehicle-art {
+  --vehicle-outline: #26332b;
+  --vehicle-outline-deep: #111a14;
+  --vehicle-body: #16824b;
+  --vehicle-body-stroke: #0e6138;
+  --vehicle-glass: #dcebe1;
+  --vehicle-metal: #aab8ad;
+  --vehicle-tire: #26332b;
+  --vehicle-highlight: #f7d56a;
+  --vehicle-parcel: #d3a66b;
+  --vehicle-parcel-stroke: #704b27;
+  display: block;
+  width: min(100%, 240px);
+  height: 112px;
+  overflow: visible;
+  color: #17241b;
+}
+
+.vehicle-art--small {
+  width: min(100%, 128px);
+  height: 68px;
+}
+
+.vehicle-art-body {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.vehicle-art--animated .vehicle-art-body {
+  animation: vehicle-art-bob 1.35s ease-in-out infinite;
+}
+
+.vehicle-art-wheel-rotor {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.vehicle-art--animated .vehicle-art-wheel-rotor {
+  animation: vehicle-art-spin 1.1s linear infinite;
+}
+
+.vehicle-art-speed {
+  fill: none;
+  stroke: var(--color-brand);
+  stroke-linecap: round;
+  stroke-width: 3;
+  opacity: 0.55;
+}
+
+.vehicle-art--animated .vehicle-art-speed {
+  animation: vehicle-art-speed 0.9s ease-in-out infinite alternate;
+}
+
+.vehicle-art-canopy,
+.vehicle-art-exhaust {
+  fill: var(--vehicle-outline);
+  stroke: var(--vehicle-outline-deep);
+  stroke-width: 3;
+  stroke-linejoin: round;
+}
+
+.vehicle-art-tire {
+  fill: var(--vehicle-tire);
+  stroke: var(--vehicle-outline);
+  stroke-width: 3;
+}
+
+.vehicle-art-body-fill,
+.vehicle-art-nose,
+.vehicle-art-tank {
+  fill: var(--vehicle-body);
+  stroke: var(--vehicle-body-stroke);
+  stroke-width: 3;
+  stroke-linejoin: round;
+}
+
+.vehicle-art-stripe,
+.vehicle-art-bumper,
+.vehicle-art-handle,
+.vehicle-art-frame,
+.vehicle-art-detail,
+.vehicle-art-fender {
+  fill: none;
+  stroke: var(--vehicle-outline);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 4;
+}
+
+.vehicle-art-stripe {
+  fill: #b7dfc2;
+  stroke: #0e6138;
+  stroke-width: 1.5;
+}
+
+.vehicle-art-windscreen,
+.vehicle-art-window {
+  fill: var(--vehicle-glass);
+  stroke: var(--vehicle-outline);
+  stroke-width: 3;
+  stroke-linejoin: round;
+}
+
+.vehicle-art-seat,
+.vehicle-art-grille {
+  fill: var(--vehicle-outline);
+  stroke: var(--vehicle-outline-deep);
+  stroke-linejoin: round;
+  stroke-width: 2;
+}
+
+.vehicle-art-light,
+.vehicle-art-hub {
+  fill: var(--vehicle-highlight);
+  stroke: var(--vehicle-outline);
+  stroke-width: 3;
+}
+
+.vehicle-art-parcel {
+  fill: var(--vehicle-parcel);
+  stroke: var(--vehicle-parcel-stroke);
+  stroke-width: 3;
+  stroke-linejoin: round;
+}
+
+.vehicle-art-parcel-line,
+.vehicle-art-parcel-mark {
+  fill: none;
+  stroke: var(--vehicle-parcel-stroke);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2.5;
+}
+
+.vehicle-art-spokes {
+  fill: none;
+  stroke: var(--vehicle-metal);
+  stroke-width: 2;
+}
+
+.vehicle-art-axle {
+  fill: var(--vehicle-outline-deep);
+  stroke: var(--vehicle-outline);
+  stroke-width: 2;
+}
+
+@keyframes vehicle-art-bob {
+  50% {
+    transform: translateY(-2px);
+  }
+}
+
+@keyframes vehicle-art-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes vehicle-art-speed {
+  to {
+    opacity: 0.12;
+    transform: translateX(-3px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vehicle-art--animated .vehicle-art-body,
+  .vehicle-art--animated .vehicle-art-wheel-rotor,
+  .vehicle-art--animated .vehicle-art-speed {
+    animation: none;
+  }
+}

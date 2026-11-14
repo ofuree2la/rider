@@ -17,45 +17,102 @@
 }
 
 .ride-options-panel {
+  --ride-options-collapsed-height: min(400px, 66vh);
+  --ride-options-half-height: min(620px, 78vh);
+  --ride-options-collapsed-height: min(400px, 66dvh);
+  --ride-options-half-height: min(620px, 78dvh);
   position: relative;
   z-index: 1;
   width: min(100%, 720px);
+  height: min(92vh, 820px);
+  height: min(92dvh, 820px);
   max-height: min(92vh, 820px);
   max-height: min(92dvh, 820px);
   margin: 0 auto;
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
   border-radius: var(--radius-xl) var(--radius-xl) 0 0;
   background: #fff;
   box-shadow: 0 -12px 40px rgba(12, 35, 20, 0.18);
   transform: translateY(100%);
-  transition: transform 220ms ease-out;
+  transition: transform 240ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 .ride-options-sheet.is-open .ride-options-panel {
   transform: translateY(0);
 }
 
+.ride-options-sheet.is-open.is-collapsed .ride-options-panel {
+  transform: translate3d(0, calc(100% - var(--ride-options-collapsed-height)), 0);
+}
+
+.ride-options-sheet.is-open.is-half .ride-options-panel {
+  transform: translate3d(0, calc(100% - var(--ride-options-half-height)), 0);
+}
+
+.ride-options-sheet.is-open.is-expanded .ride-options-panel {
+  transform: translate3d(0, 0, 0);
+}
+
+.ride-options-sheet.is-open .ride-options-panel.is-dragging {
+  transform: translate3d(0, var(--ride-options-drag-offset, 0px), 0);
+  transition: none;
+}
+
 .ride-options-sheet.is-closing .ride-options-panel {
   transform: translateY(100%);
 }
 
+.ride-options-drag-area {
+  position: relative;
+  z-index: 1;
+  flex: 0 0 auto;
+  padding: env(safe-area-inset-top, 0px) var(--space-4) 0;
+  background: #fff;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
 .ride-options-grabber {
+  display: grid;
+  width: 100%;
+  min-height: 44px;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: grab;
+  touch-action: none;
+}
+
+.ride-options-grabber span {
   width: 42px;
   height: 5px;
-  margin: var(--space-3) auto var(--space-1);
   border-radius: var(--radius-pill);
   background: #cbd4cd;
 }
 
+.ride-options-grabber:active {
+  cursor: grabbing;
+}
+
+.ride-options-grabber:focus-visible {
+  outline: 3px solid rgba(22, 130, 75, 0.35);
+  outline-offset: -2px;
+  border-radius: var(--radius-md);
+}
+
 .ride-options-scroll {
-  max-height: calc(min(92vh, 820px) - var(--space-4));
-  max-height: calc(min(92dvh, 820px) - var(--space-4));
-  padding: var(--space-2) var(--space-4)
-    max(var(--space-4), env(safe-area-inset-bottom, 0px));
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 0 var(--space-4) var(--space-4);
   overflow-y: auto;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
   scroll-padding-block: var(--space-4);
+  touch-action: none;
 }
 
 .ride-options-header {
@@ -63,7 +120,8 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--space-4);
-  margin-bottom: var(--space-3);
+  min-height: 48px;
+  padding-bottom: var(--space-2);
 }
 
 .ride-options-header h2 {
@@ -85,6 +143,7 @@
   font-size: 0.82rem;
   font-weight: 800;
   cursor: pointer;
+  touch-action: manipulation;
 }
 
 .ride-options-route {
@@ -150,8 +209,7 @@ button.ride-option-row {
   cursor: not-allowed;
 }
 
-.keke-illustration,
-.ride-option-symbol {
+.keke-illustration {
   display: grid;
   flex: 0 0 52px;
   place-items: center;
@@ -162,16 +220,28 @@ button.ride-option-row {
   color: var(--color-brand-dark);
 }
 
-.keke-illustration .rider-vehicle-icon {
+.keke-illustration .vehicle-art--small {
   width: 50px;
   height: 38px;
 }
 
-.ride-option-symbol {
-  background: #eceeec;
-  color: #747a75;
-  font-size: 1.15rem;
-  font-weight: 800;
+.ride-option-illustration {
+  background: #f7faf7;
+  color: #17241b;
+}
+
+.ride-option-illustration .vehicle-art--small {
+  width: 52px;
+  height: 38px;
+}
+
+.ride-option-row.is-unavailable .ride-option-copy,
+.ride-option-row.is-unavailable .ride-option-price {
+  color: #626b64;
+}
+
+.ride-option-row.is-unavailable .ride-option-detail {
+  color: #626b64;
 }
 
 .ride-option-copy {
@@ -253,6 +323,37 @@ button.ride-option-row {
   font-weight: 800;
 }
 
+.ride-options-footer {
+  position: absolute;
+  z-index: 2;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  width: min(100%, 720px);
+  margin: 0 auto;
+  padding: 0 var(--space-4) max(var(--space-4), env(safe-area-inset-bottom, 0px));
+  background: #fff;
+  box-shadow: 0 -8px 20px rgba(12, 35, 20, 0.06);
+  transform: translateY(100%);
+  transition: transform 240ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.ride-options-sheet.is-open .ride-options-footer {
+  transform: translateY(0);
+}
+
+.ride-options-sheet.is-closing .ride-options-footer {
+  transform: translateY(100%);
+}
+
+.ride-options-footer .ride-options-payment {
+  margin-top: 0;
+}
+
+.ride-options-scroll {
+  padding-bottom: calc(320px + env(safe-area-inset-bottom, 0px));
+}
+
 .ride-options-payment select {
   min-width: 100px;
   min-height: 44px;
@@ -323,6 +424,15 @@ button.ride-option-row {
 }
 
 .ride-options-continue,
+.ride-options-schedule,
+.ride-options-payment select,
+.ride-option-row,
+.ride-options-route,
+.ride-options-cancel-request {
+  touch-action: manipulation;
+}
+
+.ride-options-continue,
 .ride-options-schedule {
   min-height: 52px;
   border: 0;
@@ -362,6 +472,7 @@ button.ride-option-row {
 
 .ride-options-route:focus-visible,
 .ride-options-close:focus-visible,
+.ride-options-grabber:focus-visible,
 .ride-option-row:focus-visible,
 .ride-options-payment select:focus-visible,
 .ride-options-continue:focus-visible,
@@ -376,13 +487,22 @@ button.ride-option-row {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .ride-options-panel {
+  .ride-options-panel,
+  .ride-options-footer {
     transition: none;
   }
 }
 
 @media (max-width: 380px) {
+  .ride-options-drag-area {
+    padding-inline: var(--space-3);
+  }
+
   .ride-options-scroll {
+    padding-inline: var(--space-3);
+  }
+
+  .ride-options-footer {
     padding-inline: var(--space-3);
   }
 

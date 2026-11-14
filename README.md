@@ -12,7 +12,7 @@ On the booking page, signed-in riders open **Where to?** to choose a pickup and 
 
 Choosing a destination opens the ride-options sheet. Keke is the only available vehicle; Bike and Mini bus are shown as coming soon. The fare displayed is an estimate from the configured fare matrix, while the existing ride-creation endpoint calculates and returns the authoritative fare. Cash is the only available payment method. **Continue** submits a ride request; scheduling is available from the planner or the sheet's calendar button.
 
-The planner and sheet are implemented in `js/planner.js` and `js/ride-options.js`, with their styling in `css/planner.css` and `css/ride-options.css`. Test the UI on a local HTTP server while signed in. To avoid submitting a real request, test route editing, passenger and time controls, Back/Escape dismissal, and keyboard navigation without pressing **Continue**.
+The planner and sheet are implemented in `js/planner.js` and `js/ride-options.js`, with their styling in `css/planner.css` and `css/ride-options.css`. The options sheet opens halfway, supports collapsed/half/expanded drag snaps, and keeps its Cash and booking controls fixed above the safe area. The approved original static vehicle drawings are shared from `js/vehicle-art.js` and `css/vehicle-art.css`; the expanded samples remain on the unlinked `vehicle-preview.html` page. Test the UI on a local HTTP server while signed in. To avoid submitting a real request, test route editing, passenger and time controls, Back/Escape dismissal, sheet dragging and keyboard controls without pressing **Select Keke**.
 
 ## Rider screens and shared UI
 

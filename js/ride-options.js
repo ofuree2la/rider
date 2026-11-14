@@ -1,9 +1,13 @@
 import { calculateFare, loadFareConfig } from "./pricing.js";
 import { createRide, getCurrentUser, getRides } from "./supabase-api.js";
-import { createVehicleIcon } from "./vehicle-icons.js";
+import { createVehicleArt } from "./vehicle-art.js";
 
 const plannerScreen = document.querySelector("#planner-screen");
 const sheet = document.querySelector("#ride-options-sheet");
+const sheetPanel = document.querySelector(".ride-options-panel");
+const dragArea = document.querySelector(".ride-options-drag-area");
+const grabberButton = document.querySelector("#ride-options-grabber");
+const sheetScroll = document.querySelector("#ride-options-scroll");
 const closeButton = document.querySelector("#ride-options-close");
 const routeButton = document.querySelector("#ride-options-route");
 const routeText = document.querySelector("#ride-options-route-text");
@@ -19,6 +23,11 @@ const continueButton = document.querySelector("#ride-options-continue");
 const scheduleButton = document.querySelector("#ride-options-schedule");
 const paymentMethod = document.querySelector("#ride-options-payment-method");
 const vehicleIconRoot = document.querySelector("#ride-option-icon");
+const vehicleOptions = [
+  ["keke", vehicleIconRoot],
+  ["bike", document.querySelector("#ride-option-bike")],
+  ["minivan", document.querySelector("#ride-option-minivan")],
+];
 
 const OPEN_RIDE_STATUSES = new Set(["finding", "accepted", "arriving"]);
 const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -38,8 +47,27 @@ let existingRideFound = false;
 let resumeAfterSelection = false;
 let returnFocusTarget = null;
 let closingTimer = null;
+let activeDrag = null;
+let suppressNextSheetClick = false;
 
-vehicleIconRoot.replaceChildren(createVehicleIcon("keke"));
+const rideOptionsStylesheet = [...document.styleSheets].find((stylesheet) =>
+  stylesheet.href && new URL(stylesheet.href).pathname.endsWith("/css/ride-options.css"),
+);
+const dragOffsetRule = rideOptionsStylesheet
+  ? [...rideOptionsStylesheet.cssRules].find((rule) =>
+    rule instanceof CSSStyleRule && rule.selectorText === ".ride-options-sheet.is-open .ride-options-panel.is-dragging",
+  )
+  : null;
+
+if (!dragOffsetRule) {
+  throw new Error("The ride options drag styles are unavailable.");
+}
+
+for (const [type, root] of vehicleOptions) {
+  const art = createVehicleArt(type);
+  art.classList.add("vehicle-art--small");
+  root.replaceChildren(art);
+}
 
 function isRideOpen(ride) {
   return OPEN_RIDE_STATUSES.has(ride.status);
@@ -126,6 +154,162 @@ function updateFareEstimate() {
   }
 }
 
+function getSheetOffsets() {
+  const viewportHeight = window.visualViewport?.height ?? window.innerHeight;
+  const panelHeight = sheetPanel.getBoundingClientRect().height;
+  const collapsedHeight = Math.min(400, viewportHeight * 0.66);
+  const halfHeight = Math.min(620, viewportHeight * 0.78);
+  return {
+    expanded: 0,
+    half: Math.max(0, panelHeight - halfHeight),
+    collapsed: Math.max(0, panelHeight - collapsedHeight),
+  };
+}
+
+function setSheetSnap(snap) {
+  sheet.classList.remove("is-collapsed", "is-half", "is-expanded");
+  sheet.classList.add(`is-${snap}`);
+  sheetPanel.classList.remove("is-dragging");
+  dragOffsetRule.style.removeProperty("--ride-options-drag-offset");
+  if (snap !== "expanded") {
+    sheetScroll.scrollTop = 0;
+  }
+  grabberButton.setAttribute("aria-expanded", String(snap !== "collapsed"));
+  activeDrag = null;
+}
+
+function toggleSheetSnap() {
+  if (sheet.classList.contains("is-expanded") || sheet.classList.contains("is-collapsed")) {
+    setSheetSnap("half");
+    return;
+  }
+  setSheetSnap("expanded");
+}
+
+function snapFromKeyboard(direction) {
+  const names = ["expanded", "half", "collapsed"];
+  const current = names.findIndex((name) => sheet.classList.contains(`is-${name}`));
+  const next = Math.max(0, Math.min(names.length - 1, current + direction));
+  setSheetSnap(names[next]);
+}
+
+function beginSheetDrag(event, source, scrollTop = 0) {
+  if (!event.isPrimary || (event.pointerType === "mouse" && event.button !== 0)) {
+    return;
+  }
+  activeDrag = {
+    pointerId: event.pointerId,
+    startY: event.clientY,
+    panelDragStartY: event.clientY,
+    currentOffset: getSheetOffsets()[
+      ["expanded", "half", "collapsed"].find((name) => sheet.classList.contains(`is-${name}`))
+    ],
+    source,
+    scrollTop,
+    scrollingContent: false,
+    moved: false,
+    sheetDragging: false,
+    lastY: event.clientY,
+    lastTime: performance.now(),
+    velocity: 0,
+  };
+}
+
+function updateDragOffset(offset) {
+  const maxOffset = getSheetOffsets().collapsed;
+  const boundedOffset = Math.max(0, Math.min(maxOffset, offset));
+  dragOffsetRule.style.setProperty("--ride-options-drag-offset", `${boundedOffset}px`);
+  return boundedOffset;
+}
+
+function startPanelMotion() {
+  if (!activeDrag || activeDrag.sheetDragging) {
+    return;
+  }
+  activeDrag.sheetDragging = true;
+  sheetPanel.classList.add("is-dragging");
+  const captureTarget = activeDrag.source === "header" ? dragArea : sheetScroll;
+  if (!captureTarget.hasPointerCapture(activeDrag.pointerId)) {
+    captureTarget.setPointerCapture(activeDrag.pointerId);
+  }
+}
+
+function moveSheetPointer(event, source) {
+  if (!activeDrag || activeDrag.pointerId !== event.pointerId) {
+    return;
+  }
+  const deltaY = event.clientY - activeDrag.startY;
+  const now = performance.now();
+  const elapsed = Math.max(1, now - activeDrag.lastTime);
+  activeDrag.velocity = (event.clientY - activeDrag.lastY) / elapsed;
+  activeDrag.lastY = event.clientY;
+  activeDrag.lastTime = now;
+
+  if (!activeDrag.moved && Math.abs(deltaY) < 4) {
+    return;
+  }
+  activeDrag.moved = true;
+
+  if (source === "scroll" && !activeDrag.sheetDragging) {
+    const canCollapse = sheet.classList.contains("is-expanded") || sheet.classList.contains("is-half");
+    const scrollOffset = activeDrag.scrollTop - deltaY;
+    if (scrollOffset >= 0) {
+      event.preventDefault();
+      if (!sheetScroll.hasPointerCapture(event.pointerId)) {
+        sheetScroll.setPointerCapture(event.pointerId);
+      }
+      sheetScroll.scrollTop = scrollOffset;
+      return;
+    }
+    if (!canCollapse) {
+      event.preventDefault();
+      sheetScroll.scrollTop = 0;
+      return;
+    }
+    event.preventDefault();
+    sheetScroll.scrollTop = 0;
+    activeDrag.panelDragStartY = activeDrag.startY + activeDrag.scrollTop;
+    startPanelMotion();
+  }
+
+  event.preventDefault();
+  startPanelMotion();
+  updateDragOffset(activeDrag.currentOffset + event.clientY - activeDrag.panelDragStartY);
+}
+
+function finishSheetPointer(event, cancelled = false) {
+  if (!activeDrag || activeDrag.pointerId !== event.pointerId) {
+    return;
+  }
+  const drag = activeDrag;
+  if (!drag.sheetDragging) {
+    activeDrag = null;
+    suppressNextSheetClick = drag.moved;
+    window.setTimeout(() => {
+      suppressNextSheetClick = false;
+    }, 0);
+    return;
+  }
+  const offsets = getSheetOffsets();
+  const names = ["expanded", "half", "collapsed"];
+  const currentOffset = Number.parseFloat(
+    dragOffsetRule.style.getPropertyValue("--ride-options-drag-offset"),
+  ) || 0;
+  let nearest = names.reduce((best, name, index) =>
+    Math.abs(offsets[name] - currentOffset) < Math.abs(offsets[names[best]] - currentOffset)
+      ? index
+      : best, 0);
+
+  if (!cancelled && Math.abs(drag.velocity) > 0.5) {
+    nearest = Math.max(0, Math.min(names.length - 1, nearest + Math.sign(drag.velocity)));
+  }
+  suppressNextSheetClick = drag.moved;
+  setSheetSnap(names[nearest]);
+  window.setTimeout(() => {
+    suppressNextSheetClick = false;
+  }, 0);
+}
+
 function setServerFare(ride) {
   const serverFare = ride.fare?.rideTotal ?? ride.fare?.total;
   if (typeof serverFare === "number" && Number.isFinite(serverFare)) {
@@ -156,6 +340,8 @@ function openSheet(route) {
   clearErrors();
   updateFareEstimate();
   sheet.hidden = false;
+  sheet.classList.remove("is-closing");
+  setSheetSnap("half");
   plannerScreen.setAttribute("aria-hidden", "true");
   document.body.classList.add("ride-options-open");
   requestAnimationFrame(() => sheet.classList.add("is-open"));
@@ -164,7 +350,10 @@ function openSheet(route) {
 
 function finishCloseSheet(restoreFocus, afterClose) {
   sheet.hidden = true;
-  sheet.classList.remove("is-closing");
+  sheet.classList.remove("is-closing", "is-collapsed", "is-half", "is-expanded");
+  sheetPanel.classList.remove("is-dragging");
+  dragOffsetRule.style.removeProperty("--ride-options-drag-offset");
+  activeDrag = null;
   plannerScreen.removeAttribute("aria-hidden");
   document.body.classList.remove("ride-options-open");
   if (restoreFocus && returnFocusTarget?.isConnected && !returnFocusTarget.hidden) {
@@ -179,6 +368,9 @@ function closeSheet({ restoreFocus = true, afterClose = null } = {}) {
     return;
   }
   sheet.classList.remove("is-open");
+  sheetPanel.classList.remove("is-dragging");
+  dragOffsetRule.style.removeProperty("--ride-options-drag-offset");
+  activeDrag = null;
   if (!reducedMotion.matches) {
     sheet.classList.add("is-closing");
   }
@@ -188,7 +380,7 @@ function closeSheet({ restoreFocus = true, afterClose = null } = {}) {
   closingTimer = window.setTimeout(() => {
     closingTimer = null;
     finishCloseSheet(restoreFocus, afterClose);
-  }, reducedMotion.matches ? 0 : 220);
+  }, reducedMotion.matches ? 0 : 240);
 }
 
 function showExistingRide(ride) {
@@ -365,7 +557,7 @@ async function createRideRequest() {
     await showFriendlyCreateError(error, riderUser, attemptStartedAt || Date.now());
   } finally {
     isSubmitting = false;
-    continueButton.textContent = "Continue";
+    continueButton.textContent = "Select Keke";
     updateFareEstimate();
   }
 }
@@ -437,6 +629,43 @@ closeButton.addEventListener("click", () => {
 document.querySelector("[data-ride-options-close]").addEventListener("click", () => {
   clearErrors();
   closeSheet();
+});
+
+dragArea.addEventListener("pointerdown", (event) => {
+  if (event.target.closest("#ride-options-close")) {
+    return;
+  }
+  beginSheetDrag(event, "header");
+});
+sheetScroll.addEventListener("pointerdown", (event) => {
+  beginSheetDrag(event, "scroll", sheetScroll.scrollTop);
+});
+sheet.addEventListener("pointermove", (event) => {
+  if (activeDrag) {
+    moveSheetPointer(event, activeDrag.source);
+  }
+});
+sheet.addEventListener("pointerup", (event) => finishSheetPointer(event));
+sheet.addEventListener("pointercancel", (event) => finishSheetPointer(event, true));
+
+sheet.addEventListener("click", (event) => {
+  if (!suppressNextSheetClick) {
+    return;
+  }
+  event.preventDefault();
+  event.stopPropagation();
+  suppressNextSheetClick = false;
+}, true);
+
+grabberButton.addEventListener("click", toggleSheetSnap);
+grabberButton.addEventListener("keydown", (event) => {
+  if (event.key === "ArrowUp") {
+    event.preventDefault();
+    snapFromKeyboard(-1);
+  } else if (event.key === "ArrowDown") {
+    event.preventDefault();
+    snapFromKeyboard(1);
+  }
 });
 
 scheduleButton.addEventListener("click", () => {
