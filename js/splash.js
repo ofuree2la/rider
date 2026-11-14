@@ -1,6 +1,5 @@
 import { getCurrentUser } from "./supabase-api.js";
 
-const SPLASH_SESSION_KEY = "rider.splash.seen";
 const STANDARD_DELAY_MS = 2000;
 const REDUCED_MOTION_DELAY_MS = 350;
 
@@ -17,9 +16,9 @@ async function getDestination() {
   }
 }
 
-function redirectTo(destination, sessionStorageAvailable = true) {
+function redirectTo(destination) {
   const url = new URL(destination, window.location.href);
-  if (!sessionStorageAvailable && destination === "index.html") {
+  if (destination === "index.html") {
     url.searchParams.set("splash", "complete");
   }
   window.location.replace(url.href);
@@ -34,31 +33,12 @@ async function startSplash() {
       return;
     }
 
-    try {
-      if (window.sessionStorage.getItem(SPLASH_SESSION_KEY) === "true") {
-        return;
-      }
-    } catch (error) {
-      console.warn("Session storage is unavailable; showing the splash with a one-time URL fallback.", error);
-    }
-
     window.location.replace(new URL("splash.html", window.location.href).href);
     return;
   }
 
   if (!document.body.hasAttribute("data-splash-screen")) {
     return;
-  }
-
-  let sessionStorageAvailable = true;
-  try {
-    if (window.sessionStorage.getItem(SPLASH_SESSION_KEY) === "true") {
-      redirectTo(await getDestination());
-      return;
-    }
-  } catch (error) {
-    sessionStorageAvailable = false;
-    console.warn("Session storage is unavailable; the splash will use a one-time URL fallback.", error);
   }
 
   const reducedMotion = isReducedMotionPreferred();
@@ -68,17 +48,8 @@ async function startSplash() {
 
   window.setTimeout(async () => {
     splashScreen.classList.add("is-leaving");
-    window.setTimeout(() => {
-      if (sessionStorageAvailable) {
-        try {
-          window.sessionStorage.setItem(SPLASH_SESSION_KEY, "true");
-        } catch (error) {
-          sessionStorageAvailable = false;
-          console.warn("Could not save the Rider splash session; using a one-time URL fallback.", error);
-        }
-      }
-
-      redirectTo(await getDestination(), sessionStorageAvailable);
+    window.setTimeout(async () => {
+      redirectTo(await getDestination());
     }, leaveDelay);
   }, delay - leaveDelay);
 }
