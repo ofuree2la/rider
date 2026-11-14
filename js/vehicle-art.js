@@ -98,6 +98,13 @@ const VEHICLES = {
 
 let nextTitleId = 0;
 
+export function getRideVehicleArtType(ride) {
+  if (ride.serviceType === "delivery" || ride.vehicleType === "bike") {
+    return "bike";
+  }
+  return ride.vehicleType === "minivan" ? "minivan" : "keke";
+}
+
 export function createVehicleArt(type, animated = false) {
   const vehicle = VEHICLES[type];
   if (!vehicle) {

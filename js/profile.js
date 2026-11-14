@@ -8,6 +8,7 @@ import {
 } from "./supabase-api.js?v=account-details";
 import { attachPhotoPicker } from "./photo-picker.js";
 import { createLoadingState } from "./loading.js";
+import { createVehicleArt } from "./vehicle-art.js?v=vehicle-art-everywhere";
 
 const expectedRole = document.body.dataset.accountRole;
 const form = document.querySelector("#profile-form");
@@ -30,6 +31,7 @@ const profilePhotoInitials = document.querySelector("#profile-photo-initials");
 const profileDisplayName = document.querySelector("#profile-display-name");
 const driverApprovalStatus = document.querySelector("#driver-approval-status");
 const driverProfileRating = document.querySelector("#driver-profile-rating");
+const driverVehicleArt = document.querySelector("#driver-vehicle-art");
 const logoutButton = document.querySelector("#logout-button");
 const isDriverPage = window.location.pathname.includes("/driver/");
 const photoPicker = profilePhotoInput
@@ -90,6 +92,12 @@ async function loadProfile() {
       { bike: "Bike · delivery only", keke: "Keke · up to 4 passengers", minivan: "Mini bus · up to 6 passengers" }[
         driver.vehicleType
       ] ?? "Vehicle";
+    if (driverVehicleArt) {
+      const artType = driver.vehicleType === "bike" ? "bike" : driver.vehicleType === "minivan" ? "minivan" : "keke";
+      const art = createVehicleArt(artType);
+      art.classList.add("vehicle-art--small");
+      driverVehicleArt.replaceChildren(art);
+    }
     driverApprovalStatus.textContent = driver.status ?? "Status unavailable";
     driverApprovalStatus.dataset.status = driver.status ?? "";
     if (Number.isFinite(driver.rating) && driver.rating > 0) {

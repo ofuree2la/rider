@@ -5,7 +5,7 @@ import { mountRideChat } from "./ride-chat.js";
 import { supabase } from "./supabase-client.js";
 import { clearSavedBookingConfirmation, confirmRideCancellation } from "./cancel-ride-dialog.js";
 import { mountNoRideAvailablePrompt } from "./no-ride-available.js";
-import { createVehicleIcon } from "./vehicle-icons.js";
+import { createVehicleArt, getRideVehicleArtType } from "./vehicle-art.js?v=vehicle-art-everywhere";
 
 const rideId = new URLSearchParams(window.location.search).get("id");
 const paymentResult = new URLSearchParams(window.location.search).get("payment");
@@ -257,8 +257,13 @@ function renderRide() {
   trackingContent.hidden = false;
   illustratedHeader.hidden = false;
   const vehicleType = ride.driver?.vehicleType ?? ride.vehicleType ?? "keke";
-  illustratedVehicle.replaceChildren(createVehicleIcon(vehicleType, { animated: true }));
-  driverVehicleArt.replaceChildren(createVehicleIcon(vehicleType, { animated: true }));
+  const artType = getRideVehicleArtType({ serviceType: ride.serviceType, vehicleType });
+  const headerArt = createVehicleArt(artType);
+  const driverArt = createVehicleArt(artType);
+  headerArt.classList.add("vehicle-art--small");
+  driverArt.classList.add("vehicle-art--small");
+  illustratedVehicle.replaceChildren(headerArt);
+  driverVehicleArt.replaceChildren(driverArt);
   illustratedTitle.textContent = getStatusLabel(ride.status);
   illustratedCaption.textContent = ride.status === "finding"
     ? "Your request is being shared with available drivers."

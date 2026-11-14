@@ -17,9 +17,9 @@
 }
 
 .ride-options-panel {
-  --ride-options-collapsed-height: min(400px, 66vh);
+  --ride-options-collapsed-height: min(460px, 72vh);
   --ride-options-half-height: min(620px, 78vh);
-  --ride-options-collapsed-height: min(400px, 66dvh);
+  --ride-options-collapsed-height: min(460px, 72dvh);
   --ride-options-half-height: min(620px, 78dvh);
   position: relative;
   z-index: 1;
@@ -171,6 +171,76 @@
   color: var(--color-brand);
   font-size: 0.8rem;
   font-weight: 800;
+}
+
+.ride-options-passengers {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  min-height: 64px;
+  margin-bottom: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: #fff;
+}
+
+.ride-options-passenger-copy {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.ride-options-passenger-label {
+  color: var(--color-ink);
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+
+.ride-options-passenger-limit {
+  color: var(--color-slate);
+  font-size: 0.74rem;
+  font-weight: 600;
+}
+
+.ride-options-passenger-stepper {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.ride-options-passenger-stepper button {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: #f8faf8;
+  color: var(--color-forest);
+  font: inherit;
+  font-size: 1.2rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.ride-options-passenger-stepper button:disabled {
+  color: #78827b;
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.ride-options-passenger-stepper button:focus-visible {
+  outline: 3px solid rgba(22, 130, 75, 0.45);
+  outline-offset: 2px;
+}
+
+.ride-options-passenger-stepper output {
+  min-width: 90px;
+  color: var(--color-ink);
+  font-size: 0.8rem;
+  font-weight: 800;
+  text-align: center;
 }
 
 .ride-options-vehicle-list {

@@ -2,6 +2,8 @@ import "./notifications.js";
 import { cancelRideRequest, getRide, getRides } from "./supabase-api.js";
 import { clearSavedBookingConfirmation, confirmRideCancellation } from "./cancel-ride-dialog.js";
 
+import { createVehicleArt, getRideVehicleArtType } from "./vehicle-art.js?v=vehicle-art-everywhere";
+
 const rideGroups = document.querySelector("#activity-groups");
 const loadingElement = document.querySelector("#history-loading");
 const emptyElement = document.querySelector("#activity-empty");
@@ -88,25 +90,11 @@ function getVehicleLabel(ride) {
 
 function makeVehicleIllustration(ride) {
   const tile = document.createElement("span");
-  const vehicleClass =
-    ride.serviceType === "delivery" || ride.vehicleType === "bike"
-      ? "bike"
-      : ride.vehicleType === "minivan"
-        ? "minivan"
-        : "keke";
-  tile.className = `activity-vehicle activity-vehicle--${vehicleClass}`;
+  tile.className = "activity-vehicle";
   tile.setAttribute("aria-hidden", "true");
-
-  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-  svg.setAttribute("viewBox", "0 0 64 48");
-  svg.setAttribute("focusable", "false");
-  svg.innerHTML =
-    ride.serviceType === "delivery" || ride.vehicleType === "bike"
-      ? '<circle cx="17" cy="35" r="7"/><circle cx="48" cy="35" r="7"/><path d="m17 35 10-17 10 17H17l9-10h13l9 10M26 18h-6"/>'
-      : ride.vehicleType === "minivan"
-        ? '<path d="M8 13h34l10 11v13H8z"/><path d="M42 14v11h10M14 18h11v9H14zM29 18h9v9h-9z"/><circle cx="19" cy="37" r="4"/><circle cx="45" cy="37" r="4"/>'
-        : '<path d="M14 37h34V23L40 15H24l-10 8z"/><path d="M24 16v12h17V16M13 25h-5M20 37a4 4 0 1 0 8 0m11 0a4 4 0 1 0 8 0"/> ';
-  tile.append(svg);
+  const art = createVehicleArt(getRideVehicleArtType(ride));
+  art.classList.add("vehicle-art--small");
+  tile.append(art);
   return tile;
 }
 

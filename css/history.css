@@ -121,28 +121,13 @@
   flex: 0 0 64px;
   place-items: center;
   border-radius: var(--radius-md);
-  background: var(--color-forest-soft);
+  background: #f2f7f3;
   color: var(--color-brand-dark);
 }
 
-.activity-vehicle--minivan {
-  background: #edf0fc;
-  color: #424e8b;
-}
-
-.activity-vehicle--bike {
-  background: #fff3df;
-  color: #92610c;
-}
-
 .activity-vehicle svg {
-  width: 52px;
-  height: 42px;
-  fill: none;
-  stroke: currentColor;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  stroke-width: 2.4;
+  width: min(100%, 56px);
+  height: auto;
 }
 
 .activity-ride-content {

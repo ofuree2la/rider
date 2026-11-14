@@ -791,6 +791,11 @@ function setPassengerCount(nextCount) {
   }));
 }
 
+window.addEventListener("rider:ride-options-passengers-changed", (event) => {
+  passengerCount = Math.max(1, Math.min(4, Number(event.detail?.passengers) || 1));
+  updatePassengerChip();
+});
+
 passengerDecrease.addEventListener("click", () => setPassengerCount(passengerCount - 1));
 passengerIncrease.addEventListener("click", () => setPassengerCount(passengerCount + 1));
 clearPickupButton.addEventListener("click", () => clearLocation("pickup"));

@@ -12,7 +12,7 @@ import { isOnlinePaymentConfigured } from "./payment.js";
 import { supabase } from "./supabase-client.js";
 import { clearSavedBookingConfirmation, confirmRideCancellation } from "./cancel-ride-dialog.js";
 import { mountNoRideAvailablePrompt } from "./no-ride-available.js";
-import { createVehicleIcon } from "./vehicle-icons.js";
+import { createVehicleArt, getRideVehicleArtType } from "./vehicle-art.js?v=vehicle-art-everywhere";
 
 const form = document.querySelector("#booking-form");
 const pickupInput = document.querySelector("#pickup");
@@ -497,7 +497,12 @@ function showSubmittedRide(ride, restored = false) {
   };
   const progress = progressByStatus[ride.status] ?? 15;
   const vehicleType = ride.driver?.vehicleType ?? ride.vehicleType ?? "keke";
-  matchLiveVehicle.replaceChildren(createVehicleIcon(vehicleType, { animated: true }));
+  const vehicleArt = createVehicleArt(getRideVehicleArtType({
+    serviceType: ride.serviceType,
+    vehicleType,
+  }));
+  vehicleArt.classList.add("vehicle-art--small");
+  matchLiveVehicle.replaceChildren(vehicleArt);
   matchProgressFill.dataset.progress = String(progress);
   matchProgressTrack.setAttribute("aria-valuenow", String(progress));
   const driverName = ride.driver?.name?.trim() ?? "";

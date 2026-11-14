@@ -11,15 +11,15 @@
     <link rel="stylesheet" href="css/components.css" />
     <link rel="stylesheet" href="css/booking.css?v=vehicles" />
     <link rel="stylesheet" href="css/planner.css?v=ride-options-step5" />
-    <link rel="stylesheet" href="css/ride-options.css?v=draggable-sheet-step3b" />
+    <link rel="stylesheet" href="css/ride-options.css?v=passenger-stepper-step4" />
     <link rel="stylesheet" href="css/vehicle-icons.css?v=shared-icons-step2" />
-    <link rel="stylesheet" href="css/vehicle-art.css?v=vehicle-art-options-step3" />
+    <link rel="stylesheet" href="css/vehicle-art.css?v=vehicle-art-everywhere" />
     <link rel="stylesheet" href="css/cancellation.css" />
     <link rel="stylesheet" href="css/bottom-nav.css" />
     <link rel="stylesheet" href="css/mobile.css" />
-    <script type="module" src="js/planner.js?v=ride-options-step5"></script>
-    <script type="module" src="js/ride-options.js?v=draggable-sheet-step3b"></script>
-    <script type="module" src="js/booking.js?v=ride-options-step5"></script>
+    <script type="module" src="js/planner.js?v=passenger-stepper-step4"></script>
+    <script type="module" src="js/ride-options.js?v=passenger-stepper-step4"></script>
+    <script type="module" src="js/booking.js?v=vehicle-art-everywhere"></script>
     <script src="js/bottom-nav.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/animejs@3.2.2/lib/anime.min.js" defer></script>
     <script src="js/motion.js" defer></script>
@@ -312,6 +312,18 @@
             <span id="ride-options-route-text"></span>
             <span class="ride-options-edit">Edit</span>
           </button>
+
+          <div class="ride-options-passengers" role="group" aria-label="Choose passenger count">
+            <span class="ride-options-passenger-copy">
+              <span class="ride-options-passenger-label">Passengers</span>
+              <span class="ride-options-passenger-limit">Up to 4 for Keke</span>
+            </span>
+            <div class="ride-options-passenger-stepper">
+              <button id="ride-options-passenger-decrease" type="button" aria-label="Remove one passenger">−</button>
+              <output id="ride-options-passenger-count" aria-live="polite">1</output>
+              <button id="ride-options-passenger-increase" type="button" aria-label="Add one passenger">+</button>
+            </div>
+          </div>
 
           <div class="ride-options-vehicle-list" role="group" aria-label="Ride types">
             <button id="ride-option-keke" class="ride-option-row is-selected" type="button" aria-pressed="true">

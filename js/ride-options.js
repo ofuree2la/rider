@@ -1,6 +1,6 @@
 import { calculateFare, loadFareConfig } from "./pricing.js";
 import { createRide, getCurrentUser, getRides } from "./supabase-api.js";
-import { createVehicleArt } from "./vehicle-art.js";
+import { createVehicleArt } from "./vehicle-art.js?v=vehicle-art-everywhere";
 
 const plannerScreen = document.querySelector("#planner-screen");
 const sheet = document.querySelector("#ride-options-sheet");
@@ -22,6 +22,9 @@ const cancelRequestButton = document.querySelector("#ride-options-cancel-request
 const continueButton = document.querySelector("#ride-options-continue");
 const scheduleButton = document.querySelector("#ride-options-schedule");
 const paymentMethod = document.querySelector("#ride-options-payment-method");
+const passengerDecrease = document.querySelector("#ride-options-passenger-decrease");
+const passengerValue = document.querySelector("#ride-options-passenger-count");
+const passengerIncrease = document.querySelector("#ride-options-passenger-increase");
 const vehicleIconRoot = document.querySelector("#ride-option-icon");
 const vehicleOptions = [
   ["keke", vehicleIconRoot],
@@ -49,6 +52,7 @@ let returnFocusTarget = null;
 let closingTimer = null;
 let activeDrag = null;
 let suppressNextSheetClick = false;
+const MAX_KEKE_PASSENGERS = 4;
 
 const rideOptionsStylesheet = [...document.styleSheets].find((stylesheet) =>
   stylesheet.href && new URL(stylesheet.href).pathname.endsWith("/css/ride-options.css"),
@@ -154,10 +158,25 @@ function updateFareEstimate() {
   }
 }
 
+function updatePassengerControls() {
+  passengerValue.textContent = `${passengerCount} ${passengerCount === 1 ? "passenger" : "passengers"}`;
+  passengerDecrease.disabled = passengerCount <= 1;
+  passengerIncrease.disabled = passengerCount >= MAX_KEKE_PASSENGERS;
+}
+
+function setPassengerCount(nextCount) {
+  passengerCount = Math.max(1, Math.min(MAX_KEKE_PASSENGERS, nextCount));
+  updatePassengerControls();
+  updateFareEstimate();
+  window.dispatchEvent(new CustomEvent("rider:ride-options-passengers-changed", {
+    detail: { passengers: passengerCount },
+  }));
+}
+
 function getSheetOffsets() {
   const viewportHeight = window.visualViewport?.height ?? window.innerHeight;
   const panelHeight = sheetPanel.getBoundingClientRect().height;
-  const collapsedHeight = Math.min(400, viewportHeight * 0.66);
+  const collapsedHeight = Math.min(460, viewportHeight * 0.72);
   const halfHeight = Math.min(620, viewportHeight * 0.78);
   return {
     expanded: 0,
@@ -332,7 +351,8 @@ function openSheet(route) {
     return;
   }
   selectedRoute = route;
-  passengerCount = Number(route.passengers) || passengerCount;
+  passengerCount = Math.max(1, Math.min(MAX_KEKE_PASSENGERS, Number(route.passengers) || passengerCount));
+  updatePassengerControls();
   timing = route.timing === "scheduled" ? "scheduled" : "now";
   scheduledAt = timing === "scheduled" ? route.scheduledAt : null;
   returnFocusTarget = document.querySelector("#planner-destination");
@@ -564,7 +584,8 @@ async function createRideRequest() {
 
 function handleScheduleSelection(event) {
   const selection = event.detail;
-  passengerCount = Number(selection.passengers) || passengerCount;
+  passengerCount = Math.max(1, Math.min(MAX_KEKE_PASSENGERS, Number(selection.passengers) || passengerCount));
+  updatePassengerControls();
   timing = selection.timing === "scheduled" ? "scheduled" : "now";
   scheduledAt = timing === "scheduled" ? selection.scheduledAt : null;
   updateFareEstimate();
@@ -620,6 +641,9 @@ document.querySelector("#ride-option-keke").addEventListener("click", () => {
   clearErrors();
   updateFareEstimate();
 });
+
+passengerDecrease.addEventListener("click", () => setPassengerCount(passengerCount - 1));
+passengerIncrease.addEventListener("click", () => setPassengerCount(passengerCount + 1));
 
 closeButton.addEventListener("click", () => {
   clearErrors();
@@ -726,3 +750,4 @@ void loadFareConfig().catch((error) => {
 });
 
 updateFareEstimate();
+updatePassengerControls();

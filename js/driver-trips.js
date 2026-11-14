@@ -10,6 +10,7 @@ import {
 } from "./supabase-api.js";
 import { mountRideChat } from "./ride-chat.js";
 import { createLoadingState } from "./loading.js";
+import { createVehicleArt, getRideVehicleArtType } from "./vehicle-art.js?v=vehicle-art-everywhere";
 
 const driverNameHeading = document.querySelector("#driver-name-heading");
 const requestHeading = document.querySelector("#incoming-title");
@@ -99,6 +100,14 @@ function formatRideTime(value) {
   return Number.isNaN(parsedDate.getTime())
     ? "Pickup time unavailable"
     : dateFormatter.format(parsedDate);
+}
+
+function renderRideVehicleArt(root) {
+  root.querySelectorAll("[data-vehicle-art]").forEach((container) => {
+    const art = createVehicleArt(container.dataset.vehicleArt);
+    art.classList.add("vehicle-art--small");
+    container.replaceChildren(art);
+  });
 }
 
 function fadeOutCard(card, onComplete = () => {}, removeAfterFade = true) {
@@ -386,6 +395,9 @@ async function renderRequests() {
         <span class="request-rider-avatar" aria-hidden="true">R</span>
         <span>Rider</span>
       </div>
+      <div class="driver-ride-visual">
+        <span class="driver-ride-art" data-vehicle-art="${getRideVehicleArtType(ride)}" aria-hidden="true"></span>
+      </div>
       <div class="request-top">
         <h3>${escapeHtml(ride.pickup?.name ?? "Pickup")} to ${escapeHtml(ride.destination?.name ?? "Destination")}</h3>
         <span class="badge">${ride.serviceType === "delivery" ? "Delivery" : ride.timing === "scheduled" ? "Scheduled" : "Now"}</span>
@@ -410,6 +422,7 @@ async function renderRequests() {
     </article>
   `;
   }).join("");
+  renderRideVehicleArt(requestList);
   exitingRequestCards.forEach((card) => requestList.append(card));
   renderRequestExpiredNote();
   updateRequestCountdowns();
@@ -479,6 +492,9 @@ function renderActiveRide(rides) {
   activeRideCard.style.maxHeight = "";
   activeRideCard.className = "active-ride-card";
   activeRideCard.innerHTML = `
+    <div class="driver-ride-visual">
+      <span class="driver-ride-art" data-vehicle-art="${getRideVehicleArtType(activeRide)}" aria-hidden="true"></span>
+    </div>
     <div class="trip-top">
       <h3>${escapeHtml(activeRide.pickup?.name ?? "Pickup")} to ${escapeHtml(activeRide.destination?.name ?? "Destination")}</h3>
       <span class="status-pill">${escapeHtml(activeRide.status.replace("-", " "))}</span>
@@ -501,6 +517,7 @@ function renderActiveRide(rides) {
       <button type="button" class="btn btn-primary" data-action="advance-status" data-ride-id="${escapeHtml(activeRide.id)}" ${waitingForPayment ? "disabled" : ""}>${waitingForPayment ? "Waiting for rider payment" : actionInfo.label}</button>
     </div>
   `;
+  renderRideVehicleArt(activeRideCard);
 
   driverChatCard.hidden = false;
   if (driverChatRideId !== activeRide.id) {
@@ -520,6 +537,9 @@ function renderScheduledRides(rides) {
 
   scheduledRides.innerHTML = scheduled.map((ride) => `
     <article class="scheduled-item">
+      <div class="driver-ride-visual">
+        <span class="driver-ride-art" data-vehicle-art="${getRideVehicleArtType(ride)}" aria-hidden="true"></span>
+      </div>
       <div class="scheduled-meta">
         <h3>${escapeHtml(ride.pickup?.name ?? "Pickup")} to ${escapeHtml(ride.destination?.name ?? "Destination")}</h3>
         <span class="badge">${escapeHtml(ride.status)}</span>
@@ -530,6 +550,7 @@ function renderScheduledRides(rides) {
       </div>
     </article>
   `).join("");
+  renderRideVehicleArt(scheduledRides);
 }
 
 function renderRideHistory(rides) {
@@ -541,6 +562,9 @@ function renderRideHistory(rides) {
 
   rideHistoryList.innerHTML = history.map((ride) => `
     <article class="scheduled-item">
+      <div class="driver-ride-visual">
+        <span class="driver-ride-art" data-vehicle-art="${getRideVehicleArtType(ride)}" aria-hidden="true"></span>
+      </div>
       <div class="scheduled-meta">
         <h3>${escapeHtml(ride.pickup?.name ?? "Pickup")} to ${escapeHtml(ride.destination?.name ?? "Destination")}</h3>
         <span class="badge">${escapeHtml(ride.status)}</span>
@@ -551,6 +575,7 @@ function renderRideHistory(rides) {
       </div>
     </article>
   `).join("");
+  renderRideVehicleArt(rideHistoryList);
 }
 
 async function refreshTrips() {
