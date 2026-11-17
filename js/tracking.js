@@ -13,6 +13,9 @@ const trackingError = document.querySelector("#tracking-error");
 const trackingStatus = document.querySelector("#tracking-status");
 const trackingContent = document.querySelector("#tracking-content");
 const trackingLoading = document.querySelector("#tracking-loading");
+const rideCompletedScreen = document.querySelector("#ride-completed-screen");
+const trackingPageHeading = document.querySelector(".journey-shell > .page-heading");
+const trackingFooterLinks = document.querySelector(".journey-footer-link");
 const illustratedHeader = document.querySelector("#ride-illustrated-header");
 const illustratedVehicle = document.querySelector("#ride-vehicle-illustration");
 const illustratedTitle = document.querySelector("#ride-illustrated-title");
@@ -94,7 +97,9 @@ let chatRideId = null;
 let chatCleanup = null;
 let pendingReplacementInput = null;
 let pendingReplacementSource = null;
+let rideCompletedRedirectTimer = null;
 const REFRESH_INTERVAL_MS = 45_000;
+const COMPLETION_CONFIRMATION_MS = 3_000;
 const noRidePrompt = mountNoRideAvailablePrompt(trackingNoRidePromptRoot, {
   onTryAgain: handleTryAgain,
   onCancel: handleRideCancellation,
@@ -130,6 +135,27 @@ function showStatus(message) {
 function hideMessages() {
   trackingError.hidden = true;
   trackingStatus.hidden = true;
+}
+
+function showRideCompleted() {
+  if (rideCompletedRedirectTimer !== null) {
+    return;
+  }
+
+  clearSavedBookingConfirmation(ride.id);
+  cleanupRideTracking();
+  trackingPageHeading.hidden = true;
+  trackingError.hidden = true;
+  trackingStatus.hidden = true;
+  trackingLoading.hidden = true;
+  trackingContent.hidden = true;
+  trackingRetryCard.hidden = true;
+  illustratedHeader.hidden = true;
+  trackingFooterLinks.hidden = true;
+  rideCompletedScreen.hidden = false;
+  rideCompletedRedirectTimer = window.setTimeout(() => {
+    window.location.replace(new URL("book.html", window.location.href).href);
+  }, COMPLETION_CONFIRMATION_MS);
 }
 
 function getStageIndex(status) {
@@ -339,6 +365,11 @@ function renderRide() {
   renderRating();
   renderPayment();
 
+  if (ride.status === "completed") {
+    showRideCompleted();
+    return;
+  }
+
   if (ride.status === "cancelled") {
     showStatus(`This ${ride.serviceType === "delivery" ? "delivery" : "booking"} was cancelled.`);
   } else if (ride.status === "accepted" && riderName) {
@@ -449,6 +480,10 @@ function cleanupRideTracking() {
   if (refreshTimer !== null) {
     window.clearInterval(refreshTimer);
     refreshTimer = null;
+  }
+  if (rideCompletedRedirectTimer !== null) {
+    window.clearTimeout(rideCompletedRedirectTimer);
+    rideCompletedRedirectTimer = null;
   }
   document.removeEventListener("visibilitychange", handleTrackingVisibility);
   window.removeEventListener("pagehide", cleanupRideTracking);
@@ -741,6 +776,9 @@ async function startTrackingPage() {
   trackingInitialized = true;
 
   renderRide();
+  if (ride.status === "completed") {
+    return;
+  }
   startRideRealtimeUpdates();
   refreshTimer = window.setInterval(refreshRideStatus, REFRESH_INTERVAL_MS);
   document.addEventListener("visibilitychange", handleTrackingVisibility);

@@ -134,6 +134,74 @@
   margin: 0;
 }
 
+.ride-completed-screen[hidden] {
+  display: none;
+}
+
+.ride-completed-screen {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-4);
+  width: min(100%, 520px);
+  min-height: min(62svh, 520px);
+  margin: clamp(2rem, 12vh, 7rem) auto;
+  padding: clamp(1.5rem, 6vw, 3rem);
+  text-align: center;
+}
+
+.ride-completed-tick {
+  display: grid;
+  width: clamp(76px, 22vw, 104px);
+  aspect-ratio: 1;
+  place-items: center;
+  border: 1px solid rgba(22, 130, 75, 0.18);
+  border-radius: 50%;
+  background: var(--color-brand-soft);
+  color: var(--color-brand-dark);
+}
+
+.ride-completed-tick svg {
+  width: 58%;
+  height: 58%;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 4;
+  animation: ride-completed-check 420ms ease-out both;
+}
+
+.ride-completed-screen h1,
+.ride-completed-screen p {
+  margin: 0;
+}
+
+.ride-completed-screen h1 {
+  color: var(--color-ink);
+  font-size: clamp(1.7rem, 7vw, 2.4rem);
+  line-height: var(--line-height-heading);
+}
+
+.ride-completed-screen p {
+  max-width: 30ch;
+}
+
+.ride-completed-screen .btn {
+  min-width: min(100%, 240px);
+  margin-top: var(--space-2);
+}
+
+@keyframes ride-completed-check {
+  from {
+    opacity: 0;
+    transform: scale(0.7);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 .tracking-layout {
   display: grid;
   gap: 1rem;
@@ -732,6 +800,10 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .ride-completed-tick svg {
+    animation: none;
+  }
+
   .progress-fill {
     transition: none;
   }
