@@ -98,8 +98,10 @@ let chatCleanup = null;
 let pendingReplacementInput = null;
 let pendingReplacementSource = null;
 let rideCompletedRedirectTimer = null;
+let rideCompletedCollapseTimer = null;
 const REFRESH_INTERVAL_MS = 45_000;
-const COMPLETION_CONFIRMATION_MS = 3_000;
+const COMPLETION_CONFIRMATION_MS = 1_500;
+const COMPLETION_COLLAPSE_MS = 400;
 const noRidePrompt = mountNoRideAvailablePrompt(trackingNoRidePromptRoot, {
   onTryAgain: handleTryAgain,
   onCancel: handleRideCancellation,
@@ -152,9 +154,20 @@ function showRideCompleted() {
   trackingRetryCard.hidden = true;
   illustratedHeader.hidden = true;
   trackingFooterLinks.hidden = true;
+  rideCompletedScreen.classList.remove("is-active", "is-leaving");
   rideCompletedScreen.hidden = false;
+  requestAnimationFrame(() => rideCompletedScreen.classList.add("is-active"));
   rideCompletedRedirectTimer = window.setTimeout(() => {
-    window.location.replace(new URL("book.html", window.location.href).href);
+    rideCompletedRedirectTimer = null;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      window.location.replace(new URL("book.html", window.location.href).href);
+      return;
+    }
+    rideCompletedScreen.classList.add("is-leaving");
+    rideCompletedCollapseTimer = window.setTimeout(() => {
+      rideCompletedCollapseTimer = null;
+      window.location.replace(new URL("book.html", window.location.href).href);
+    }, COMPLETION_COLLAPSE_MS);
   }, COMPLETION_CONFIRMATION_MS);
 }
 
@@ -484,6 +497,10 @@ function cleanupRideTracking() {
   if (rideCompletedRedirectTimer !== null) {
     window.clearTimeout(rideCompletedRedirectTimer);
     rideCompletedRedirectTimer = null;
+  }
+  if (rideCompletedCollapseTimer !== null) {
+    window.clearTimeout(rideCompletedCollapseTimer);
+    rideCompletedCollapseTimer = null;
   }
   document.removeEventListener("visibilitychange", handleTrackingVisibility);
   window.removeEventListener("pagehide", cleanupRideTracking);

@@ -10,7 +10,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="css/base.css" />
     <link rel="stylesheet" href="css/components.css" />
-    <link rel="stylesheet" href="css/tracking.css?v=ride-completed-redirect" />
+    <link rel="stylesheet" href="css/tracking.css?v=ride-completed-animation" />
     <link rel="stylesheet" href="css/vehicle-art.css?v=vehicle-art-everywhere" />
     <link rel="stylesheet" href="css/cancellation.css" />
     <link rel="stylesheet" href="css/chat.css" />
@@ -18,7 +18,7 @@
     <link rel="stylesheet" href="css/vehicle-icons.css?v=shared-icons-step2" />
     <link rel="stylesheet" href="css/bottom-nav.css" />
     <link rel="stylesheet" href="css/mobile.css" />
-    <script type="module" src="js/tracking.js?v=ride-completed-redirect"></script>
+    <script type="module" src="js/tracking.js?v=ride-completed-animation"></script>
     <script src="js/bottom-nav.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/animejs@3.2.2/lib/anime.min.js" defer></script>
     <script src="js/motion.js" defer></script>
@@ -46,14 +46,16 @@
       </div>
 
       <section id="ride-completed-screen" class="journey-card ride-completed-screen" aria-labelledby="ride-completed-title" role="status" aria-live="polite" hidden>
-        <span class="ride-completed-tick" aria-hidden="true">
-          <svg viewBox="0 0 48 48" focusable="false">
-            <path d="m13 24 7.5 7.5L35 17" />
-          </svg>
-        </span>
-        <h1 id="ride-completed-title">Ride completed</h1>
-        <p>Your trip is complete. Taking you back to booking…</p>
-        <a id="ride-completed-continue" class="btn btn-primary" href="book.html">Back to booking</a>
+        <div class="ride-completed-content">
+          <span class="ride-completed-tick" aria-hidden="true">
+            <svg viewBox="0 0 48 48" focusable="false">
+              <path d="m13 24 7.5 7.5L35 17" />
+            </svg>
+          </span>
+          <h1 id="ride-completed-title">Ride completed</h1>
+          <p>Your trip is complete. Taking you back to booking…</p>
+          <a id="ride-completed-continue" class="btn btn-primary" href="book.html">Back to booking</a>
+        </div>
       </section>
 
       <div id="tracking-error" class="journey-message error-message" role="alert" hidden></div>
